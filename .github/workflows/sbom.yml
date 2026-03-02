@@ -59,7 +59,7 @@ jobs:
         run: docker pull "${{ inputs.docker_image }}"
 
       - name: Generate SPDX SBOM
-        uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
+        uses: anchore/sbom-action@17ae1740179002c89186b61233e0f892c3118b11 # v0.23.0
         with:
           image: ${{ inputs.docker_image }}
           format: spdx-json
@@ -67,7 +67,7 @@ jobs:
           upload-artifact: false
 
       - name: Generate CycloneDX SBOM
-        uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
+        uses: anchore/sbom-action@17ae1740179002c89186b61233e0f892c3118b11 # v0.23.0
         with:
           image: ${{ inputs.docker_image }}
           format: cyclonedx-json
