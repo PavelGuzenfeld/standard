@@ -55,7 +55,7 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
       - name: Checkout standard
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: PavelGuzenfeld/standard
 
