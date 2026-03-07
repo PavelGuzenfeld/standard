@@ -59,6 +59,8 @@ on:
         required: false
         description: 'GitHub App private key (PEM)'
 
+permissions: {}
+
 jobs:
   sync:
     name: Sync Version Files
