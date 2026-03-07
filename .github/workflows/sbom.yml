@@ -127,7 +127,7 @@ jobs:
           sparse-checkout: ${{ inputs.grype_ignore_file }}
 
       - name: Download container SBOM
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: container-sbom
 
@@ -174,12 +174,12 @@ jobs:
             ${{ inputs.license_check_script || inputs.license_policy_file }}
 
       - name: Download container SBOM
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: container-sbom
 
       - name: Download source SBOM
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: source-sbom
         continue-on-error: true
