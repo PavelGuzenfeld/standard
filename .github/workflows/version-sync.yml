@@ -59,13 +59,12 @@ on:
         required: false
         description: 'GitHub App private key (PEM)'
 
-permissions:
-  contents: write
-
 jobs:
   sync:
     name: Sync Version Files
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Check for GitHub App credentials
         id: app-check

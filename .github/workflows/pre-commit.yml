@@ -51,7 +51,7 @@ jobs:
         if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
         id: pre-commit-pr
         run: |
-          pip install pre-commit
+          pip install pre-commit==4.5.1
           pre-commit run --config "${{ inputs.config_file }}" --show-diff-on-failure --from-ref "origin/${{ github.base_ref }}" --to-ref HEAD 2>&1 | tee /tmp/pre-commit-output.txt || true
           git diff > /tmp/pre-commit-fixes.diff
           if [ -s /tmp/pre-commit-fixes.diff ]; then
