@@ -31,7 +31,7 @@ jobs:
     steps:
       - name: Check upstream workflow status
         id: check
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const workflowName = '${{ inputs.upstream_workflow }}';
@@ -67,7 +67,7 @@ jobs:
 
       - name: Create or update issue on failure
         if: steps.check.outputs.failed == 'true'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const title = '${{ inputs.issue_title }}';
@@ -117,7 +117,7 @@ jobs:
 
       - name: Close issue on recovery
         if: steps.check.outputs.failed == 'false'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const title = '${{ inputs.issue_title }}';
