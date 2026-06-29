@@ -417,7 +417,7 @@ jobs:
 
       - name: Restore build cache
         if: steps.changed.outputs.skip == 'false' && inputs.build_cache_key != ''
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
         with:
           path: ${{ steps.cache-paths.outputs.paths }}
           key: ${{ inputs.build_cache_key }}
@@ -1314,7 +1314,7 @@ jobs:
 
       - name: Restore build cache
         if: inputs.build_cache_key != ''
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
         with:
           path: ${{ steps.cache-paths.outputs.paths }}
           key: ${{ inputs.build_cache_key }}-sanitizer
@@ -1424,7 +1424,7 @@ jobs:
 
       - name: Restore build cache
         if: inputs.build_cache_key != ''
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
         with:
           path: ${{ steps.cache-paths.outputs.paths }}
           key: ${{ inputs.build_cache_key }}-tsan
@@ -1580,7 +1580,7 @@ jobs:
 
       - name: Restore build cache
         if: steps.changed.outputs.skip == 'false' && inputs.build_cache_key != ''
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
         with:
           path: ${{ steps.cache-paths.outputs.paths }}
           key: ${{ inputs.build_cache_key }}
@@ -1675,7 +1675,7 @@ jobs:
 
       - name: Restore build cache
         if: inputs.build_cache_key != ''
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
         with:
           path: ${{ steps.cache-paths.outputs.paths }}
           key: ${{ inputs.build_cache_key }}-coverage
@@ -1823,7 +1823,7 @@ jobs:
 
       - name: Restore build cache
         if: inputs.build_cache_key != ''
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
         with:
           path: ${{ steps.cache-paths.outputs.paths }}
           key: ${{ inputs.build_cache_key }}-hardening
