@@ -4,4 +4,4 @@ pytest-testmon>=2.2.0
 pytest-xdist>=3.8.0
 ruff>=0.16.1
 flake8>=7.3.0
-diff-cover>=10.4.1
+diff-cover>=10.4.2
