@@ -6,14 +6,18 @@ on:
   release:
     types: [published]
 
+# Read-only by default; each job is granted only what its callee declares.
 permissions:
-  contents: write
-  id-token: write
-  attestations: write
+  contents: read
 
 jobs:
   release:
     if: github.event_name == 'push'
+    # auto-release.yml tags, publishes the release and signs SLSA provenance.
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
     uses: ./.github/workflows/auto-release.yml
     with:
       enable_provenance: true
@@ -23,6 +27,9 @@ jobs:
 
   version-sync:
     if: github.event_name == 'release'
+    # version-sync.yml commits the bumped version files.
+    permissions:
+      contents: write
     uses: ./.github/workflows/version-sync.yml
     with:
       tag: ${{ github.event.release.tag_name }}
