@@ -165,6 +165,8 @@ jobs:
       && needs.container-sbom.result == 'success'
     needs: [container-sbom, source-sbom]
     runs-on: ${{ fromJSON(inputs.runner) }}
+    outputs:
+      graylisted: ${{ steps.graylist-count.outputs.graylisted }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -192,7 +194,8 @@ jobs:
           """Built-in license compliance checker for CycloneDX SBOMs.
 
           Reads a CycloneDX JSON SBOM and a YAML license policy, classifies every
-          component license as allowed / conditional / forbidden / unknown, and
+          component license as allowed / conditional / graylist / forbidden /
+          unknown, and
           produces a JSON report.
 
           Exit codes:
@@ -318,15 +321,20 @@ jobs:
 
 
           def classify(license_id: str, policy: dict) -> str:
-              """Classify a license as allowed/conditional/forbidden/unknown."""
+              """Classify a license as allowed/conditional/graylist/forbidden/unknown."""
               allowed = set(policy.get("allowed", []))
               conditional = set(policy.get("conditional", []))
+              graylist = set(policy.get("graylist", []))
               forbidden = set(policy.get("forbidden", []))
 
               if license_id in allowed:
                   return "allowed"
               if license_id in conditional:
                   return "conditional"
+              # Before forbidden on purpose: graylisting a license is how you carry a
+              # known, accepted exception without deleting the rule that flags it.
+              if license_id in graylist:
+                  return "graylist"
               if license_id in forbidden:
                   return "forbidden"
               return "unknown"
@@ -335,9 +343,16 @@ jobs:
           def check_sbom(sbom: dict, policy: dict) -> dict:
               """Check all components in an SBOM against the policy."""
               results = {
-                  "summary": {"allowed": 0, "conditional": 0, "forbidden": 0, "unknown": 0},
+                  "summary": {
+                      "allowed": 0,
+                      "conditional": 0,
+                      "graylist": 0,
+                      "forbidden": 0,
+                      "unknown": 0,
+                  },
                   "forbidden": [],
                   "conditional": [],
+                  "graylist": [],
                   "unknown": [],
               }
 
@@ -357,6 +372,8 @@ jobs:
                           results["forbidden"].append(entry)
                       elif cat == "conditional":
                           results["conditional"].append(entry)
+                      elif cat == "graylist":
+                          results["graylist"].append(entry)
                       elif cat == "unknown":
                           results["unknown"].append(entry)
 
@@ -383,10 +400,11 @@ jobs:
               return {
                   "summary": {
                       k: a["summary"][k] + b["summary"][k]
-                      for k in ("allowed", "conditional", "forbidden", "unknown")
+                      for k in ("allowed", "conditional", "graylist", "forbidden", "unknown")
                   },
                   "forbidden": a["forbidden"] + b["forbidden"],
                   "conditional": a["conditional"] + b["conditional"],
+                  "graylist": a["graylist"] + b["graylist"],
                   "unknown": a["unknown"] + b["unknown"],
               }
 
@@ -432,6 +450,7 @@ jobs:
               print("License check complete:")
               print(f"  Allowed:     {s['allowed']}")
               print(f"  Conditional: {s['conditional']}")
+              print(f"  Graylisted:  {s['graylist']}")
               print(f"  Forbidden:   {s['forbidden']}")
               print(f"  Unknown:     {s['unknown']}")
 
@@ -439,6 +458,20 @@ jobs:
                   print("\nFORBIDDEN licenses found:")
                   for item in results["forbidden"]:
                       print(f"  {item['name']} {item['version']}: {item['license']}")
+
+              if results["graylist"]:
+                  print(f"\nGRAYLISTED licenses ({len(results['graylist'])}):")
+                  seen = set()
+                  for item in results["graylist"]:
+                      print(f"  {item['name']} {item['version']}: {item['license']}")
+                      key = (item["name"], item["license"])
+                      if key not in seen:
+                          seen.add(key)
+                          print(
+                              f"::warning title=Graylisted license::{item['name']} "
+                              f"{item['version']} is {item['license']}, allowed by policy "
+                              f"exception"
+                          )
 
               if results["unknown"]:
                   print(f"\nUnknown licenses ({len(results['unknown'])}):")
@@ -474,6 +507,18 @@ jobs:
             --policy "${{ inputs.license_policy_file }}" \
             --output license-report.json
 
+      # A graylisted license passes the gate, so without this the scoreboard would
+      # report a clean bill of health and the exception would never be seen again.
+      - name: Count graylisted licenses
+        id: graylist-count
+        if: always()
+        run: |
+          COUNT=0
+          if [ -f license-report.json ]; then
+            COUNT=$(python3 -c "import json,sys; print(json.load(open('license-report.json')).get('summary', {}).get('graylist', 0))")
+          fi
+          echo "graylisted=$COUNT" >> "$GITHUB_OUTPUT"
+
       - name: Upload license report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -497,6 +542,7 @@ jobs:
             const sourceSbom = '${{ needs.source-sbom.result }}';
             const vulnScan = '${{ needs.vuln-scan.result }}';
             const licenseCheck = '${{ needs.license-check.result }}';
+            const graylisted = parseInt('${{ needs.license-check.outputs.graylisted }}' || '0', 10);
 
             const icon = (r) => {
               if (r === 'success') return '✅';
@@ -523,7 +569,10 @@ jobs:
             body += `| Grype vulnerability scan | ${icon(vulnScan)} ${label(vulnScan)} |\n`;
 
             if (licenseCheck && licenseCheck !== 'skipped') {
-              body += `| License compliance | ${icon(licenseCheck)} ${label(licenseCheck)} |\n`;
+              const licenseCell = licenseCheck === 'success' && graylisted > 0
+                ? `⚠️ passed — ${graylisted} graylisted`
+                : `${icon(licenseCheck)} ${label(licenseCheck)}`;
+              body += `| License compliance | ${licenseCell} |\n`;
             }
 
             const failOn = '${{ inputs.grype_fail_on }}';
