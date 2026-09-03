@@ -19,6 +19,10 @@ on:
         type: string
         default: ''
         description: 'Path to .grype.yaml ignore file'
+      enable_code_scanning:
+        type: boolean
+        default: true
+        description: 'Upload SARIF to code scanning. A private repo without Advanced Security rejects the upload — set false there and read the artifact'
       runner:
         type: string
         default: '"ubuntu-latest"'
@@ -139,10 +143,13 @@ jobs:
           fail-build: ${{ inputs.grype_fail_on != '' }}
           severity-cutoff: ${{ inputs.grype_fail_on || 'negligible' }}
           output-format: sarif
+          # Without this the action writes to a mkdtemp path and the two steps
+          # below find nothing.
+          output-file: results.sarif
         continue-on-error: true
 
       - name: Upload SARIF to GitHub Security
-        if: always() && steps.grype.outcome != 'skipped'
+        if: always() && inputs.enable_code_scanning && steps.grype.outcome != 'skipped'
         uses: github/codeql-action/upload-sarif@bb471cdcf4dda2c934c5b656f554d43c1434ed13 # v4
         with:
           sarif_file: results.sarif
@@ -181,6 +188,9 @@ jobs:
           name: container-sbom
 
       - name: Download source SBOM
+        # continue-on-error still prints the download's error annotation, so the
+        # skipped-job case needs a real guard.
+        if: needs.source-sbom.result == 'success'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: source-sbom
