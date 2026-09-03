@@ -23,6 +23,10 @@ on:
         type: string
         default: 'tests'
         description: 'Space-separated test directories'
+      ruff_version:
+        type: string
+        default: '0.16.5'
+        description: 'Ruff version (pin to avoid breaking changes)'
       ruff_select:
         type: string
         default: 'E,W,F,I'
@@ -72,7 +76,7 @@ jobs:
           fi
           # Ensure linter and diff-quality are installed
           if [ "${{ inputs.python_linter }}" = "ruff" ]; then
-            pip install ruff diff-cover
+            pip install "ruff==${{ inputs.ruff_version }}" diff-cover
           else
             pip install flake8 diff-cover
           fi
