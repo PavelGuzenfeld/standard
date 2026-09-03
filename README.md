@@ -258,7 +258,7 @@ jobs:
 </details>
 
 <details>
-<summary><strong>Python SAST Inputs</strong> (9 inputs)</summary>
+<summary><strong>Python SAST Inputs</strong> (10 inputs)</summary>
 
 | Input | Default | Description |
 |-------|---------|-------------|
@@ -270,12 +270,13 @@ jobs:
 | `requirements_file` | `requirements.txt` | Path to requirements file |
 | `enable_codeql` | `false` | Enable CodeQL (free for public repos) |
 | `codeql_queries` | `security-extended` | CodeQL query suite |
+| `enable_code_scanning` | `true` | Upload SARIF to code scanning (set `false` on a private repo without Advanced Security) |
 | `runner` | `ubuntu-latest` | Runner label |
 
 </details>
 
 <details>
-<summary><strong>SBOM Inputs</strong> (8 inputs)</summary>
+<summary><strong>SBOM Inputs</strong> (9 inputs)</summary>
 
 | Input | Default | Description |
 |-------|---------|-------------|
@@ -286,6 +287,7 @@ jobs:
 | `checkout_submodules` | `false` | Checkout submodules for source SBOM (true/false/recursive) |
 | `license_policy_file` | `''` | Path to license policy YAML (empty = skip license check) |
 | `license_check_script` | `''` | Path to license check Python script in caller repo |
+| `enable_code_scanning` | `true` | Upload SARIF to code scanning (set `false` on a private repo without Advanced Security) |
 | `runner` | `ubuntu-latest` | Runner labels as JSON |
 
 </details>

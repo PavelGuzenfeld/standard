@@ -35,6 +35,10 @@ on:
         type: string
         default: 'security-extended'
         description: 'CodeQL query suite: security-extended (recommended) or security-and-quality'
+      enable_code_scanning:
+        type: boolean
+        default: true
+        description: 'Upload SARIF to code scanning. A private repo without Advanced Security rejects the upload — set false there and read the artifact'
       runner:
         type: string
         default: '"ubuntu-latest"'
@@ -53,6 +57,8 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
       image: semgrep/semgrep:${{ inputs.semgrep_version }}
+    outputs:
+      findings: ${{ steps.count.outputs.findings }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -67,8 +73,27 @@ jobs:
         continue-on-error: true
         id: semgrep-scan
 
-      - name: Upload SARIF
+      - name: Count findings
+        id: count
+        if: always()
+        run: |
+          n=0
+          if [ -f semgrep.sarif ]; then
+            n=$(python3 -c 'import json; print(sum(len(r["results"]) for r in json.load(open("semgrep.sarif"))["runs"]))')
+          fi
+          echo "findings=$n" >> "$GITHUB_OUTPUT"
+
+      - name: Upload SARIF artifact
         if: always() && steps.semgrep-scan.outcome != 'skipped'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: semgrep-sarif
+          path: semgrep.sarif
+          if-no-files-found: ignore
+          retention-days: 90
+
+      - name: Upload SARIF
+        if: always() && inputs.enable_code_scanning && steps.semgrep-scan.outcome != 'skipped'
         uses: github/codeql-action/upload-sarif@bb471cdcf4dda2c934c5b656f554d43c1434ed13 # v4
         with:
           sarif_file: semgrep.sarif
@@ -134,6 +159,8 @@ jobs:
             const semgrep = '${{ needs.semgrep.result }}';
             const audit = '${{ needs.pip-audit.result }}';
             const codeql = '${{ needs.codeql.result }}';
+            const findings = '${{ needs.semgrep.outputs.findings }}';
+            const codeScanning = ${{ inputs.enable_code_scanning }};
 
             const icon = (r) => {
               if (r === 'success') return '✅';
@@ -146,7 +173,7 @@ jobs:
             body += '| Check | Result |\n|:------|:------:|\n';
 
             if (semgrep && semgrep !== 'skipped') {
-              body += `| Semgrep | ${icon(semgrep)} ${semgrep === 'success' ? 'no findings' : 'findings reported'} |\n`;
+              body += `| Semgrep | ${icon(semgrep)} ${semgrep === 'success' ? 'no findings' : `${findings || 'unknown'} findings`} |\n`;
             }
             if (audit && audit !== 'skipped') {
               body += `| pip-audit | ${icon(audit)} ${audit === 'success' ? 'no known CVEs' : 'vulnerabilities found'} |\n`;
@@ -155,7 +182,10 @@ jobs:
               body += `| CodeQL | ${icon(codeql)} ${codeql === 'success' ? 'no findings' : 'findings reported'} |\n`;
             }
 
-            body += '\n---\n<sub>Powered by <a href="https://github.com/PavelGuzenfeld/standard">standard</a> · See the Security tab for detailed SARIF results</sub>';
+            const sarifNote = codeScanning
+              ? 'See the Security tab for detailed SARIF results'
+              : 'SARIF is attached to this run as the <code>semgrep-sarif</code> artifact';
+            body += `\n---\n<sub>Powered by <a href="https://github.com/PavelGuzenfeld/standard">standard</a> · ${sarifNote}</sub>`;
 
             const { data: comments } = await github.rest.issues.listComments({
               issue_number: context.issue.number,
