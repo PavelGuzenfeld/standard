@@ -53,10 +53,10 @@ on:
         description: 'Path to package.json'
     secrets:
       app_id:
-        required: false
+        required: true
         description: 'GitHub App ID for pushing to protected branches'
       app_private_key:
-        required: false
+        required: true
         description: 'GitHub App private key (PEM)'
 
 permissions: {}
