@@ -27,9 +27,9 @@ jobs:
 
   version-sync:
     if: github.event_name == 'release'
-    # version-sync.yml commits the bumped version files.
+    # version-sync.yml pushes via the App token, not this permission.
     permissions:
-      contents: write
+      contents: read
     uses: ./.github/workflows/version-sync.yml
     with:
       tag: ${{ github.event.release.tag_name }}
