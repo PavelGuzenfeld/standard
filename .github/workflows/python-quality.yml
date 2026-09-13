@@ -27,6 +27,10 @@ on:
         type: string
         default: '0.16.5'
         description: 'Ruff version (pin to avoid breaking changes)'
+      diff_cover_version:
+        type: string
+        default: '10.5.1'
+        description: 'diff-cover version (pin to avoid breaking changes)'
       ruff_select:
         type: string
         default: 'E,W,F,I'
@@ -76,7 +80,7 @@ jobs:
           fi
           # Ensure linter and diff-quality are installed
           if [ "${{ inputs.python_linter }}" = "ruff" ]; then
-            pip install "ruff==${{ inputs.ruff_version }}" diff-cover
+            pip install "ruff==${{ inputs.ruff_version }}" "diff-cover==${{ inputs.diff_cover_version }}"
           else
             pip install flake8 diff-cover
           fi
