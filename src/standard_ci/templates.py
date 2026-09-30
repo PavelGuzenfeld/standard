@@ -56,7 +56,7 @@ def generate_workflow(workflow_name, inputs, sha, tag_name):
                 continue
             with_lines.append(f"      {key}: {_yaml_value(value)}")
         elif key in wf["required_inputs"]:
-            with_lines.append(f"      {key}: ''  # TODO: set this value")
+            with_lines.append(f"      {key}: REQUIRED_{key.upper()}")
 
     if with_lines:
         lines.append("    with:")

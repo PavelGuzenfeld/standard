@@ -47,5 +47,12 @@ for array_name in "${ARRAYS[@]}"; do
     done
 done
 
+for helper in is_exempt_filename is_exempt_pattern is_snake_case; do
+    grep -q "^${helper}()" "$SHARED" || fail "$helper not defined in naming-exemptions.sh"
+    for consumer in "${CONSUMERS[@]}"; do
+        ! grep -qE "^[[:space:]]*${helper}\(\)" "$consumer" || fail "$(basename "$consumer") defines its own $helper"
+    done
+done
+
 [ "$FAILED" -eq 0 ] && echo "naming exemptions: one source, no drift"
 exit "$FAILED"

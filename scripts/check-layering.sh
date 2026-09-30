@@ -8,7 +8,9 @@ usage() {
 
 case "${1:-}" in
     -h|--help) usage; exit 0 ;;
+    -*) usage >&2; exit 1 ;;
 esac
+[ $# -le 1 ] || { usage >&2; exit 1; }
 
 ROOT="$(cd "${1:-.}" && pwd)"
 DEPCRUISE_TARGET="${DEPCRUISE_TARGET:-src}"

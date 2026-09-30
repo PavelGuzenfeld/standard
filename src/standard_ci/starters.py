@@ -72,7 +72,7 @@ _JOB_SNIPPETS = {
   cpp_quality:
     uses: {repo}/.github/workflows/cpp-quality.yml@{sha}  # {tag}
     with:
-      docker_image: ''  # TODO: set your Docker image
+      docker_image: REQUIRED_DOCKER_IMAGE
       enable_clang_format: true
       enable_file_naming: true
       enable_flawfinder: true
