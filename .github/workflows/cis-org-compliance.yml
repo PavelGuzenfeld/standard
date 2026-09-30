@@ -101,18 +101,16 @@ jobs:
           ACTIVE_MONTHS="${{ inputs.active_months }}"
 
           if [ -n "$EXPLICIT" ]; then
-            # Use explicit list
             REPOS=""
             IFS=',' read -ra ITEMS <<< "$EXPLICIT"
             for ITEM in "${ITEMS[@]}"; do
-              ITEM=$(echo "$ITEM" | xargs)  # trim whitespace
+              ITEM=$(echo "$ITEM" | xargs)
               if [[ "$ITEM" != */* ]]; then
                 ITEM="${ORG}/${ITEM}"
               fi
               REPOS="${REPOS}${ITEM}"$'\n'
             done
           else
-            # Build jq filter — optionally restrict to recently-pushed repos
             JQ_FILTER='.[] | select(.archived == false and .fork == false) | .full_name'
             if [ "$ACTIVE_MONTHS" -gt 0 ] 2>/dev/null; then
               CUTOFF=$(date -u -d "${ACTIVE_MONTHS} months ago" +%Y-%m-%dT%H:%M:%SZ)
@@ -120,8 +118,6 @@ jobs:
               echo "Filtering to repos active since ${CUTOFF}"
             fi
 
-            # Auto-discover: all non-archived, non-fork repos
-            # Try org endpoint first, fall back to user endpoint
             REPOS=""
             if CANDIDATE=$(gh api --paginate "/orgs/${ORG}/repos?type=sources&per_page=100" \
               --jq "$JQ_FILTER" 2>/dev/null); then
@@ -134,11 +130,9 @@ jobs:
               fi
             fi
 
-            # Apply max_repos limit
             REPOS=$(echo "$REPOS" | head -n "$MAX")
           fi
 
-          # Write repo list to file
           echo -n "$REPOS" | grep -v '^$' > /tmp/repo-list.txt || true
           TOTAL=$(wc -l < /tmp/repo-list.txt)
           echo "count=$TOTAL" >> "$GITHUB_OUTPUT"
@@ -220,12 +214,10 @@ jobs:
               --output-file "/tmp/cis-results/${REPO_SHORT}.json" \
               2>&1 | tee "/tmp/cis-results/${REPO_SHORT}.log" || true
 
-            # Debug: check JSON output
             if [ -f "/tmp/cis-results/${REPO_SHORT}.json" ] && [ -s "/tmp/cis-results/${REPO_SHORT}.json" ]; then
               echo "  JSON output: $(wc -c < "/tmp/cis-results/${REPO_SHORT}.json") bytes"
             else
               echo "  JSON output: empty or missing — will parse from log"
-              # Generate JSON from log output using the Passed/Failed/Unknown markers
               python3 /tmp/parse-cis-log.py "/tmp/cis-results/${REPO_SHORT}.log" "/tmp/cis-results/${REPO_SHORT}.json" 2>/dev/null || echo "  Log parsing failed"
             fi
 
@@ -248,7 +240,6 @@ jobs:
           REPO_COUNT=0
           FAILING_REPOS=""
 
-          # --- Summary table ---
           {
             echo "## CIS Software Supply Chain v1.0 — ${ORG}"
             echo ""
@@ -258,7 +249,6 @@ jobs:
             echo "|:-----|:------:|:------:|:-------:|:-----:|:------:|"
           } > /tmp/cis-dashboard.md
 
-          # Collect all unique control IDs across repos for the matrix
           ALL_IDS_FILE="/tmp/cis-all-ids.txt"
           > "$ALL_IDS_FILE"
 
@@ -273,7 +263,6 @@ jobs:
               PASSED=$(jq '[.results[] | select(.result == "Passed")] | length' "$RESULT_FILE" 2>/dev/null) || PASSED=0
               FAILED=$(jq '[.results[] | select(.result == "Failed")] | length' "$RESULT_FILE" 2>/dev/null) || FAILED=0
               UNKNOWN=$(jq '[.results[] | select(.result == "Unknown")] | length' "$RESULT_FILE" 2>/dev/null) || UNKNOWN=0
-              # Collect control IDs
               jq -r '.results[] | .id' "$RESULT_FILE" 2>/dev/null >> "$ALL_IDS_FILE" || true
             fi
 
@@ -302,7 +291,6 @@ jobs:
 
           done < /tmp/repo-list.txt
 
-          # Summary stats
           AVG_PERCENT=0
           [ "$TOTAL_CHECKS" -gt 0 ] && AVG_PERCENT=$((TOTAL_PASSED * 100 / TOTAL_CHECKS))
 
@@ -314,7 +302,6 @@ jobs:
             fi
           } >> /tmp/cis-dashboard.md
 
-          # --- Detailed per-repo breakdown ---
           while IFS= read -r REPO; do
             [ -z "$REPO" ] && continue
             REPO_SHORT="${REPO##*/}"
@@ -326,7 +313,6 @@ jobs:
               echo ""
             } >> /tmp/cis-dashboard.md
 
-            # Compute per-repo stats for the heading
             R_PASSED=0; R_FAILED=0; R_UNKNOWN=0
             if [ -f "$RESULT_FILE" ] && [ -s "$RESULT_FILE" ]; then
               R_PASSED=$(jq '[.results[] | select(.result == "Passed")] | length' "$RESULT_FILE" 2>/dev/null) || R_PASSED=0
@@ -365,7 +351,6 @@ jobs:
 
           done < /tmp/repo-list.txt
 
-          # Footer
           {
             echo ""
             echo "---"
@@ -374,7 +359,6 @@ jobs:
 
           cat /tmp/cis-dashboard.md >> "$GITHUB_STEP_SUMMARY"
 
-          # Save outputs for threshold check
           echo "repo_count=$REPO_COUNT" >> "$GITHUB_OUTPUT"
           echo "avg_percent=$AVG_PERCENT" >> "$GITHUB_OUTPUT"
           echo "worst_score=$WORST_SCORE" >> "$GITHUB_OUTPUT"
@@ -409,7 +393,6 @@ jobs:
           BODY=$(cat /tmp/cis-dashboard.md)
           BODY="${BODY}"$'\n\n'"_Last updated: $(date -u '+%Y-%m-%d %H:%M UTC') | [Workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})_"
 
-          # Find existing issue
           ISSUE_NUM=$(gh issue list --repo "$ISSUE_REPO" --search "\"${ISSUE_TITLE}\" in:title" --state open --json number --jq '.[0].number' 2>/dev/null || echo "")
 
           if [ -n "$ISSUE_NUM" ]; then

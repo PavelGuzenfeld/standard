@@ -37,7 +37,6 @@ jobs:
       - name: Determine version bump
         id: bump
         run: |
-          # Find latest semver tag
           LAST_TAG=$(git tag -l 'v*' --sort=-v:refname | head -1)
           FIRST_RELEASE=false
           if [ -z "$LAST_TAG" ]; then
@@ -49,7 +48,6 @@ jobs:
           echo "last_tag=$LAST_TAG" >> "$GITHUB_OUTPUT"
           echo "first_release=$FIRST_RELEASE" >> "$GITHUB_OUTPUT"
 
-          # Get commits since last tag
           if [ "$FIRST_RELEASE" = "true" ]; then
             COMMITS=$(git log --oneline)
           else
@@ -65,7 +63,6 @@ jobs:
           echo "Commits since ${LAST_TAG:-beginning}:"
           echo "$COMMITS"
 
-          # Determine bump level from commit messages
           BUMP="${{ inputs.default_bump }}"
 
           if echo "$COMMITS" | grep -qiE 'BREAKING CHANGE:|^[a-f0-9]+ (feat|fix|refactor|chore|docs|style|perf|test|build|ci)(\(.+\))?!:'; then
@@ -95,7 +92,6 @@ jobs:
           LAST_TAG="${{ steps.bump.outputs.last_tag }}"
           BUMP="${{ steps.bump.outputs.bump }}"
 
-          # Strip v prefix and split
           VER="${LAST_TAG#v}"
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VER"
 

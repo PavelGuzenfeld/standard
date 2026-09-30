@@ -109,13 +109,11 @@ jobs:
             --output-file /tmp/cis-results.json \
             2>&1 | tee /tmp/cis-scan.log || true
 
-          # Parse results
           if [ -f /tmp/cis-results.json ] && [ -s /tmp/cis-results.json ]; then
             PASSED=$(jq '[.Results[].Results[] | select(.Result == 0)] | length' /tmp/cis-results.json 2>/dev/null) || PASSED=0
             FAILED=$(jq '[.Results[].Results[] | select(.Result == 1)] | length' /tmp/cis-results.json 2>/dev/null) || FAILED=0
             UNKNOWN=$(jq '[.Results[].Results[] | select(.Result == 2)] | length' /tmp/cis-results.json 2>/dev/null) || UNKNOWN=0
           else
-            # Fallback: parse from log output
             PASSED=$(grep -c "PASSED" /tmp/cis-scan.log 2>/dev/null) || PASSED=0
             FAILED=$(grep -c "FAILED" /tmp/cis-scan.log 2>/dev/null) || FAILED=0
             UNKNOWN=$(grep -c "UNKNOWN" /tmp/cis-scan.log 2>/dev/null) || UNKNOWN=0
@@ -152,7 +150,6 @@ jobs:
           BRANCH="${{ steps.branch.outputs.name }}"
           MIN_SCORE="${{ inputs.min_score }}"
 
-          # Build markdown report
           {
             echo "## CIS Software Supply Chain v1.0"
             echo ""

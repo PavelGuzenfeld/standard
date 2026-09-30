@@ -78,7 +78,6 @@ jobs:
           if [ -f requirements.txt ]; then
             pip install -r requirements.txt
           fi
-          # Ensure linter and diff-quality are installed
           if [ "${{ inputs.python_linter }}" = "ruff" ]; then
             pip install "ruff==${{ inputs.ruff_version }}" "diff-cover==${{ inputs.diff_cover_version }}"
           else

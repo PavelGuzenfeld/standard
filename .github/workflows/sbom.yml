@@ -200,7 +200,6 @@ jobs:
         if: inputs.license_check_script == ''
         run: |
           cat > _check_licenses.py << 'PYEOF'
-          #!/usr/bin/env python3
           """Built-in license compliance checker for CycloneDX SBOMs.
 
           Reads a CycloneDX JSON SBOM and a YAML license policy, classifies every
@@ -224,11 +223,6 @@ jobs:
               yaml = None
 
 
-          # -------------------------------------------------------------------
-          # Minimal YAML parser (flat lists + scalar maps only) — fallback when
-          # PyYAML is not installed.  Supports the subset used by license policy
-          # files.
-          # -------------------------------------------------------------------
           def _parse_simple_yaml(text: str) -> dict:
               result: dict = {}
               current_key = None
@@ -243,9 +237,7 @@ jobs:
 
                   indent = len(raw_line) - len(raw_line.lstrip())
 
-                  # Top-level key
                   if indent == 0 and ":" in stripped:
-                      # Flush previous
                       if current_key is not None:
                           if map_mode and current_map is not None:
                               result[current_key] = current_map
@@ -266,14 +258,12 @@ jobs:
                           map_mode = False
                       continue
 
-                  # List item
                   if stripped.startswith("- "):
                       item = stripped[2:].strip()
                       if current_list is not None:
                           current_list.append(item)
                       continue
 
-                  # Map item (indented key: value)
                   if ":" in stripped and indent > 0:
                       key, _, value = stripped.partition(":")
                       key = key.strip()
@@ -283,7 +273,6 @@ jobs:
                           map_mode = True
                       continue
 
-              # Flush last
               if current_key is not None:
                   if map_mode and current_map is not None:
                       result[current_key] = current_map
@@ -313,14 +302,12 @@ jobs:
               """Extract license identifiers from a CycloneDX component."""
               licenses = []
               for entry in component.get("licenses", []):
-                  # SPDX expression (e.g., "MIT AND Apache-2.0")
                   expr = entry.get("expression")
                   if expr:
                       for part in expr.replace("(", "").replace(")", "").split():
                           if part.upper() not in ("AND", "OR", "WITH"):
                               licenses.append(normalize_license(part))
                       continue
-                  # Single license object
                   lic = entry.get("license", {})
                   lid = lic.get("id")
                   if lid:
@@ -442,7 +429,6 @@ jobs:
 
               results = check_sbom(sbom, policy)
 
-              # Source SBOM (optional)
               if args.source_sbom:
                   source_path = Path(args.source_sbom)
                   if source_path.exists():
@@ -451,11 +437,9 @@ jobs:
                       source_results = check_sbom(source_sbom, policy)
                       results = merge_results(results, source_results)
 
-              # Write report
               output_path = Path(args.output)
               output_path.write_text(json.dumps(results, indent=2) + "\n")
 
-              # Print summary
               s = results["summary"]
               print("License check complete:")
               print(f"  Allowed:     {s['allowed']}")
@@ -488,7 +472,6 @@ jobs:
                   for item in results["unknown"]:
                       print(f"  {item['name']} {item['version']}: {item['license']}")
 
-              # Exit code
               if results["forbidden"]:
                   print("\nFAILED: Forbidden licenses detected")
                   return 1

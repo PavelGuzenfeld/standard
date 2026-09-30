@@ -1,9 +1,3 @@
-# trend-dashboard.yml — Reusable workflow: weekly quality trend report.
-#
-# Queries GitHub Actions API for historical workflow run results,
-# aggregates pass/fail rates per check, and posts a trend report
-# to Slack, GitHub Discussions, and/or the workflow summary.
-#
 # NOTE: `on: schedule` cannot be used in reusable workflows.
 # The caller must define the schedule trigger:
 #

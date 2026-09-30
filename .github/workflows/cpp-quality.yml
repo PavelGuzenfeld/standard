@@ -283,23 +283,19 @@ jobs:
                 fi
               }
 
-              # Per-job tool checks (only verify tools needed by enabled jobs)
               [ "$ENABLE_TIDY" = "true" ] && check_tool "clang-tidy" "clang-tidy" "--version"
               [ "$ENABLE_CPPCHECK" = "true" ] && check_tool "cppcheck" "cppcheck" "--version"
               [ "$ENABLE_FORMAT" = "true" ] && check_tool "clang-format" "clang-format" "--version"
               [ "$ENABLE_IWYU" = "true" ] && check_tool "IWYU" "include-what-you-use" "--version"
 
-              # cmake needed for builds (sanitizers, tsan, coverage, hardening) and compile_commands
               if [ "$ENABLE_TIDY" = "true" ] || [ "$ENABLE_SANITIZERS" = "true" ] || \
                  [ "$ENABLE_TSAN" = "true" ] || [ "$ENABLE_COVERAGE" = "true" ] || \
                  [ "$ENABLE_IWYU" = "true" ] || [ "$ENABLE_HARDENING" = "true" ]; then
                 check_tool "cmake" "cmake" "--version"
               fi
 
-              # readelf needed for hardening verification
               [ "$ENABLE_HARDENING" = "true" ] && check_tool "readelf" "readelf" "--version"
 
-              # compile_commands.json needed for clang-tidy and iwyu
               if [ "$ENABLE_TIDY" = "true" ] || [ "$ENABLE_IWYU" = "true" ]; then
                 if [ -z "$PRE_SCRIPT" ]; then
                   if [ -f "$CDB_PATH" ]; then
@@ -437,10 +433,8 @@ jobs:
 
           JOBS=${{ inputs.clang_tidy_jobs }}
 
-          # Copy file list into workspace for Docker access
           cp /tmp/changed_cpp_files.txt changed_files.txt
 
-          # Single container, parallel analysis via xargs
           docker run --rm \
             -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
             -w "${{ inputs.source_mount }}" \
@@ -449,7 +443,6 @@ jobs:
               xargs -P${JOBS} -I{} clang-tidy -p ${{ inputs.compile_commands_path }} $CONFIG_ARG {} 2>&1" \
             | tee /tmp/clang_tidy_output.txt || true
 
-          # Count findings — exclude clang-diagnostic-* (GCC/Clang differences)
           # Note: grep -c outputs "0" AND exits non-zero when no matches,
           # so "|| echo 0" would produce "0\n0" in $().  Use "|| true" instead.
           WARNS=$(grep -c "warning:" /tmp/clang_tidy_output.txt 2>/dev/null || true)
@@ -463,7 +456,6 @@ jobs:
 
           echo "=== Summary: ${WARNS} warnings, ${TIDY_ERRS} tidy errors (${DIAG_ERRS} diagnostic errors excluded) ==="
 
-          # Emit GitHub annotations (first 50)
           grep -E '^.+:[0-9]+:[0-9]+: (warning|error):' /tmp/clang_tidy_output.txt | head -50 | while IFS= read -r line; do
             ann_file=$(echo "$line" | cut -d: -f1)
             ann_line=$(echo "$line" | cut -d: -f2)
@@ -572,7 +564,6 @@ jobs:
             done
           fi
 
-          # Read include dirs from file if provided
           if [ -n "${{ inputs.cppcheck_include_file }}" ] && [ -f "${{ inputs.cppcheck_include_file }}" ]; then
             while IFS= read -r dir || [ -n "$dir" ]; do
               dir=$(echo "$dir" | xargs)
@@ -601,7 +592,6 @@ jobs:
             echo "$OUTPUT"
             echo "$OUTPUT" > /tmp/cppcheck_output.txt
 
-            # Emit GitHub annotations
             echo "$OUTPUT" | grep -E '^.+:[0-9]+:.*(error|warning|style|performance|portability):' | while IFS= read -r line; do
               ann_file=$(echo "$line" | cut -d: -f1)
               ann_line=$(echo "$line" | cut -d: -f2)
@@ -693,7 +683,6 @@ jobs:
             -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
             -w "${{ inputs.source_mount }}" \
             "${{ inputs.docker_image }}" sleep infinity
-          # Install clang-format if not already in image
           docker exec cf-container bash -c "
             if ! command -v clang-format &>/dev/null; then
               echo 'clang-format not found, installing...'
@@ -724,7 +713,6 @@ jobs:
 
             if [ -n "$OUTPUT" ]; then
               echo "$OUTPUT"
-              # Emit GitHub annotations
               echo "$OUTPUT" | grep -E '^.+:[0-9]+:[0-9]+:' | while IFS= read -r line; do
                 ann_file=$(echo "$line" | cut -d: -f1)
                 ann_line=$(echo "$line" | cut -d: -f2)
@@ -765,7 +753,6 @@ jobs:
             | grep -E "$EXT_PATTERN" \
             | grep -iE "${{ inputs.test_file_pattern }}" || true)
 
-          # Apply exclusion filter
           if [ -n "$FILES" ] && [ -n "${{ inputs.exclude_file }}" ] && [ -f "${{ inputs.exclude_file }}" ]; then
             PATTERNS=()
             while IFS= read -r line || [ -n "$line" ]; do
@@ -793,17 +780,14 @@ jobs:
 
           echo "Scanning $(echo "$FILES" | wc -l) changed test file(s) for gtest/benchmark usage..."
 
-          # Patterns that indicate gtest instead of doctest
           GTEST_PATTERNS='TEST\(|TEST_F\(|TEST_P\(|TYPED_TEST\(|EXPECT_EQ\(|EXPECT_NE\(|EXPECT_TRUE\(|EXPECT_FALSE\(|EXPECT_STREQ\(|EXPECT_THROW\(|EXPECT_NO_THROW\(|EXPECT_NEAR\(|EXPECT_LT\(|EXPECT_LE\(|EXPECT_GT\(|EXPECT_GE\(|EXPECT_THAT\(|ASSERT_EQ\(|ASSERT_NE\(|ASSERT_TRUE\(|ASSERT_FALSE\(|ASSERT_STREQ\(|ASSERT_THROW\(|ASSERT_NO_THROW\(|ASSERT_NEAR\(|ASSERT_LT\(|ASSERT_LE\(|ASSERT_GT\(|ASSERT_GE\(|ASSERT_THAT\(|ASSERT_DEATH\(|#include\s*[<"]gtest/|#include\s*[<"]gmock/'
 
-          # Patterns that indicate Google Benchmark instead of nanobench
           GBENCH_PATTERNS='benchmark::State|BENCHMARK\(|BENCHMARK_DEFINE_F\(|BENCHMARK_REGISTER_F\(|#include\s*[<"]benchmark/benchmark\.h[>"]'
 
           VIOLATIONS=0
           while IFS= read -r file; do
             [ -f "$file" ] || continue
 
-            # Check for gtest
             MATCHES=$(grep -nE "$GTEST_PATTERNS" "$file" || true)
             if [ -n "$MATCHES" ]; then
               echo ""
@@ -817,7 +801,6 @@ jobs:
               VIOLATIONS=$((VIOLATIONS + $(echo "$MATCHES" | wc -l)))
             fi
 
-            # Check for Google Benchmark
             BMATCHES=$(grep -nE "$GBENCH_PATTERNS" "$file" || true)
             if [ -n "$BMATCHES" ]; then
               echo ""
@@ -858,7 +841,6 @@ jobs:
           ALLOWED_PREFIXES="${{ inputs.file_naming_allowed_prefixes }}"
           EXCEPTIONS_FILE="${{ inputs.file_naming_exceptions }}"
 
-          # Built-in exception filenames (exact match)
           BUILTIN_EXEMPT_FILES=(
               "CMakeLists.txt" "Dockerfile" "README.md" "CLAUDE.md"
               "CHANGELOG.md" "CONTRIBUTING.md" "LICENSE" "Makefile"
@@ -866,7 +848,6 @@ jobs:
               "setup.cfg" "Cargo.toml" "Cargo.lock"
           )
 
-          # Built-in exception patterns (regex, matched against filename)
           BUILTIN_EXEMPT_PATTERNS=(
               '^requirements.*\.txt$'
               '^\.'
@@ -879,7 +860,6 @@ jobs:
 
           SNAKE_CASE='^[a-z][a-z0-9_]*$'
 
-          # Load user exceptions
           USER_EXCEPTIONS=()
           if [ -n "$EXCEPTIONS_FILE" ] && [ -f "$EXCEPTIONS_FILE" ]; then
               while IFS= read -r line || [ -n "$line" ]; do
@@ -892,7 +872,6 @@ jobs:
 
           CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- || true)
 
-          # Apply exclusion filter
           if [ -n "$CHANGED_FILES" ] && [ -n "${{ inputs.exclude_file }}" ] && [ -f "${{ inputs.exclude_file }}" ]; then
               PATTERNS=()
               while IFS= read -r line || [ -n "$line" ]; do
@@ -965,7 +944,6 @@ jobs:
                   segment="${SEGMENTS[$i]}"
                   is_last=$(( i == SEGMENT_COUNT - 1 ))
 
-                  # Skip dotdirs and their children
                   if echo "$segment" | grep -qE '^\.' ; then
                       break
                   fi
@@ -1016,7 +994,6 @@ jobs:
             | grep -E "$EXT_PATTERN" \
             | grep -viE "${{ inputs.test_file_pattern }}" || true)
 
-          # Apply exclusion filter
           if [ -n "$FILES" ] && [ -n "${{ inputs.exclude_file }}" ] && [ -f "${{ inputs.exclude_file }}" ]; then
             PATTERNS=()
             while IFS= read -r line || [ -n "$line" ]; do
@@ -1049,7 +1026,6 @@ jobs:
           VIOLATIONS=0
           while IFS= read -r file; do
             [ -f "$file" ] || continue
-            # Filter out comment lines (// and block comment continuations *)
             MATCHES=$(grep -nE "$BANNED_PATTERNS" "$file" \
               | grep -vE '^[0-9]+:\s*//' \
               | grep -vE '^[0-9]+:\s*\*' || true)
@@ -1094,7 +1070,6 @@ jobs:
             | grep -E "$EXT_PATTERN" \
             | grep -viE "${{ inputs.test_file_pattern }}" || true)
 
-          # Apply exclusion filter
           if [ -n "$FILES" ] && [ -n "${{ inputs.exclude_file }}" ] && [ -f "${{ inputs.exclude_file }}" ]; then
             PATTERNS=()
             while IFS= read -r line || [ -n "$line" ]; do
@@ -1122,7 +1097,6 @@ jobs:
 
           echo "Scanning $(echo "$FILES" | wc -l) changed source file(s) for raw new/delete..."
 
-          # Match raw new/delete but not make_unique/make_shared/placement new/operator new
           NEW_PATTERN='\bnew\s+[A-Z_a-z]'
           DELETE_PATTERN='\bdelete(\s|\[)'
 
@@ -1130,9 +1104,6 @@ jobs:
           while IFS= read -r file; do
             [ -f "$file" ] || continue
 
-            # Filter out: smart pointers, operator overloads, placement new, includes,
-            # comment lines (// and leading *), inline block comments (/* ... */),
-            # and string/log literals containing "new"
             MATCHES=$(grep -nE "$NEW_PATTERN|$DELETE_PATTERN" "$file" \
               | grep -vE 'make_unique|make_shared|make_obj|operator\s+(new|delete)|placement|#\s*include' \
               | grep -vE '^\s*[0-9]+:\s*//' \
@@ -1233,7 +1204,6 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           FILES=$(cat /tmp/changed_cpp_files.txt | tr '\n' ' ')
 
-          # Generate SARIF and human-readable output
           flawfinder --minlevel=${{ inputs.flawfinder_min_level }} --sarif --dataonly $FILES > flawfinder.sarif 2>/dev/null || true
           flawfinder --minlevel=${{ inputs.flawfinder_min_level }} --columns --context --dataonly $FILES > flawfinder.txt 2>&1 || true
 
@@ -1241,7 +1211,6 @@ jobs:
           cat flawfinder.txt
           echo "::endgroup::"
 
-          # Count actual findings (lines matching "file:line:col:  [level]"), not advice/context lines
           HITS=$(grep -cE '^.+:[0-9]+:[0-9]+:' flawfinder.txt 2>/dev/null || true)
           [ -z "$HITS" ] && HITS=0
           echo "Flawfinder found ${HITS} potential issues (minlevel=${{ inputs.flawfinder_min_level }})"
@@ -1904,7 +1873,6 @@ jobs:
                   IS_SHARED=true
                 fi
 
-                # PIE check
                 if ! is_skipped "pie"; then
                   if $IS_SHARED; then
                     echo "  PIE: SKIP (shared library)"
@@ -1920,7 +1888,6 @@ jobs:
                   fi
                 fi
 
-                # RELRO check
                 if ! is_skipped "relro"; then
                   if readelf -l "$binary" 2>/dev/null | grep -q "GNU_RELRO"; then
                     echo "  RELRO: PASS"
@@ -1931,7 +1898,6 @@ jobs:
                   fi
                 fi
 
-                # BIND_NOW check
                 if ! is_skipped "bindnow"; then
                   if readelf -d "$binary" 2>/dev/null | grep -qE "\(BIND_NOW\)"; then
                     echo "  BIND_NOW: PASS"
@@ -1942,7 +1908,6 @@ jobs:
                   fi
                 fi
 
-                # Stack canary check
                 if ! is_skipped "canary"; then
                   if readelf -s "$binary" 2>/dev/null | grep -q "__stack_chk_fail"; then
                     echo "  CANARY: PASS"
@@ -1953,7 +1918,6 @@ jobs:
                   fi
                 fi
 
-                # FORTIFY check (warning only)
                 if ! is_skipped "fortify"; then
                   if readelf -s "$binary" 2>/dev/null | grep -qE "__\w+_chk"; then
                     echo "  FORTIFY: PASS"
@@ -1964,7 +1928,6 @@ jobs:
                   fi
                 fi
 
-                # NX check
                 if ! is_skipped "nx"; then
                   STACK_LINE=$(readelf -l "$binary" 2>/dev/null | grep "GNU_STACK" || true)
                   if [ -z "$STACK_LINE" ]; then
