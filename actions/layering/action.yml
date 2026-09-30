@@ -1,0 +1,28 @@
+name: 'Layering contract'
+description: 'Enforce the layering contract a repo declares: .importlinter (Python), .dependency-cruiser.cjs (TypeScript), .layers (C++ and GDScript). Skips when none is declared'
+
+inputs:
+  path:
+    description: 'Repo root to check'
+    default: '.'
+  depcruise_target:
+    description: 'Directory dependency-cruiser analyses'
+    default: 'src'
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        if [ -f "${{ inputs.path }}/.importlinter" ] && ! command -v lint-imports &>/dev/null; then
+          pip install -q import-linter
+        fi
+        if [ -f "${{ inputs.path }}/.layers" ]; then
+          command -v jq &>/dev/null || sudo apt-get install -y -qq jq
+          command -v ast-grep &>/dev/null || pip install -q ast-grep-cli
+        fi
+
+    - shell: bash
+      env:
+        DEPCRUISE_TARGET: ${{ inputs.depcruise_target }}
+      run: bash "${{ github.action_path }}/../../scripts/check-layering.sh" "${{ inputs.path }}"

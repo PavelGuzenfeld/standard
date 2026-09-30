@@ -447,6 +447,9 @@ Generate project scaffolding from the standard:
 | `check-dangerous-workflows.sh` | Audit workflow files for injection patterns |
 | `check-hardening.sh` | Verify ELF binary hardening (PIE, RELRO, NX, canary) |
 | `filter-excludes.sh` | Filter file lists against exclusion patterns |
+| `check-layering.sh` | Run the repo's layering contract (`.importlinter`, `.dependency-cruiser.cjs`, or `.layers` for C++ and GDScript); skips if none |
+
+`.layers` lists directories lowest layer first, one per line. A lower layer may not `#include` or `preload`/`load` a higher one, and cycles fail. Use it as `PavelGuzenfeld/standard/actions/layering@main`.
 
 ```bash
 ./scripts/check-repo-structure.sh configs/repo-structure-ros2.txt .
