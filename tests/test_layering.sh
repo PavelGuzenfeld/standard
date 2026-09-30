@@ -118,6 +118,21 @@ gd_fixture() {
     echo "$d"
 }
 
+expect_missing_tool() {
+    local missing="$1" dir="$2" desc="$3" shim="$WORK/shim-$1" tool out rc
+    mkdir -p "$shim"
+    for tool in "${REQUIRED_TOOLS[@]}" node mktemp rm dirname tr sed grep cat mkdir; do
+        [ "$tool" = "$missing" ] || ln -sf "$(command -v "$tool")" "$shim/$tool"
+    done
+    out="$(PATH="$shim" "$BASH" "$CHECK" "$dir" 2>&1 > /dev/null)"
+    rc=$?
+    if [ "$rc" -ne 0 ] && grep -q "^missing tool: $missing" <<<"$out"; then
+        PASS=$((PASS + 1)); echo "  PASS: $desc"
+    else
+        FAIL=$((FAIL + 1)); echo "  FAIL: $desc (rc=$rc)"; echo "$out" | sed 's/^/    /'
+    fi
+}
+
 echo "=== layering contract ==="
 expect fail "$(python_fixture bad bad)" "python: lower layer importing upper fails"
 expect pass "$(python_fixture good good)" "python: no upward import passes"
@@ -130,6 +145,10 @@ expect fail "$(gd_fixture bad bad)" "gdscript: lower layer preloading upper fail
 expect pass "$(gd_fixture good good)" "gdscript: no upward preload passes"
 mkdir -p "$WORK/none"
 expect skip "$WORK/none" "no contract file skips with notice"
+expect_missing_tool jq "$(cpp_fixture good good)" "layers: missing jq is reported and fails"
+expect_missing_tool ast-grep "$(cpp_fixture good good)" "layers: missing ast-grep is reported and fails"
+expect_missing_tool lint-imports "$(python_fixture good good)" "python: missing lint-imports is reported and fails"
+expect_missing_tool npx "$(ts_fixture good good)" "typescript: missing npx is reported and fails"
 
 echo "$PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
