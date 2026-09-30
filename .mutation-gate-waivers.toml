@@ -1,0 +1,7 @@
+[[waiver]]
+file = "src/standard_ci/cli.py"
+line = 254
+column = 40
+old = """-1"""
+new = """1"""
+reason = "Repo slugs are always owner/name, so index 1 and index -1 select the same segment; no valid input tells them apart."

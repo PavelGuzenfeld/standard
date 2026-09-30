@@ -1,6 +1,6 @@
 """Tests for .standard.yml config read/write."""
 
-from standard_ci.config import read_config, write_config
+from standard_ci.config import read_config, read_config_string, write_config
 
 
 class TestConfigRoundtrip:
@@ -62,3 +62,40 @@ class TestConfigRoundtrip:
         result = read_config(path)
         assert result["count"] == 42
         assert result["ratio"] == 3.14
+
+
+class TestStringQuoting:
+    def _written(self, tmp_path, value):
+        path = tmp_path / ".standard.yml"
+        write_config(str(path), {"key": value})
+        return path.read_text().splitlines()[2]
+
+    def test_value_with_colon_is_quoted(self, tmp_path):
+        assert self._written(tmp_path, "a:b") == "key: 'a:b'"
+
+    def test_plain_word_is_not_quoted(self, tmp_path):
+        assert self._written(tmp_path, "hello") == "key: hello"
+
+    def test_reserved_word_string_is_quoted_and_stays_a_string(self, tmp_path):
+        path = tmp_path / ".standard.yml"
+        write_config(str(path), {"key": "true"})
+        assert path.read_text().splitlines()[2] == "key: 'true'"
+        assert read_config(str(path))["key"] == "true"
+
+
+class TestParsing:
+    def test_empty_value_in_nested_mapping_is_none(self):
+        assert read_config_string("a:\n  b: \n") == {"a": {"b": None}}
+
+    def test_null_literal_is_none(self):
+        assert read_config_string("a: null\n") == {"a": None}
+
+    def test_comment_line_with_colon_is_ignored(self):
+        assert read_config_string("# note: x\nkey: v\n") == {"key": "v"}
+
+    def test_top_level_key_after_nested_block_is_not_nested(self):
+        parsed = read_config_string("a:\n  b: 1\nc: 2\n")
+        assert parsed == {"a": {"b": 1}, "c": 2}
+
+    def test_indented_pair_with_no_open_key_is_read_as_top_level(self):
+        assert read_config_string("  x: 1\n") == {"x": 1}
