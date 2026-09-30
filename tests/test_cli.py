@@ -213,11 +213,16 @@ class TestInitPrompts:
 
         return fake_value
 
-    def test_interactive_init_without_markers_asks_languages_and_honours_answers(self, tmp_path):
+    def test_interactive_init_without_markers_asks_languages_and_honours_answers(
+        self, tmp_path
+    ):
         asked = []
         overrides = {"Enable C++ workflows?": True, "  Enable clang-format?": False}
-        with mock.patch("standard_ci.cli.ask_yn", side_effect=self._answers(asked, overrides)), \
-                mock.patch("standard_ci.prompt.ask_value", side_effect=self._fake_value(asked)):
+        with mock.patch(
+            "standard_ci.cli.ask_yn", side_effect=self._answers(asked, overrides)
+        ), mock.patch(
+            "standard_ci.prompt.ask_value", side_effect=self._fake_value(asked)
+        ):
             _init(tmp_path, "--preset", "full")
 
         assert "Enable C++ workflows?" in asked
@@ -231,9 +236,15 @@ class TestInitPrompts:
 
     def test_runtime_group_booleans_are_not_prompted(self, tmp_path):
         asked = []
-        overrides = {"Enable C++ workflows?": True, "  Enable ASan/UBSan sanitizer tests?": False}
-        with mock.patch("standard_ci.cli.ask_yn", side_effect=self._answers(asked, overrides)), \
-                mock.patch("standard_ci.prompt.ask_value", side_effect=self._fake_value(asked)):
+        overrides = {
+            "Enable C++ workflows?": True,
+            "  Enable ASan/UBSan sanitizer tests?": False,
+        }
+        with mock.patch(
+            "standard_ci.cli.ask_yn", side_effect=self._answers(asked, overrides)
+        ), mock.patch(
+            "standard_ci.prompt.ask_value", side_effect=self._fake_value(asked)
+        ):
             _init(tmp_path, "--preset", "full")
 
         assert "  Enable ASan/UBSan sanitizer tests?" not in asked
@@ -243,15 +254,20 @@ class TestInitPrompts:
     def test_detected_language_skips_the_language_questions(self, tmp_path):
         (tmp_path / "pyproject.toml").touch()
         asked = []
-        with mock.patch("standard_ci.cli.ask_yn", side_effect=self._answers(asked, {})), \
-                mock.patch("standard_ci.prompt.ask_value", side_effect=self._fake_value(asked)):
+        with mock.patch(
+            "standard_ci.cli.ask_yn", side_effect=self._answers(asked, {})
+        ), mock.patch(
+            "standard_ci.prompt.ask_value", side_effect=self._fake_value(asked)
+        ):
             _init(tmp_path)
 
         assert "Enable C++ workflows?" not in asked
         assert "Enable Python workflows?" not in asked
 
     def test_non_interactive_init_without_markers_asks_nothing(self, tmp_path):
-        with mock.patch("standard_ci.cli.ask_yn", side_effect=AssertionError("prompted")):
+        with mock.patch(
+            "standard_ci.cli.ask_yn", side_effect=AssertionError("prompted")
+        ):
             _init(tmp_path, "--non-interactive")
 
         config = read_config(str(tmp_path / ".standard.yml"))
@@ -261,9 +277,11 @@ class TestInitPrompts:
         (tmp_path / "CMakeLists.txt").touch()
         asked = []
         preset = {"recommended": {"cpp-quality": {"docker_image": ""}}}
-        with mock.patch("standard_ci.cli.ALL_PRESETS", preset), \
-                mock.patch("standard_ci.cli.ask_yn", side_effect=self._answers(asked, {})), \
-                mock.patch("standard_ci.prompt.ask_value", side_effect=self._fake_value(asked)):
+        with mock.patch("standard_ci.cli.ALL_PRESETS", preset), mock.patch(
+            "standard_ci.cli.ask_yn", side_effect=self._answers(asked, {})
+        ), mock.patch(
+            "standard_ci.prompt.ask_value", side_effect=self._fake_value(asked)
+        ):
             _init(tmp_path)
 
         config = read_config(str(tmp_path / ".standard.yml"))
@@ -273,15 +291,19 @@ class TestInitPrompts:
         (tmp_path / "CMakeLists.txt").touch()
         asked = []
         preset = {"recommended": {"cpp-quality": {"docker_image": "preset/img:9"}}}
-        with mock.patch("standard_ci.cli.ALL_PRESETS", preset), \
-                mock.patch("standard_ci.cli.ask_yn", side_effect=self._answers(asked, {})), \
-                mock.patch("standard_ci.prompt.ask_value", side_effect=self._fake_value(asked)):
+        with mock.patch("standard_ci.cli.ALL_PRESETS", preset), mock.patch(
+            "standard_ci.cli.ask_yn", side_effect=self._answers(asked, {})
+        ), mock.patch(
+            "standard_ci.prompt.ask_value", side_effect=self._fake_value(asked)
+        ):
             _init(tmp_path)
 
         config = read_config(str(tmp_path / ".standard.yml"))
         assert config["cpp-quality"]["docker_image"] == "preset/img:9"
 
-    def test_workflow_missing_from_registry_is_skipped_and_the_rest_are_generated(self, tmp_path):
+    def test_workflow_missing_from_registry_is_skipped_and_the_rest_are_generated(
+        self, tmp_path
+    ):
         with mock.patch("standard_ci.cli.COMMON_WORKFLOWS", ["ghost", "infra-lint"]):
             _init(tmp_path, "--non-interactive")
 
@@ -294,27 +316,43 @@ class TestPinnedTagMessage:
     def test_init_announces_the_pinned_tag_and_resolves_it(self, tmp_path, capsys):
         resolve = mock.Mock(side_effect=_mock_resolve)
         with mock.patch("standard_ci.cli.resolve_tag_sha", resolve):
-            main(["init", "--non-interactive", "--pin", "v1.2", "--output-dir", str(tmp_path)])
+            main(
+                [
+                    "init",
+                    "--non-interactive",
+                    "--pin",
+                    "v1.2",
+                    "--output-dir",
+                    str(tmp_path),
+                ]
+            )
         resolve.assert_called_once_with("v1.2")
         assert "Resolving tag v1.2..." in capsys.readouterr().out
 
     def test_update_announces_the_pinned_tag(self, tmp_path, capsys):
-        write_config(str(tmp_path / ".standard.yml"),
-                     {"tag": "v0.9", "sha": OLD_SHA, "workflows": []})
-        with mock.patch("standard_ci.cli.resolve_tag_sha", return_value=(NEW_SHA, "v1.2")):
+        write_config(
+            str(tmp_path / ".standard.yml"),
+            {"tag": "v0.9", "sha": OLD_SHA, "workflows": []},
+        )
+        with mock.patch(
+            "standard_ci.cli.resolve_tag_sha", return_value=(NEW_SHA, "v1.2")
+        ):
             main(["update", "--pin", "v1.2", "--output-dir", str(tmp_path)])
         assert "Resolving tag v1.2..." in capsys.readouterr().out
 
     def test_install_starters_announces_the_pinned_tag(self, capsys):
-        with mock.patch("standard_ci.cli.resolve_tag_sha", return_value=(NEW_SHA, "v1.2")), \
-                mock.patch("standard_ci.starters.install_starters", return_value=["done"]):
+        with mock.patch(
+            "standard_ci.cli.resolve_tag_sha", return_value=(NEW_SHA, "v1.2")
+        ), mock.patch("standard_ci.starters.install_starters", return_value=["done"]):
             main(["install-starters", "--org", "o", "--pin", "v1.2"])
         assert "Resolving tag v1.2..." in capsys.readouterr().out
 
 
 class TestExitCodes:
     def test_init_exits_one_when_tag_cannot_be_resolved(self, tmp_path, capsys):
-        with mock.patch("standard_ci.cli.resolve_tag_sha", side_effect=RuntimeError("no tags")):
+        with mock.patch(
+            "standard_ci.cli.resolve_tag_sha", side_effect=RuntimeError("no tags")
+        ):
             assert _exit_code(["init", "--output-dir", str(tmp_path)]) == 1
         assert "Error: no tags" in capsys.readouterr().err
 
@@ -324,19 +362,26 @@ class TestExitCodes:
 
     def test_update_exits_one_when_tag_cannot_be_resolved(self, tmp_path, capsys):
         write_config(str(tmp_path / ".standard.yml"), {"sha": OLD_SHA, "workflows": []})
-        with mock.patch("standard_ci.cli.resolve_tag_sha", side_effect=RuntimeError("no tags")):
+        with mock.patch(
+            "standard_ci.cli.resolve_tag_sha", side_effect=RuntimeError("no tags")
+        ):
             assert _exit_code(["update", "--output-dir", str(tmp_path)]) == 1
         assert "Error: no tags" in capsys.readouterr().err
 
     def test_install_starters_exits_one_when_tag_cannot_be_resolved(self, capsys):
-        with mock.patch("standard_ci.cli.resolve_tag_sha", side_effect=RuntimeError("no tags")):
+        with mock.patch(
+            "standard_ci.cli.resolve_tag_sha", side_effect=RuntimeError("no tags")
+        ):
             assert _exit_code(["install-starters", "--org", "o"]) == 1
         assert "Error: no tags" in capsys.readouterr().err
 
     def test_install_starters_exits_one_when_install_fails(self, capsys):
-        with mock.patch("standard_ci.cli.resolve_tag_sha", return_value=(NEW_SHA, "v1")), \
-                mock.patch("standard_ci.starters.install_starters",
-                           side_effect=RuntimeError("no .github repo")):
+        with mock.patch(
+            "standard_ci.cli.resolve_tag_sha", return_value=(NEW_SHA, "v1")
+        ), mock.patch(
+            "standard_ci.starters.install_starters",
+            side_effect=RuntimeError("no .github repo"),
+        ):
             assert _exit_code(["install-starters", "--org", "o"]) == 1
         assert "Error: no .github repo" in capsys.readouterr().err
 
@@ -347,8 +392,10 @@ class TestExitCodes:
 
 class TestUpdateWorkflowSelection:
     def _project(self, tmp_path, workflows, present):
-        write_config(str(tmp_path / ".standard.yml"),
-                     {"tag": "v0.9.0", "sha": OLD_SHA, "workflows": workflows})
+        write_config(
+            str(tmp_path / ".standard.yml"),
+            {"tag": "v0.9.0", "sha": OLD_SHA, "workflows": workflows},
+        )
         wf_dir = tmp_path / ".github" / "workflows"
         wf_dir.mkdir(parents=True)
         for name in present:
@@ -356,19 +403,31 @@ class TestUpdateWorkflowSelection:
         return wf_dir
 
     def _update(self, tmp_path):
-        with mock.patch("standard_ci.cli.resolve_tag_sha", return_value=(NEW_SHA, "v1.0.0")):
+        with mock.patch(
+            "standard_ci.cli.resolve_tag_sha", return_value=(NEW_SHA, "v1.0.0")
+        ):
             main(["update", "--output-dir", str(tmp_path)])
 
-    def test_unknown_workflow_name_does_not_stop_later_workflows(self, tmp_path, capsys):
+    def test_unknown_workflow_name_does_not_stop_later_workflows(
+        self, tmp_path, capsys
+    ):
         wf_dir = self._project(tmp_path, ["ghost", "infra-lint"], ["infra-lint.yml"])
         self._update(tmp_path)
-        assert (wf_dir / "infra-lint.yml").read_text() == f"uses: x@{NEW_SHA} # v1.0.0\n"
+        assert (
+            wf_dir / "infra-lint.yml"
+        ).read_text() == f"uses: x@{NEW_SHA} # v1.0.0\n"
         assert "Updated 1 workflow(s): v0.9.0 -> v1.0.0" in capsys.readouterr().out
 
-    def test_missing_workflow_file_does_not_stop_later_workflows(self, tmp_path, capsys):
-        wf_dir = self._project(tmp_path, ["infra-lint", "python-quality"], ["python-quality.yml"])
+    def test_missing_workflow_file_does_not_stop_later_workflows(
+        self, tmp_path, capsys
+    ):
+        wf_dir = self._project(
+            tmp_path, ["infra-lint", "python-quality"], ["python-quality.yml"]
+        )
         self._update(tmp_path)
-        assert (wf_dir / "python-quality.yml").read_text() == f"uses: x@{NEW_SHA} # v1.0.0\n"
+        assert (
+            wf_dir / "python-quality.yml"
+        ).read_text() == f"uses: x@{NEW_SHA} # v1.0.0\n"
         assert "Updated 1 workflow(s)" in capsys.readouterr().out
 
     def test_no_matching_workflow_reports_zero_updated(self, tmp_path, capsys):
@@ -377,7 +436,10 @@ class TestUpdateWorkflowSelection:
         assert "Updated 0 workflow(s): v0.9.0 -> v1.0.0" in capsys.readouterr().out
 
     def test_config_without_sha_leaves_workflow_files_untouched(self, tmp_path, capsys):
-        write_config(str(tmp_path / ".standard.yml"), {"tag": "v0.9.0", "workflows": ["infra-lint"]})
+        write_config(
+            str(tmp_path / ".standard.yml"),
+            {"tag": "v0.9.0", "workflows": ["infra-lint"]},
+        )
         wf_dir = tmp_path / ".github" / "workflows"
         wf_dir.mkdir(parents=True)
         (wf_dir / "infra-lint.yml").write_text("abc\n")
@@ -415,12 +477,17 @@ def _scan_row(repo, has_config, up_to_date, tag):
 
 
 CURRENT = _scan_row("org/cur", True, True, "v1.0.0")
-DRIFTED = [_scan_row("org/d1", True, False, "v0.9.0"), _scan_row("org/d2", True, False, "v0.9.0")]
+DRIFTED = [
+    _scan_row("org/d1", True, False, "v0.9.0"),
+    _scan_row("org/d2", True, False, "v0.9.0"),
+]
 UNCONFIGURED = [_scan_row(f"org/n{i}", False, False, None) for i in range(1, 5)]
 
 
 def _patch_scan(results):
-    return mock.patch("standard_ci.scanner.scan_org", return_value=(results, "v1.0.0", LATEST_SHA))
+    return mock.patch(
+        "standard_ci.scanner.scan_org", return_value=(results, "v1.0.0", LATEST_SHA)
+    )
 
 
 class TestScanReport:
@@ -435,16 +502,22 @@ class TestScanReport:
     def test_summary_counts_current_drifted_and_unconfigured(self, capsys):
         with _patch_scan([CURRENT] + DRIFTED + UNCONFIGURED):
             main(["scan", "--org", "org", "--token", "T"])
-        assert "7 repos: 1 current, 2 drifted, 4 unconfigured" in capsys.readouterr().err
+        assert (
+            "7 repos: 1 current, 2 drifted, 4 unconfigured" in capsys.readouterr().err
+        )
 
     def test_scan_failure_exits_one(self, capsys):
-        with mock.patch("standard_ci.scanner.scan_org", side_effect=RuntimeError("rate limited")):
+        with mock.patch(
+            "standard_ci.scanner.scan_org", side_effect=RuntimeError("rate limited")
+        ):
             assert _exit_code(["scan", "--org", "org"]) == 1
         assert "Error: rate limited" in capsys.readouterr().err
 
     def test_exit_code_flag_fails_when_a_configured_repo_drifted(self):
         with _patch_scan([CURRENT] + DRIFTED):
-            assert _exit_code(["scan", "--org", "org", "--token", "T", "--exit-code"]) == 1
+            assert (
+                _exit_code(["scan", "--org", "org", "--token", "T", "--exit-code"]) == 1
+            )
 
     def test_exit_code_flag_passes_when_only_current_and_unconfigured(self):
         with _patch_scan([CURRENT] + UNCONFIGURED):
@@ -468,7 +541,9 @@ class TestTokenResolution:
             main(["scan", "--org", "org"])
         scan.assert_called_once_with("org", "from-env")
 
-    def test_dashboard_prefers_the_explicit_token_over_the_environment(self, monkeypatch):
+    def test_dashboard_prefers_the_explicit_token_over_the_environment(
+        self, monkeypatch
+    ):
         monkeypatch.setenv("GITHUB_TOKEN", "from-env")
         with _patch_scan([]) as scan:
             main(["dashboard", "--org", "org", "--token", "explicit"])
@@ -480,17 +555,21 @@ class TestTokenResolution:
             main(["dashboard", "--org", "org"])
         scan.assert_called_once_with("org", "from-env")
 
-    def test_auto_update_prefers_the_explicit_token_over_the_environment(self, monkeypatch):
+    def test_auto_update_prefers_the_explicit_token_over_the_environment(
+        self, monkeypatch
+    ):
         monkeypatch.setenv("GITHUB_TOKEN", "from-env")
-        with _patch_scan([]), \
-                mock.patch("standard_ci.auto_update.auto_update_repos", return_value=[]) as run:
+        with _patch_scan([]), mock.patch(
+            "standard_ci.auto_update.auto_update_repos", return_value=[]
+        ) as run:
             main(["auto-update", "--org", "org", "--token", "explicit"])
         assert run.call_args.kwargs["token"] == "explicit"
 
     def test_auto_update_falls_back_to_the_environment_token(self, monkeypatch):
         monkeypatch.setenv("GITHUB_TOKEN", "from-env")
-        with _patch_scan([]), \
-                mock.patch("standard_ci.auto_update.auto_update_repos", return_value=[]) as run:
+        with _patch_scan([]), mock.patch(
+            "standard_ci.auto_update.auto_update_repos", return_value=[]
+        ) as run:
             main(["auto-update", "--org", "org"])
         assert run.call_args.kwargs["token"] == "from-env"
 
@@ -504,43 +583,64 @@ class TestScanResultsInput:
     def _argv(self, command, results_file):
         return [command, "--org", "org", "--scan-results", str(results_file)]
 
-    def test_whitespace_only_file_is_reported_as_empty(self, scan_consumer, tmp_path, capsys):
+    def test_whitespace_only_file_is_reported_as_empty(
+        self, scan_consumer, tmp_path, capsys
+    ):
         results = tmp_path / "scan.json"
         results.write_text("  \n")
         assert _exit_code(self._argv(scan_consumer, results)) == 1
         assert "scan results file is empty" in capsys.readouterr().err
 
-    def test_malformed_json_exits_one_naming_the_problem(self, scan_consumer, tmp_path, capsys):
+    def test_malformed_json_exits_one_naming_the_problem(
+        self, scan_consumer, tmp_path, capsys
+    ):
         results = tmp_path / "scan.json"
         results.write_text("{not json")
         assert _exit_code(self._argv(scan_consumer, results)) == 1
         assert "invalid JSON in scan results" in capsys.readouterr().err
 
-    def test_missing_file_exits_one_naming_the_file(self, scan_consumer, tmp_path, capsys):
+    def test_missing_file_exits_one_naming_the_file(
+        self, scan_consumer, tmp_path, capsys
+    ):
         results = tmp_path / "absent.json"
         assert _exit_code(self._argv(scan_consumer, results)) == 1
         assert f"scan results file not found: {results}" in capsys.readouterr().err
 
     def test_live_scan_failure_exits_one(self, scan_consumer, capsys):
-        with mock.patch("standard_ci.scanner.scan_org", side_effect=RuntimeError("rate limited")):
+        with mock.patch(
+            "standard_ci.scanner.scan_org", side_effect=RuntimeError("rate limited")
+        ):
             assert _exit_code([scan_consumer, "--org", "org"]) == 1
         assert "Error: rate limited" in capsys.readouterr().err
 
     def test_dashboard_renders_a_valid_results_file(self, tmp_path, capsys):
         results = tmp_path / "scan.json"
-        results.write_text(json.dumps(
-            {"repos": [], "latest_tag": "v7.7", "latest_sha": LATEST_SHA}
-        ))
-        main(["dashboard", "--org", "org", "--format", "json", "--scan-results", str(results)])
+        results.write_text(
+            json.dumps({"repos": [], "latest_tag": "v7.7", "latest_sha": LATEST_SHA})
+        )
+        main(
+            [
+                "dashboard",
+                "--org",
+                "org",
+                "--format",
+                "json",
+                "--scan-results",
+                str(results),
+            ]
+        )
         assert json.loads(capsys.readouterr().out)["latest_tag"] == "v7.7"
 
     def test_auto_update_forwards_a_valid_results_file(self, tmp_path, capsys):
         results = tmp_path / "scan.json"
-        results.write_text(json.dumps(
-            {"repos": [DRIFTED[0]], "latest_tag": "v7.7", "latest_sha": LATEST_SHA}
-        ))
-        with mock.patch("standard_ci.auto_update.auto_update_repos",
-                        return_value=["opened"]) as run:
+        results.write_text(
+            json.dumps(
+                {"repos": [DRIFTED[0]], "latest_tag": "v7.7", "latest_sha": LATEST_SHA}
+            )
+        )
+        with mock.patch(
+            "standard_ci.auto_update.auto_update_repos", return_value=["opened"]
+        ) as run:
             main(["auto-update", "--org", "org", "--scan-results", str(results)])
         assert run.call_args.args == ([DRIFTED[0]], "v7.7", LATEST_SHA)
         assert capsys.readouterr().out == "opened\n"

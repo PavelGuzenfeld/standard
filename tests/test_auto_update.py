@@ -140,38 +140,48 @@ def _completed(stdout="", returncode=0, stderr=""):
 
 class TestSubprocessHelpers:
     def test_run_strips_stdout_and_returns_exit_code(self):
-        with mock.patch("standard_ci.auto_update.subprocess.run",
-                        return_value=_completed("out\n", 3)):
+        with mock.patch(
+            "standard_ci.auto_update.subprocess.run",
+            return_value=_completed("out\n", 3),
+        ):
             assert _run(["x"]) == ("out", 3)
 
     def test_run_defaults_to_thirty_second_timeout(self):
-        with mock.patch("standard_ci.auto_update.subprocess.run",
-                        return_value=_completed()) as run:
+        with mock.patch(
+            "standard_ci.auto_update.subprocess.run", return_value=_completed()
+        ) as run:
             _run(["x"])
         assert run.call_args.kwargs["timeout"] == 30
 
     def test_run_checked_defaults_to_thirty_second_timeout(self):
-        with mock.patch("standard_ci.auto_update.subprocess.run",
-                        return_value=_completed()) as run:
+        with mock.patch(
+            "standard_ci.auto_update.subprocess.run", return_value=_completed()
+        ) as run:
             _run_checked(["x"])
         assert run.call_args.kwargs["timeout"] == 30
 
     def test_run_checked_returns_stdout_on_exit_zero(self):
-        with mock.patch("standard_ci.auto_update.subprocess.run",
-                        return_value=_completed("fine\n", 0)):
+        with mock.patch(
+            "standard_ci.auto_update.subprocess.run",
+            return_value=_completed("fine\n", 0),
+        ):
             assert _run_checked(["x"]) == "fine"
 
     def test_run_checked_raises_with_stderr_on_exit_one(self):
-        with mock.patch("standard_ci.auto_update.subprocess.run",
-                        return_value=_completed("", 1, "boom\n")):
+        with mock.patch(
+            "standard_ci.auto_update.subprocess.run",
+            return_value=_completed("", 1, "boom\n"),
+        ):
             with pytest.raises(RuntimeError, match="failed: boom"):
                 _run_checked(["git", "push", "origin"])
 
 
 class TestCheckExistingPr:
     def _check(self, stdout, returncode=0):
-        with mock.patch("standard_ci.auto_update.subprocess.run",
-                        return_value=_completed(stdout, returncode)) as run:
+        with mock.patch(
+            "standard_ci.auto_update.subprocess.run",
+            return_value=_completed(stdout, returncode),
+        ) as run:
             found = _check_existing_pr("org/r", "branch", token="T")
         return found, run
 
@@ -204,7 +214,9 @@ class TestCheckExistingPr:
 class TestAutoUpdateReposDispatch:
     def test_dry_run_reports_old_tag_and_unknown_when_tag_missing(self):
         repos = [_drifted("org/a", tag="v0.9.0"), _drifted("org/b", tag=None)]
-        messages = auto_update_repos(repos, "v1.0.0", "sha_new", dry_run=True, token="T")
+        messages = auto_update_repos(
+            repos, "v1.0.0", "sha_new", dry_run=True, token="T"
+        )
         assert messages == [
             "Would update org/a: v0.9.0 -> v1.0.0",
             "Would update org/b: unknown -> v1.0.0",
@@ -218,8 +230,13 @@ class TestAutoUpdateReposDispatch:
 
     @patch("standard_ci.auto_update._update_single_repo")
     @patch("standard_ci.auto_update._check_existing_pr", return_value=False)
-    def test_old_sha_and_old_tag_are_forwarded_with_empty_sha_for_none(self, _check, update):
-        repos = [_drifted("org/a", sha="sha_old"), _drifted("org/b", tag=None, sha=None)]
+    def test_old_sha_and_old_tag_are_forwarded_with_empty_sha_for_none(
+        self, _check, update
+    ):
+        repos = [
+            _drifted("org/a", sha="sha_old"),
+            _drifted("org/b", tag=None, sha=None),
+        ]
         auto_update_repos(repos, "v1.0.0", "sha_new", token="T")
         first, second = update.call_args_list
         assert first.args[:5] == ("org/a", "sha_old", "v0.9.0", "sha_new", "v1.0.0")
@@ -268,18 +285,29 @@ class _CloneHarness:
         real_listdir = os.listdir
 
         def listdir_non_workflow_first(path):
-            return sorted(real_listdir(path), key=lambda n: n.endswith((".yml", ".yaml")))
+            return sorted(
+                real_listdir(path), key=lambda n: n.endswith((".yml", ".yaml"))
+            )
 
-        with mock.patch("standard_ci.auto_update._run_checked", side_effect=self.run_checked), \
-                mock.patch("standard_ci.auto_update._run", return_value=(dirty, 0)), \
-                mock.patch("standard_ci.auto_update.os.listdir",
-                           side_effect=listdir_non_workflow_first), \
-                mock.patch("standard_ci.auto_update.subprocess.run",
-                           return_value=_completed()) as run:
+        with mock.patch(
+            "standard_ci.auto_update._run_checked", side_effect=self.run_checked
+        ), mock.patch(
+            "standard_ci.auto_update._run", return_value=(dirty, 0)
+        ), mock.patch(
+            "standard_ci.auto_update.os.listdir", side_effect=listdir_non_workflow_first
+        ), mock.patch(
+            "standard_ci.auto_update.subprocess.run", return_value=_completed()
+        ) as run:
             _update_single_repo(
-                "org/a", old_sha, old_tag, SHA_NEW, "v1.0.0",
-                "standard-ci/update-v1.0.0", "chore(deps): update standard to v1.0.0",
-                "dependencies, standard-ci", "T",
+                "org/a",
+                old_sha,
+                old_tag,
+                SHA_NEW,
+                "v1.0.0",
+                "standard-ci/update-v1.0.0",
+                "chore(deps): update standard to v1.0.0",
+                "dependencies, standard-ci",
+                "T",
             )
         self.gh_call = run.call_args
         return self
@@ -291,16 +319,26 @@ class _CloneHarness:
 class TestUpdateSingleRepo:
     def test_yml_and_yaml_workflows_are_rewritten_and_other_files_are_not(self):
         text = f"uses: x@{SHA_OLD} # v0.9.0\n"
-        harness = _CloneHarness({"a.txt": text, "b.yml": text, "c.yaml": text}).run(SHA_OLD)
+        harness = _CloneHarness({"a.txt": text, "b.yml": text, "c.yaml": text}).run(
+            SHA_OLD
+        )
         rewritten = f"uses: x@{SHA_NEW} # v1.0.0\n"
-        assert harness.written == {"a.txt": text, "b.yml": rewritten, "c.yaml": rewritten}
+        assert harness.written == {
+            "a.txt": text,
+            "b.yml": rewritten,
+            "c.yaml": rewritten,
+        }
 
     def test_empty_old_sha_leaves_the_sha_but_still_moves_the_tag_comment(self):
-        harness = _CloneHarness({"b.yml": f"uses: x@{SHA_OLD} # v0.9.0\n"}).run(old_sha="")
+        harness = _CloneHarness({"b.yml": f"uses: x@{SHA_OLD} # v0.9.0\n"}).run(
+            old_sha=""
+        )
         assert harness.written == {"b.yml": f"uses: x@{SHA_OLD} # v1.0.0\n"}
 
     def test_empty_old_tag_does_not_rewrite_ordinary_comments(self):
-        harness = _CloneHarness({"b.yml": f"# keep\nuses: x@{SHA_OLD}\n"}).run(SHA_OLD, old_tag="")
+        harness = _CloneHarness({"b.yml": f"# keep\nuses: x@{SHA_OLD}\n"}).run(
+            SHA_OLD, old_tag=""
+        )
         assert harness.written == {"b.yml": f"# keep\nuses: x@{SHA_NEW}\n"}
 
     def test_clean_clone_makes_no_commit_push_or_pr(self):
@@ -313,13 +351,22 @@ class TestUpdateSingleRepo:
         assert harness.git_verbs() == ["clone", "checkout", "add", "commit", "push"]
         cmd = harness.gh_call.args[0]
         assert cmd[:8] == [
-            "gh", "pr", "create", "--repo", "org/a",
-            "--title", "chore(deps): update standard to v1.0.0",
+            "gh",
+            "pr",
+            "create",
+            "--repo",
+            "org/a",
+            "--title",
+            "chore(deps): update standard to v1.0.0",
             "--body",
         ]
         assert "v0.9.0" in cmd[8] and "v1.0.0" in cmd[8]
         assert cmd[9:] == [
-            "--head", "standard-ci/update-v1.0.0",
-            "--label", "dependencies", "--label", "standard-ci",
+            "--head",
+            "standard-ci/update-v1.0.0",
+            "--label",
+            "dependencies",
+            "--label",
+            "standard-ci",
         ]
         assert harness.gh_call.kwargs["timeout"] == 30
