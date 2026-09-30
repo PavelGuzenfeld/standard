@@ -273,7 +273,7 @@ NAMING_SCRIPT="$SCRIPT_DIR/scripts/diff-file-naming.sh"
 
 if [ -x "$NAMING_SCRIPT" ] || [ -f "$NAMING_SCRIPT" ]; then
     TMPDIR=$(mktemp -d)
-    trap "rm -rf $TMPDIR" EXIT
+    trap 'rm -rf "$TMPDIR"' EXIT
 
     cd "$TMPDIR"
     git init -q
