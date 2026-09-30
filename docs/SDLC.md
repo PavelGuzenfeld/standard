@@ -20,7 +20,7 @@ Template: [`configs/.pre-commit-config.yaml`](https://github.com/PavelGuzenfeld/
 | `check-yaml` | Validates YAML syntax |
 | `check-added-large-files` | Blocks files > 500 KB |
 
-Install with `pip install pre-commit && pre-commit install`, or run `./scripts/install-hooks.sh`.
+Setup is in [Integration](INTEGRATION.md#7-pre-commit-hooks).
 
 ### Local Scripts
 
@@ -51,11 +51,6 @@ ctest --test-dir build-asan --output-on-failure
 Template: [`configs/cmake-warnings.cmake`](https://github.com/PavelGuzenfeld/standard/blob/main/configs/cmake-warnings.cmake)
 
 Flags: `-Wall -Wextra -Wpedantic -Werror -Wshadow -Wnon-virtual-dtor -Wold-style-cast -Wconversion -Wsign-conversion -Wformat=2` plus GCC-specific extras (`-Wduplicated-cond`, `-Wlogical-op`).
-
-```cmake
-include(cmake-warnings.cmake)
-target_link_libraries(my_target PRIVATE warnings)
-```
 
 ## Phase 2: Pull Request Quality Gate
 
@@ -102,7 +97,6 @@ Workflow: [`python-quality.yml`](https://github.com/PavelGuzenfeld/standard/blob
 | Check | What it enforces | Default |
 |-------|-----------------|---------|
 | File naming | `snake_case` for all file/directory names | Opt-in |
-| Package naming | `include/<package_name>/` directories must be `snake_case` | Opt-in (via file naming) |
 | Identifier naming | `snake_case` functions, `PascalCase` types (via clang-tidy) | Via config |
 
 Built-in file naming exceptions: `CMakeLists.txt`, `Dockerfile`, `README.md`, `LICENSE`, dotfiles, `__init__.py`, `requirements*.txt`.
@@ -145,7 +139,6 @@ Workflow: [`sast-python.yml`](https://github.com/PavelGuzenfeld/standard/blob/ma
 Template: [`configs/ci-codeql.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/configs/ci-codeql.yml)
 
 - Inter-procedural taint tracking and data flow analysis
-- 200+ CWEs for C++, 160+ for Python
 - Detects: buffer overflows, use-after-free, SQL/command injection, format strings, XSS, SSRF
 - Free for public repositories
 
@@ -188,8 +181,6 @@ Additional checks that strengthen supply chain security posture:
 | Check | Tool | What it does |
 |-------|------|-------------|
 | Dependency updates | Dependabot | Monitors GitHub Actions and pip ecosystems for outdated dependencies |
-| Binary artifact scan | `infra-lint.yml` | Detects committed binary files (`.exe`, `.dll`, `.so`, `.jar`, etc.) in PRs |
-| Dangerous workflow audit | `infra-lint.yml` | Detects `pull_request_target` misuse and injection vectors in workflow files |
 | SLSA provenance | `auto-release.yml` | Attests build provenance for releases using `actions/attest-build-provenance` |
 | Security policy | `SECURITY.md` | Defines vulnerability reporting process (OpenSSF Scorecard requirement) |
 
@@ -199,7 +190,7 @@ Additional checks that strengthen supply chain security posture:
 
 Template: [`configs/test-checklist.md`](https://github.com/PavelGuzenfeld/standard/blob/main/configs/test-checklist.md)
 
-The [checklist template](https://github.com/PavelGuzenfeld/standard/blob/main/configs/test-checklist.md) lists 11 mandatory categories, from empty inputs and boundaries to sanitizer passes under `debug-asan`, `debug-tsan` and `release-asan`, and a libFuzzer harness for parsing code.
+It lists 11 mandatory categories, from empty inputs and boundaries to sanitizer passes under `debug-asan`, `debug-tsan` and `release-asan`, and a libFuzzer harness for parsing code.
 
 ### Multi-Compiler CI
 
@@ -218,7 +209,7 @@ Template: [`configs/ci-fuzz.yml`](https://github.com/PavelGuzenfeld/standard/blo
 - Crash artifact upload on failure
 - Weekly scheduled + PR trigger
 
-Harness example: [Integration Guide](INTEGRATION.md#9-fuzzing).
+Setup and a harness example: [Integration](INTEGRATION.md#9-fuzzing).
 
 ### Production Hardening
 

@@ -110,19 +110,19 @@ jobs:
         if: inputs.enable_tests
         id: diff-cover
         run: |
-          echo "DIFF_COVER_REPORT<<EOF" >> $GITHUB_ENV
+          echo "DIFF_COVER_REPORT<<EOF" >> "$GITHUB_ENV"
           diff-cover coverage.xml \
             --compare-branch=origin/${{ inputs.base_ref || github.base_ref || 'main' }} \
             --markdown-report=diff-cover.md || true
-          cat diff-cover.md >> $GITHUB_ENV 2>/dev/null || \
+          cat diff-cover.md >> "$GITHUB_ENV" 2>/dev/null || \
             diff-cover coverage.xml \
-              --compare-branch=origin/${{ inputs.base_ref || github.base_ref || 'main' }} >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+              --compare-branch=origin/${{ inputs.base_ref || github.base_ref || 'main' }} >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
         continue-on-error: true
 
       - name: Set lint outcome
         id: lint-result
-        run: echo "outcome=${{ steps.lint.outcome }}" >> $GITHUB_OUTPUT
+        run: echo "outcome=${{ steps.lint.outcome }}" >> "$GITHUB_OUTPUT"
 
     outputs:
       lint_outcome: ${{ steps.lint.outcome }}

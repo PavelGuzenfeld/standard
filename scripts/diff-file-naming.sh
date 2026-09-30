@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_BRANCH="${1:?Usage: diff-file-naming.sh <base_branch> [exceptions_file]}"
+usage() {
+    echo "Usage: $0 <base_branch> [exceptions_file]"
+    echo "Environment: NAMING_ALLOWED_PREFIXES"
+}
+
+case "${1:-}" in
+    -h|--help) usage; exit 0 ;;
+esac
+[ $# -ge 1 ] || { usage; exit 1; }
+
+BASE_BRANCH="$1"
 EXCEPTIONS_FILE="${2:-}"
 ALLOWED_PREFIXES="${NAMING_ALLOWED_PREFIXES:-_}"
 

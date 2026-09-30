@@ -178,7 +178,7 @@ fi
 
 if [[ "$enable_python" == "y" ]]; then
     echo ""
-    echo "### Python"
+    echo "### Python (if applicable)"
     echo ""
     echo "- **Linting** — ${python_linter} on changed lines, zero violations required"
     echo "- **Coverage** — pytest + diff-cover, minimum score on changed lines"
@@ -306,36 +306,6 @@ TESTING
         [[ "$enable_sanitizers" == "y" ]] && echo "cmake --preset release-asan  # ASan + UBSan at -O2"
         echo '```'
     fi
-
-    if [[ "$enable_clang_format" == "y" ]]; then
-        cat << 'FORMATTING'
-
-## Code Formatting
-
-### clang-format Settings
-
-- Standard: C++23
-- Column limit: 120
-- Indent: 4 spaces
-- Braces: Allman (opening brace on new line)
-- No bin-packing of arguments
-FORMATTING
-    fi
-
-    echo ""
-    echo "### clang-tidy Checks"
-    echo ""
-    echo 'Active check groups: `clang-analyzer-*`, `cppcoreguidelines-*`, `modernize-*`, `bugprone-*`, `performance-*`, `readability-*`'
-    echo ""
-    echo "Run locally before pushing:"
-    echo ""
-    echo '```bash'
-    echo '# Check only files changed vs main'
-    echo './scripts/diff-clang-tidy.sh origin/main build "cpp hpp h"'
-    echo './scripts/diff-cppcheck.sh origin/main'
-    [[ "$enable_clang_format" == "y" ]] && echo './scripts/diff-clang-format.sh origin/main "cpp hpp h"'
-    [[ "$enable_file_naming" == "y" ]]  && echo './scripts/diff-file-naming.sh origin/main'
-    echo '```'
 fi
 
 if [[ "$enable_python" == "y" ]]; then
@@ -455,10 +425,10 @@ echo ""
 echo "## CI Workflows"
 echo ""
 echo 'Every project integrating this standard must have a quality workflow in `.github/workflows/`.'
+echo ""
+echo "### Required Workflows"
 
 if [[ "$enable_cpp" == "y" ]]; then
-    echo ""
-    echo "### C++ Workflow"
     echo ""
     echo '- **File**: `cpp-quality.yml` calling the reusable workflow'
     echo '- **Required inputs**: `docker_image`, `compile_commands_path`'
@@ -484,8 +454,6 @@ fi
 
 if [[ "$enable_python" == "y" ]]; then
     echo ""
-    echo "### Python Workflow"
-    echo ""
     echo "- **File**: \`python-quality.yml\` calling the reusable workflow"
     echo "- **Linter**: ${python_linter}"
 
@@ -505,8 +473,6 @@ infra_names=()
 
 if [[ ${#infra_names[@]} -gt 0 ]]; then
     echo ""
-    echo "### Infrastructure Lint"
-    echo ""
     echo "- **File**: \`infra-lint.yml\` calling the reusable workflow"
     echo "- **Enabled**: $(join_by ", " "${infra_names[@]}")"
 fi
@@ -520,25 +486,10 @@ echo '- `ci-fuzz.yml` — libFuzzer continuous fuzzing'
 echo '- `ci-multi-compiler.yml` — GCC + Clang multi-compiler builds'
 
 echo ""
-echo "### Verification"
-echo ""
 echo 'Confirm `.github/workflows/` contains the quality workflow for your language(s).'
 echo ""
 echo "Full setup instructions: see \`INTEGRATION.md\`."
 
-cat << 'SDLC'
-
-## SDLC Process
-
-The standard supports a 4-phase Software Development Lifecycle:
-
-- **Phase 1: Developer workstation** — pre-commit hooks, local diff-aware scripts, sanitizer CMake presets, editor integration
-- **Phase 2: PR quality gate** — diff-aware linting, naming checks, banned pattern detection via CI workflows
-- **Phase 3: SAST** — Semgrep (Python), CodeQL (C++/Python), Infer (C++), pip-audit (Python)
-- **Phase 4: Hardening** — sanitizer builds in CI, fuzzing harnesses, multi-compiler testing
-
-Full documentation: see `SDLC.md`.
-SDLC
 
 } > "$OUTPUT"
 

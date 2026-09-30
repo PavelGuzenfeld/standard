@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+usage() {
+    echo "Usage: $0 [exclude_file] [file_list]"
+}
+
+case "${1:-}" in
+    -h|--help) usage; exit 0 ;;
+esac
+
 EXCLUDE_FILE="${1:-}"
 FILE_LIST="${2:-}"
 

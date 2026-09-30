@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_BRANCH="${1:?Usage: diff-cppcheck.sh <base_branch>}"
+usage() {
+    echo "Usage: $0 <base_branch>"
+    echo "Environment: CPPCHECK_SUPPRESS CPPCHECK_INCLUDES CPPCHECK_STD CPPCHECK_EXTENSIONS"
+}
+
+case "${1:-}" in
+    -h|--help) usage; exit 0 ;;
+esac
+[ $# -ge 1 ] || { usage; exit 1; }
+
+BASE_BRANCH="$1"
 SUPPRESS_FILE="${CPPCHECK_SUPPRESS:-}"
 INCLUDE_DIRS="${CPPCHECK_INCLUDES:-}"
 CPP_STD="${CPPCHECK_STD:-c++23}"

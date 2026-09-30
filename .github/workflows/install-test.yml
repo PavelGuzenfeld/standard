@@ -74,7 +74,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=${{ inputs.build_type }} \
             -DCMAKE_INSTALL_PREFIX=${{ inputs.install_prefix }} \
             ${{ inputs.cmake_args }}
-          cmake --build build --parallel $(nproc)
+          cmake --build build --parallel "$(nproc)"
           cmake --install build
 
       - name: Build & install library (Docker)
@@ -130,16 +130,16 @@ jobs:
           CPP_EOF
           fi
 
-          echo "consumer_path=/tmp/consumer" >> $GITHUB_OUTPUT
+          echo "consumer_path=/tmp/consumer" >> "$GITHUB_OUTPUT"
         id: gen
 
       - name: Set consumer path
         id: consumer
         run: |
           if [ -n "${{ inputs.consumer_dir }}" ]; then
-            echo "path=${{ github.workspace }}/${{ inputs.consumer_dir }}" >> $GITHUB_OUTPUT
+            echo "path=${{ github.workspace }}/${{ inputs.consumer_dir }}" >> "$GITHUB_OUTPUT"
           else
-            echo "path=/tmp/consumer" >> $GITHUB_OUTPUT
+            echo "path=/tmp/consumer" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build consumer project (native)
@@ -149,7 +149,7 @@ jobs:
             -S "${{ steps.consumer.outputs.path }}" \
             -DCMAKE_PREFIX_PATH=${{ inputs.install_prefix }} \
             -DCMAKE_BUILD_TYPE=${{ inputs.build_type }}
-          cmake --build /tmp/consumer-build --parallel $(nproc)
+          cmake --build /tmp/consumer-build --parallel "$(nproc)"
           echo "Consumer project built successfully — find_package works"
 
       - name: Build consumer project (Docker)

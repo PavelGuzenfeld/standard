@@ -45,14 +45,14 @@ jobs:
       - name: Generate diff coverage report
         id: diff-cover
         run: |
-          echo "DIFF_COVER_REPORT<<EOF" >> $GITHUB_ENV
+          echo "DIFF_COVER_REPORT<<EOF" >> "$GITHUB_ENV"
           diff-cover coverage.xml \
             --compare-branch=origin/${{ github.base_ref }} \
             --markdown-report=diff-cover.md || true
-          cat diff-cover.md >> $GITHUB_ENV 2>/dev/null || \
+          cat diff-cover.md >> "$GITHUB_ENV" 2>/dev/null || \
             diff-cover coverage.xml \
-              --compare-branch=origin/${{ github.base_ref }} >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+              --compare-branch=origin/${{ github.base_ref }} >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
         continue-on-error: true
 
       - name: Post or update quality report as PR comment

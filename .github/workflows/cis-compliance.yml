@@ -49,9 +49,9 @@ jobs:
         run: |
           ARCH=$(uname -m)
           case "$ARCH" in
-            x86_64)  echo "suffix=Linux-64bit" >> $GITHUB_OUTPUT ;;
-            aarch64) echo "suffix=Linux-ARM64" >> $GITHUB_OUTPUT ;;
-            *)       echo "suffix=Linux-64bit" >> $GITHUB_OUTPUT ;;
+            x86_64)  echo "suffix=Linux-64bit" >> "$GITHUB_OUTPUT" ;;
+            aarch64) echo "suffix=Linux-ARM64" >> "$GITHUB_OUTPUT" ;;
+            *)       echo "suffix=Linux-64bit" >> "$GITHUB_OUTPUT" ;;
           esac
 
       - name: Install chain-bench
@@ -72,7 +72,7 @@ jobs:
           if [ -z "$BRANCH" ]; then
             BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
           fi
-          echo "name=$BRANCH" >> $GITHUB_OUTPUT
+          echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
 
       - name: Check for App credentials
         id: check-app
@@ -80,9 +80,9 @@ jobs:
           HAS_APP_ID: ${{ secrets.app_id }}
         run: |
           if [ -n "$HAS_APP_ID" ]; then
-            echo "available=true" >> $GITHUB_OUTPUT
+            echo "available=true" >> "$GITHUB_OUTPUT"
           else
-            echo "available=false" >> $GITHUB_OUTPUT
+            echo "available=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Generate GitHub App token
@@ -122,16 +122,18 @@ jobs:
           TOTAL=$((PASSED + FAILED + UNKNOWN))
           if [ "$TOTAL" -eq 0 ]; then TOTAL=35; fi
 
-          echo "passed=$PASSED" >> $GITHUB_OUTPUT
-          echo "failed=$FAILED" >> $GITHUB_OUTPUT
-          echo "unknown=$UNKNOWN" >> $GITHUB_OUTPUT
-          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+          {
+            echo "passed=$PASSED"
+            echo "failed=$FAILED"
+            echo "unknown=$UNKNOWN"
+            echo "total=$TOTAL"
+          } >> "$GITHUB_OUTPUT"
 
           PERCENT=0
           if [ "$TOTAL" -gt 0 ]; then
             PERCENT=$((PASSED * 100 / TOTAL))
           fi
-          echo "percent=$PERCENT" >> $GITHUB_OUTPUT
+          echo "percent=$PERCENT" >> "$GITHUB_OUTPUT"
 
           echo ""
           echo "═══════════════════════════════════════"
@@ -144,7 +146,6 @@ jobs:
         if: always()
         run: |
           PASSED="${{ steps.scan.outputs.passed }}"
-          FAILED="${{ steps.scan.outputs.failed }}"
           TOTAL="${{ steps.scan.outputs.total }}"
           PERCENT="${{ steps.scan.outputs.percent }}"
           BRANCH="${{ steps.branch.outputs.name }}"
@@ -189,7 +190,7 @@ jobs:
             echo "<sub>Scanned by <a href=\"https://github.com/aquasecurity/chain-bench\">chain-bench</a> via <a href=\"https://github.com/PavelGuzenfeld/standard\">standard</a></sub>"
           } > /tmp/cis-report.md
 
-          cat /tmp/cis-report.md >> $GITHUB_STEP_SUMMARY
+          cat /tmp/cis-report.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload scan results
         if: always()

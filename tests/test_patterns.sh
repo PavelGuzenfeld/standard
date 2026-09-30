@@ -666,53 +666,57 @@ echo ""
 
 echo "=== 13. End-to-end: diff-gdlint.sh ==="
 
-GDLINT_SCRIPT="$SCRIPT_DIR/scripts/diff-gdlint.sh"
-GDLINT_REPO=$(mktemp -d)
-(
-    cd "$GDLINT_REPO"
-    git init -q
-    git config user.email "test@test.com"
-    git config user.name "Test"
-    echo "init" > init.txt
-    git add init.txt
-    git commit -q -m "init"
-    git branch -M main
-    git checkout -q -b feature/gd
-    printf 'extends Node\n\nfunc ParseFrame():\n\tpass\n' > pascal_func.gd
-    printf 'extends Node\n\nvar _health\n' > leading_private_var.gd
-    printf 'extends Node\n\nfunc _helper():\n\tpass\n' > leading_private_func.gd
-    printf 'extends Node\n\nsignal HealthChanged\n' > pascal_signal.gd
-    printf 'class_name bad_class\nextends Node\n' > snake_class.gd
-    printf 'extends Node\n\nconst maxHp = 3\n' > lower_const.gd
-    printf 'extends Node\n\nfunc parse_frame():\n\tpass\n\n\nvar health_\nvar unused_name_\nconst MAX_HP_ = 3\nsignal health_changed\n\n\nfunc _ready():\n\tpass\n\n\nfunc _on_button_pressed():\n\tpass\n' > good.gd
-    git add ./*.gd
-    git commit -q -m "gd files"
-)
-
-GDLINT_EXIT=0
-GDLINT_OUTPUT=$(cd "$GDLINT_REPO" && bash "$GDLINT_SCRIPT" main 2>&1) || GDLINT_EXIT=$?
-
-if [ "$GDLINT_EXIT" -ne 0 ]; then
-    pass "diff-gdlint exits non-zero on naming violations"
+if ! command -v gdlint >/dev/null 2>&1; then
+    echo "  SKIP: gdlint not available (pip install gdtoolkit)"
 else
-    fail "diff-gdlint should exit non-zero on naming violations"
-fi
+    GDLINT_SCRIPT="$SCRIPT_DIR/scripts/diff-gdlint.sh"
+    GDLINT_REPO=$(mktemp -d)
+    (
+        cd "$GDLINT_REPO"
+        git init -q
+        git config user.email "test@test.com"
+        git config user.name "Test"
+        echo "init" > init.txt
+        git add init.txt
+        git commit -q -m "init"
+        git branch -M main
+        git checkout -q -b feature/gd
+        printf 'extends Node\n\nfunc ParseFrame():\n\tpass\n' > pascal_func.gd
+        printf 'extends Node\n\nvar _health\n' > leading_private_var.gd
+        printf 'extends Node\n\nfunc _helper():\n\tpass\n' > leading_private_func.gd
+        printf 'extends Node\n\nsignal HealthChanged\n' > pascal_signal.gd
+        printf 'class_name bad_class\nextends Node\n' > snake_class.gd
+        printf 'extends Node\n\nconst maxHp = 3\n' > lower_const.gd
+        printf 'extends Node\n\nfunc parse_frame():\n\tpass\n\n\nvar health_\nvar unused_name_\nconst MAX_HP_ = 3\nsignal health_changed\n\n\nfunc _ready():\n\tpass\n\n\nfunc _on_button_pressed():\n\tpass\n' > good.gd
+        git add ./*.gd
+        git commit -q -m "gd files"
+    )
 
-for bad in pascal_func leading_private_var leading_private_func pascal_signal snake_class lower_const; do
-    if echo "$GDLINT_OUTPUT" | grep -q "${bad}.gd"; then
-        pass "diff-gdlint flags ${bad}.gd"
+    GDLINT_EXIT=0
+    GDLINT_OUTPUT=$(cd "$GDLINT_REPO" && bash "$GDLINT_SCRIPT" main 2>&1) || GDLINT_EXIT=$?
+
+    if [ "$GDLINT_EXIT" -ne 0 ]; then
+        pass "diff-gdlint exits non-zero on naming violations"
     else
-        fail "diff-gdlint missed ${bad}.gd"
+        fail "diff-gdlint should exit non-zero on naming violations"
     fi
-done
 
-if echo "$GDLINT_OUTPUT" | grep -q "good.gd"; then
-    fail "diff-gdlint false positive on good.gd"
-else
-    pass "diff-gdlint accepts trailing-underscore privates, engine virtuals and _on_ handlers"
+    for bad in pascal_func leading_private_var leading_private_func pascal_signal snake_class lower_const; do
+        if echo "$GDLINT_OUTPUT" | grep -q "${bad}.gd"; then
+            pass "diff-gdlint flags ${bad}.gd"
+        else
+            fail "diff-gdlint missed ${bad}.gd"
+        fi
+    done
+
+    if echo "$GDLINT_OUTPUT" | grep -q "good.gd"; then
+        fail "diff-gdlint false positive on good.gd"
+    else
+        pass "diff-gdlint accepts trailing-underscore privates, engine virtuals and _on_ handlers"
+    fi
+
+    rm -rf "$GDLINT_REPO"
 fi
-
-rm -rf "$GDLINT_REPO"
 
 echo ""
 

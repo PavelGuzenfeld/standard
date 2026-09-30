@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_BRANCH="${1:?Usage: diff-clang-tidy.sh <base_branch> <compile_commands_dir> [extensions]}"
-COMPILE_COMMANDS="${2:?Usage: diff-clang-tidy.sh <base_branch> <compile_commands_dir> [extensions]}"
+usage() {
+    echo "Usage: $0 <base_branch> <compile_commands_dir> [extensions]"
+}
+
+case "${1:-}" in
+    -h|--help) usage; exit 0 ;;
+esac
+[ $# -ge 2 ] || { usage; exit 1; }
+
+BASE_BRANCH="$1"
+COMPILE_COMMANDS="$2"
 EXTENSIONS="${3:-cpp hpp h cc cxx}"
 
 EXT_PATTERN="\.($(echo "$EXTENSIONS" | tr ' ' '|'))$"

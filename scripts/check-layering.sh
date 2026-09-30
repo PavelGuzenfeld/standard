@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
+usage() {
+    echo "Usage: $0 [root_dir]"
+    echo "Environment: DEPCRUISE_TARGET"
+}
+
+case "${1:-}" in
+    -h|--help) usage; exit 0 ;;
+esac
+
 ROOT="$(cd "${1:-.}" && pwd)"
 DEPCRUISE_TARGET="${DEPCRUISE_TARGET:-src}"
 cd "$ROOT" || exit 1

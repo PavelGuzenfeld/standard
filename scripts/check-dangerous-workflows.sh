@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+usage() {
+    echo "Usage: $0 [workflows_dir]"
+}
+
+case "${1:-}" in
+    -h|--help) usage; exit 0 ;;
+esac
+
 SCAN_DIR="${1:-.github/workflows}"
 
 if [ ! -d "$SCAN_DIR" ]; then
