@@ -5,7 +5,6 @@ MINIMAL = {
     "cpp-quality": {
     },
     "python-quality": {
-        # ruff + pytest (defaults)
     },
     "infra-lint": {
     },

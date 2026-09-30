@@ -1,1 +1,2 @@
 test_paths = ["tests"]
+no_comments = true
