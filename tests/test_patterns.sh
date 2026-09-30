@@ -737,14 +737,16 @@ else
     ts_naming_fails  "interface IFrame rejected"              a.ts 'export interface IFrame { id: number }'
     ts_naming_passes "interface Frame accepted"               a.ts 'export interface Frame { id: number }'
     ts_naming_fails  "function Parse_frame rejected"          a.ts 'export function Parse_frame(): number { return 1 }'
-    ts_naming_passes "function parseFrame accepted"           a.ts 'export function parseFrame(): number { return 1 }'
+    ts_naming_passes "function parse_frame accepted"          a.ts 'export function parse_frame(): number { return 1 }'
+    ts_naming_fails  "function parseFrame rejected"           a.ts 'export function parseFrame(): number { return 1 }'
     ts_naming_fails  "private _count rejected"                a.ts 'export class A { private _count = 0; get(): number { return this._count } }'
     ts_naming_fails  "private count without suffix rejected"  a.ts 'export class A { private count = 0; get(): number { return this.count } }'
     ts_naming_passes "private count_ accepted"                a.ts 'export class A { private count_ = 0; get(): number { return this.count_ } }'
     ts_naming_passes "#private count_ accepted"               a.ts 'export class A { #count_ = 0; get(): number { return this.#count_ } }'
     ts_naming_fails  "#private count without suffix rejected" a.ts 'export class A { #count = 0; get(): number { return this.#count } }'
     ts_naming_passes "UPPER_CASE constant accepted"           a.ts 'export const MAX_FRAMES = 4'
-    ts_naming_fails  "snake_case variable rejected"           a.ts 'export const frame_count = 4'
+    ts_naming_passes "snake_case variable accepted"           a.ts 'export const frame_count = 4'
+    ts_naming_fails  "camelCase variable rejected"            a.ts 'export const frameCount = 4'
     ts_naming_passes "PascalCase tsx component accepted"      a.tsx 'export function FrameView(): null { return null }'
     ts_naming_fails  "PascalCase function in .ts rejected"    a.ts 'export function FrameView(): null { return null }'
 
@@ -752,7 +754,7 @@ else
     git add legacy.ts
     git commit -q -m legacy
     git checkout -q -b feature/ts2
-    printf 'export function goodName(): void {}\n' > fresh.ts
+    printf 'export function good_name(): void {}\n' > fresh.ts
     git add fresh.ts
     if bash "$TS_SCRIPT" HEAD >/dev/null 2>&1; then pass "unchanged legacy file does not fail diff"; else fail "unchanged legacy file does not fail diff"; fi
 

@@ -382,7 +382,7 @@ jobs:
 | [`.clang-tidy`](configs/.clang-tidy) | clang-analyzer, cppcoreguidelines, modernize, bugprone, performance, readability |
 | [`.clang-format`](configs/.clang-format) | C++23, 120-col, 4-space indent, Allman braces |
 | [`.clang-tidy-naming`](configs/.clang-tidy-naming) | Identifier naming: snake_case functions, PascalCase types, trailing `_` private |
-| [`eslint-naming.config.mjs`](configs/eslint-naming.config.mjs) | TypeScript naming: camelCase, PascalCase types and .tsx components, no `I` prefix, trailing `_` private |
+| [`eslint-naming.config.mjs`](configs/eslint-naming.config.mjs) | TypeScript naming: snake_case, PascalCase types and .tsx components, no `I` prefix, trailing `_` private |
 | [`cppcheck.suppress`](configs/cppcheck.suppress) | Generic suppressions with commented vendor examples |
 | [`naming-exceptions.txt`](configs/naming-exceptions.txt) | File naming exception template (one regex per line) |
 | [`.pre-commit-config.yaml`](configs/.pre-commit-config.yaml) | Pre-commit hooks: clang-format, clang-tidy, cppcheck |
