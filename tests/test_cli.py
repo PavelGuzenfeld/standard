@@ -27,19 +27,16 @@ class TestCLIInit:
                 "--output-dir", str(project),
             ])
 
-        # Check workflow files were generated
         wf_dir = project / ".github" / "workflows"
         assert (wf_dir / "cpp-quality.yml").exists()
         assert (wf_dir / "infra-lint.yml").exists()
 
-        # Check .standard.yml
         config = read_config(str(project / ".standard.yml"))
         assert config["preset"] == "minimal"
         assert config["sha"] == FAKE_SHA
         assert config["tag"] == FAKE_TAG
         assert "cpp-quality" in config["workflows"]
 
-        # Check SHA pin in generated file
         content = (wf_dir / "cpp-quality.yml").read_text()
         assert FAKE_SHA in content
         assert FAKE_TAG in content
@@ -61,7 +58,6 @@ class TestCLIInit:
         assert (wf_dir / "python-quality.yml").exists()
         assert (wf_dir / "sast-python.yml").exists()
         assert (wf_dir / "infra-lint.yml").exists()
-        # No C++ workflow for a Python project
         assert not (wf_dir / "cpp-quality.yml").exists()
 
     def test_init_full_noninteractive_both(self, tmp_path):
@@ -84,7 +80,6 @@ class TestCLIInit:
         assert (wf_dir / "sast-python.yml").exists()
         assert (wf_dir / "infra-lint.yml").exists()
 
-        # Full preset should have extra options enabled
         content = (wf_dir / "cpp-quality.yml").read_text()
         assert "enable_clang_format: true" in content
         assert "ban_cout: true" in content
@@ -104,7 +99,6 @@ class TestCLICheck:
                 "--output-dir", str(project),
             ])
 
-        # check should pass without error
         main(["check", "--output-dir", str(project)])
 
     def test_check_fails_no_config(self, tmp_path, capsys):
@@ -147,7 +141,6 @@ class TestCLIUpdate:
         captured = capsys.readouterr()
         assert "Would update" in captured.out
 
-        # File should NOT be changed (dry run)
         content = (project / ".github" / "workflows" / "cpp-quality.yml").read_text()
         assert FAKE_SHA in content
 

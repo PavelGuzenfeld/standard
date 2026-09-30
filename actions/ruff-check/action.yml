@@ -76,7 +76,6 @@ runs:
           RUFF_ARGS="$RUFF_ARGS --target-version=${{ inputs.target_python }}"
         fi
 
-        # Run diff-quality
         if diff-quality --violations=ruff.check \
           --options="${RUFF_ARGS}" \
           --compare-branch="origin/${BASE}" \

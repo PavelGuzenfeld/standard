@@ -1,9 +1,5 @@
 """Registry of reusable workflows and their inputs."""
 
-# Each workflow entry: {input_name: {type, default, prompt, group}}
-# 'group' is used to organize interactive prompts.
-# Only inputs relevant to interactive setup are listed — obscure inputs
-# (runner, exclude_file, etc.) are omitted; users can add them manually.
 
 CPP_QUALITY = {
     "name": "cpp-quality",
@@ -230,5 +226,4 @@ LANGUAGE_WORKFLOWS = {
     "python": ["python-quality", "sast-python"],
 }
 
-# Always offered regardless of language
 COMMON_WORKFLOWS = ["infra-lint"]

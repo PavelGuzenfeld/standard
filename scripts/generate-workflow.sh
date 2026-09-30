@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# generate-workflow.sh — Generate .github/workflows/ YAML files with correct inputs.
-#
-# Usage: generate-workflow.sh [--output-dir PATH] [--non-interactive]
-#
-# Auto-detects project type from CWD and asks what quality checks are enabled.
-# Produces workflow YAML files calling the standard reusable workflows.
-
 OUTPUT_DIR=".github/workflows"
 NON_INTERACTIVE=false
 STANDARD_REPO="PavelGuzenfeld/standard"
@@ -31,15 +24,11 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# --- Auto-detection -----------------------------------------------------------
-
 detect_cpp=false
 detect_python=false
 
 [[ -f CMakeLists.txt || -f package.xml ]] && detect_cpp=true
 [[ -f pyproject.toml || -f setup.py || -f requirements.txt ]] && detect_python=true
-
-# --- Prompt helpers -----------------------------------------------------------
 
 ask() {
     local prompt="$1" default="$2" var="$3"
@@ -73,8 +62,6 @@ ask_value() {
     eval "$var='$answer'"
 }
 
-# --- Interactive questions ----------------------------------------------------
-
 echo "=== Workflow Generator ==="
 echo ""
 echo "Auto-detected:"
@@ -83,7 +70,6 @@ $detect_python && echo "  Python (found pyproject.toml / setup.py / requirements
 $detect_cpp || $detect_python || echo "  (nothing detected — will ask)"
 echo ""
 
-# Language selection
 cpp_default=n; $detect_cpp && cpp_default=y
 py_default=n; $detect_python && py_default=y
 
@@ -95,7 +81,6 @@ if [[ "$enable_cpp" == "n" && "$enable_python" == "n" ]]; then
     exit 1
 fi
 
-# C++ workflow inputs
 docker_image=""
 compile_commands_path="build"
 source_setup=""
@@ -134,7 +119,6 @@ if [[ "$enable_cpp" == "y" ]]; then
     ask "  libFuzzer continuous fuzzing?" "n" enable_fuzz
 fi
 
-# Python workflow inputs
 python_linter="ruff"
 enable_semgrep=n
 enable_pip_audit=n
@@ -155,7 +139,6 @@ if [[ "$enable_python" == "y" ]]; then
     fi
 fi
 
-# Infra lint
 enable_shellcheck=n
 enable_hadolint=n
 enable_cmake_lint=n
@@ -177,18 +160,13 @@ ask "  Gitleaks secrets detection (API keys, tokens, passwords)?" "n" enable_git
 enable_infra=n
 [[ "$enable_shellcheck" == "y" || "$enable_hadolint" == "y" || "$enable_cmake_lint" == "y" || "$enable_dangerous_workflows" == "y" || "$enable_binary_artifacts" == "y" || "$enable_gitleaks" == "y" ]] && enable_infra=y
 
-# Trend dashboard
 enable_trends=n
 
 echo ""
 echo "--- Trend Dashboard ---"
 ask "  Enable weekly quality trend report?" "n" enable_trends
 
-# --- Create output directory --------------------------------------------------
-
 mkdir -p "$OUTPUT_DIR"
-
-# --- Generate C++ workflow ----------------------------------------------------
 
 if [[ "$enable_cpp" == "y" ]]; then
     CPP_FILE="$OUTPUT_DIR/cpp-quality.yml"
@@ -208,14 +186,12 @@ HEADER
         echo "    uses: ${STANDARD_REPO}/.github/workflows/cpp-quality.yml@main"
         echo "    with:"
 
-        # Required inputs
         if [ -n "$docker_image" ]; then
             echo "      docker_image: '$docker_image'"
         else
             echo "      docker_image: ''  # TODO: set your Docker image"
         fi
 
-        # Only emit non-default values
         if [ "$compile_commands_path" != "build" ]; then
             echo "      compile_commands_path: '$compile_commands_path'"
         fi
@@ -223,7 +199,6 @@ HEADER
             echo "      source_setup: '$source_setup'"
         fi
 
-        # Opt-in booleans (only emit when true)
         [[ "$enable_clang_format" == "y" ]] && echo "      enable_clang_format: true"
         [[ "$enable_file_naming" == "y" ]]  && echo "      enable_file_naming: true"
         [[ "$ban_cout" == "y" ]]            && echo "      ban_cout: true"
@@ -236,11 +211,9 @@ HEADER
         [[ "$enable_iwyu" == "y" ]]         && echo "      enable_iwyu: true"
         [[ "$enable_hardening" == "y" ]]   && echo "      enable_hardening: true"
 
-        # Suppress file if it exists
         [ -f "cppcheck.suppress" ] && echo "      cppcheck_suppress: cppcheck.suppress"
         [ -f "naming-exceptions.txt" ] && echo "      file_naming_exceptions: naming-exceptions.txt"
 
-        # Permissions
         echo "    permissions:"
         echo "      actions: read"
         echo "      contents: read"
@@ -253,8 +226,6 @@ HEADER
 
     echo "Generated: $CPP_FILE"
 fi
-
-# --- Generate Python workflow -------------------------------------------------
 
 if [[ "$enable_python" == "y" ]]; then
     PY_FILE="$OUTPUT_DIR/python-quality.yml"
@@ -273,7 +244,6 @@ jobs:
 HEADER
         echo "    uses: ${STANDARD_REPO}/.github/workflows/python-quality.yml@main"
 
-        # Only emit with: block if non-default values exist
         if [ "$python_linter" != "ruff" ]; then
             echo "    with:"
             echo "      python_linter: '$python_linter'"
@@ -286,8 +256,6 @@ HEADER
 
     echo "Generated: $PY_FILE"
 fi
-
-# --- Generate SAST workflow ---------------------------------------------------
 
 if [[ "$enable_sast" == "y" ]]; then
     SAST_FILE="$OUTPUT_DIR/sast-python.yml"
@@ -306,9 +274,7 @@ jobs:
 HEADER
         echo "    uses: ${STANDARD_REPO}/.github/workflows/sast-python.yml@main"
 
-        # Only emit with: block if any non-default values
         local_has_inputs=false
-        # semgrep defaults to true, pip_audit defaults to true, codeql defaults to false
         [[ "$enable_semgrep" == "n" ]] && local_has_inputs=true
         [[ "$enable_pip_audit" == "n" ]] && local_has_inputs=true
         [[ "$enable_codeql" == "y" ]] && local_has_inputs=true
@@ -329,8 +295,6 @@ HEADER
 
     echo "Generated: $SAST_FILE"
 fi
-
-# --- Generate infra lint workflow ---------------------------------------------
 
 if [[ "$enable_infra" == "y" ]]; then
     INFRA_FILE="$OUTPUT_DIR/infra-lint.yml"
@@ -366,8 +330,6 @@ HEADER
     echo "Generated: $INFRA_FILE"
 fi
 
-# --- Generate fuzz workflow ---------------------------------------------------
-
 if [[ "${enable_fuzz:-n}" == "y" ]]; then
     FUZZ_FILE="$OUTPUT_DIR/fuzz.yml"
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -380,8 +342,6 @@ if [[ "${enable_fuzz:-n}" == "y" ]]; then
         echo "Warning: configs/ci-fuzz.yml template not found, skipping fuzz workflow"
     fi
 fi
-
-# --- Generate trend dashboard workflow ----------------------------------------
 
 if [[ "$enable_trends" == "y" ]]; then
     TRENDS_FILE="$OUTPUT_DIR/trends.yml"
@@ -406,8 +366,6 @@ HEADER
 
     echo "Generated: $TRENDS_FILE"
 fi
-
-# --- Summary ------------------------------------------------------------------
 
 echo ""
 echo "=== Workflow Generation Complete ==="

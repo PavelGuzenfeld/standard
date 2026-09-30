@@ -18,7 +18,7 @@ def _run_checked(args, cwd=None, timeout=30):
     """Run a subprocess command, raise on failure."""
     stdout, rc = _run(args, cwd=cwd, timeout=timeout)
     if rc != 0:
-        _, _ = _run(args, cwd=cwd)  # for stderr
+        _, _ = _run(args, cwd=cwd)
         result = subprocess.run(
             args, capture_output=True, text=True, cwd=cwd, timeout=timeout
         )
@@ -81,7 +81,6 @@ def auto_update_repos(scan_results, latest_tag, latest_sha,
             messages.append(f"Would update {repo}: {old_tag} -> {latest_tag}")
             continue
 
-        # Check for existing PR
         if _check_existing_pr(repo, branch_name, token):
             messages.append(f"Skipped {repo}: PR already open for {branch_name}")
             continue
@@ -115,7 +114,6 @@ def _update_single_repo(repo, old_sha, old_tag, new_sha, new_tag,
         _run_checked(["git", "clone", "--depth=1", clone_url, clone_dir])
         _run_checked(["git", "checkout", "-b", branch_name], cwd=clone_dir)
 
-        # Update .standard.yml
         config_path = os.path.join(clone_dir, ".standard.yml")
         if os.path.exists(config_path):
             with open(config_path) as f:
@@ -126,7 +124,6 @@ def _update_single_repo(repo, old_sha, old_tag, new_sha, new_tag,
             with open(config_path, "w") as f:
                 f.write(content)
 
-        # Update workflow files
         wf_dir = os.path.join(clone_dir, ".github", "workflows")
         if os.path.isdir(wf_dir):
             for fname in os.listdir(wf_dir):
@@ -146,12 +143,10 @@ def _update_single_repo(repo, old_sha, old_tag, new_sha, new_tag,
                     with open(fpath, "w") as f:
                         f.write(content)
 
-        # Check for changes
         status, _ = _run(["git", "status", "--porcelain"], cwd=clone_dir)
         if not status:
-            return  # No changes needed
+            return
 
-        # Commit and push
         _run_checked(["git", "add", "-A"], cwd=clone_dir)
         _run_checked(
             ["git", "commit", "-m",
@@ -162,7 +157,6 @@ def _update_single_repo(repo, old_sha, old_tag, new_sha, new_tag,
         )
         _run_checked(["git", "push", "-u", "origin", branch_name], cwd=clone_dir)
 
-        # Open PR via gh CLI
         pr_body = (
             f"## Automated standard update\n\n"
             f"Updates standard workflow pins from **{old_tag}** to **{new_tag}**.\n\n"

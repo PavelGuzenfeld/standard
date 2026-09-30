@@ -26,7 +26,6 @@ def _api_get_paginated(url, token=None):
     while url:
         data, headers = _api_get(url, token)
         items.extend(data)
-        # Parse Link header for next page
         url = None
         link = headers.get("Link", "")
         for part in link.split(","):
@@ -40,7 +39,6 @@ def list_org_repos(org, token=None):
 
     Returns list of dicts with 'full_name' and 'default_branch'.
     """
-    # Try /orgs/ first, fall back to /users/
     for endpoint in [f"https://api.github.com/orgs/{org}/repos",
                      f"https://api.github.com/users/{org}/repos"]:
         url = f"{endpoint}?per_page=100&type=sources"

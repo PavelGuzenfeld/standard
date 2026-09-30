@@ -99,11 +99,9 @@ runs:
           bash -c "${SETUP_CMD}cat changed_cpp_files.txt | xargs -P${JOBS} -I{} clang-tidy -p ${{ inputs.compile_commands_path }} ${CONFIG_ARG} {} 2>&1" \
           > "${OUTPUT_FILE}" 2>&1 || true
 
-        # Parse findings
         WARNS=$(grep -cE '^.+:[0-9]+:[0-9]+: warning:' "${OUTPUT_FILE}" || echo 0)
         ERRS=$(grep -E '^.+:[0-9]+:[0-9]+: error:' "${OUTPUT_FILE}" | grep -cv 'clang-diagnostic-' || echo 0)
 
-        # Emit annotations
         grep -E '^.+:[0-9]+:[0-9]+: (warning|error):' "${OUTPUT_FILE}" | head -"${MAX_ANN}" | while IFS= read -r line; do
           ann_file=$(echo "$line" | cut -d: -f1)
           ann_line=$(echo "$line" | cut -d: -f2)

@@ -18,7 +18,6 @@ class TestGenerateWorkflow:
         assert f"@{self.SHA}  # {self.TAG}" in yaml
         assert "docker_image: 'ghcr.io/org/builder:latest'" in yaml
         assert "pull-requests: write" in yaml
-        # Default values should NOT appear
         assert "compile_commands_path" not in yaml
 
     def test_cpp_quality_with_opts(self):
@@ -39,7 +38,7 @@ class TestGenerateWorkflow:
     def test_python_quality_defaults(self):
         yaml = generate_workflow("python-quality", {}, self.SHA, self.TAG)
         assert "name: Python Quality" in yaml
-        assert "with:" not in yaml  # all defaults
+        assert "with:" not in yaml
         assert "contents: read" in yaml
 
     def test_python_quality_custom_linter(self):
@@ -70,7 +69,6 @@ class TestGenerateWorkflow:
         )
         assert "enable_codeql: true" in yaml
         assert "security-events: write" in yaml
-        # semgrep and pip_audit are True by default — should not appear
         assert "enable_semgrep" not in yaml
         assert "enable_pip_audit" not in yaml
 
@@ -79,8 +77,8 @@ class TestGenerateWorkflow:
             "cpp-quality",
             {
                 "docker_image": "img:latest",
-                "compile_commands_path": "build",  # matches default
-                "enable_clang_format": False,  # matches default
+                "compile_commands_path": "build",
+                "enable_clang_format": False,
             },
             self.SHA,
             self.TAG,

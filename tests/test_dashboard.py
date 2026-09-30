@@ -62,7 +62,7 @@ class TestGenerateDashboardMarkdown:
         assert "v0.9.0" in md
 
     def test_no_drift_section_when_all_current(self):
-        results = [_sample_results()[0]]  # only the current one
+        results = [_sample_results()[0]]
         md = generate_dashboard(results, "v1.0.0", "sha_latest", "org")
         assert "### Drift Details" not in md
 

@@ -51,7 +51,7 @@ class TestAutoUpdateRepos:
         assert not any("no-config" in m for m in messages)
 
     def test_skips_up_to_date(self):
-        results = [_sample_scan_results()[0]]  # only current
+        results = [_sample_scan_results()[0]]
         messages = auto_update_repos(
             results,
             latest_tag="v1.0.0",
@@ -62,7 +62,7 @@ class TestAutoUpdateRepos:
         assert any("up to date" in m.lower() for m in messages)
 
     def test_skips_no_config(self):
-        results = [_sample_scan_results()[2]]  # only no-config
+        results = [_sample_scan_results()[2]]
         messages = auto_update_repos(
             results,
             latest_tag="v1.0.0",
@@ -74,7 +74,7 @@ class TestAutoUpdateRepos:
 
     @patch("standard_ci.auto_update._check_existing_pr", return_value=True)
     def test_skips_existing_pr(self, mock_check):
-        results = [_sample_scan_results()[1]]  # drifted
+        results = [_sample_scan_results()[1]]
         messages = auto_update_repos(
             results,
             latest_tag="v1.0.0",
@@ -87,7 +87,7 @@ class TestAutoUpdateRepos:
     @patch("standard_ci.auto_update._check_existing_pr", return_value=False)
     @patch("standard_ci.auto_update._update_single_repo")
     def test_opens_pr_for_drifted(self, mock_update, mock_check):
-        results = [_sample_scan_results()[1]]  # drifted
+        results = [_sample_scan_results()[1]]
         messages = auto_update_repos(
             results,
             latest_tag="v1.0.0",
@@ -101,7 +101,7 @@ class TestAutoUpdateRepos:
     @patch("standard_ci.auto_update._check_existing_pr", return_value=False)
     @patch("standard_ci.auto_update._update_single_repo", side_effect=RuntimeError("clone failed"))
     def test_handles_failure_gracefully(self, mock_update, mock_check):
-        results = [_sample_scan_results()[1]]  # drifted
+        results = [_sample_scan_results()[1]]
         messages = auto_update_repos(
             results,
             latest_tag="v1.0.0",

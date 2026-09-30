@@ -43,7 +43,6 @@ def check(project_dir="."):
         with open(wf_path) as f:
             content = f.read()
 
-        # Check SHA pin
         if pinned_sha:
             ref_pattern = f"{REPO}/{wf['ref_path']}@"
             if ref_pattern in content:

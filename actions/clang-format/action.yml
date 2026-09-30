@@ -50,13 +50,11 @@ runs:
         MOUNT="${{ inputs.source_mount }}"
         CONTAINER_NAME="cf-${{ github.run_id }}-${{ github.run_attempt }}"
 
-        # Start persistent container with unique name
         docker run -d --name "${CONTAINER_NAME}" \
           -v "${{ github.workspace }}:${MOUNT}" \
           -w "${MOUNT}" \
           "${{ inputs.docker_image }}" sleep infinity
 
-        # Ensure clang-format is available
         docker exec "${CONTAINER_NAME}" bash -c "
           if ! command -v clang-format &>/dev/null; then
             apt-get update -qq && apt-get install -y -qq clang-format 2>/dev/null || true
@@ -85,7 +83,6 @@ runs:
           fi
         done < "${{ runner.temp }}/changed_cpp_files.txt"
 
-        # Cleanup
         docker rm -f "${CONTAINER_NAME}" 2>/dev/null || true
 
         echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT

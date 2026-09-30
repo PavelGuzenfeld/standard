@@ -13,7 +13,6 @@ def _yaml_scalar(value):
     if isinstance(value, str):
         if not value:
             return "''"
-        # Quote if it contains special chars or looks like a bool/number
         if re.search(r"[:{}\[\],&*#?|>!%@`]", value) or value in (
             "true",
             "false",
@@ -35,7 +34,6 @@ def _parse_yaml_scalar(raw):
         return True
     if s in ("false", "no"):
         return False
-    # Strip quotes
     if len(s) >= 2 and s[0] == s[-1] and s[0] in ("'", '"'):
         return s[1:-1]
     try:
@@ -75,13 +73,11 @@ def _parse_lines(lines):
     current_is_list = False
     for raw_line in lines:
         stripped = raw_line.rstrip("\n")
-        # Skip comments and blank lines
         if not stripped or stripped.lstrip().startswith("#"):
             continue
         indent = len(stripped) - len(stripped.lstrip())
         content = stripped.strip()
         if indent >= 2 and current_key is not None:
-            # Nested value
             if content.startswith("- "):
                 if not current_is_list:
                     data[current_key] = []

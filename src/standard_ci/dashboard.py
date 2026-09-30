@@ -56,7 +56,6 @@ def _generate_markdown(results, latest_tag, latest_sha, org):
         "",
     ]
 
-    # Repo status table
     lines.extend([
         "### Repo Status",
         "",
@@ -79,7 +78,6 @@ def _generate_markdown(results, latest_tag, latest_sha, org):
 
     lines.append("")
 
-    # Drift details
     if drifted:
         lines.extend([
             "### Drift Details",

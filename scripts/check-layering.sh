@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 set -uo pipefail
 
 ROOT="$(cd "${1:-.}" && pwd)"

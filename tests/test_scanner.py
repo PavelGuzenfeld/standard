@@ -142,9 +142,6 @@ class TestScanOrg:
         assert tag == "v1.0.0"
         assert sha == "sha123"
 
-        # First repo: up to date
         assert results[0]["up_to_date"]
-        # Second repo: drifted
         assert not results[1]["up_to_date"]
-        # Third repo: no config
         assert not results[2]["has_config"]
