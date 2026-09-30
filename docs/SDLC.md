@@ -145,7 +145,6 @@ Workflow: [`sast-python.yml`](https://github.com/PavelGuzenfeld/standard/blob/ma
 Template: [`configs/ci-codeql.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/configs/ci-codeql.yml)
 
 - Inter-procedural taint tracking and data flow analysis
-- 200+ CWEs for C++, 160+ for Python
 - Detects: buffer overflows, use-after-free, SQL/command injection, format strings, XSS, SSRF
 - Free for public repositories
 

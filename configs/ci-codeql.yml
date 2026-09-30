@@ -4,8 +4,8 @@
 # Provides deep inter-procedural taint tracking and data flow analysis.
 # Free for public repositories. Private repos require GitHub Advanced Security license.
 #
-# C++ coverage: 200+ CWEs (buffer overflow, use-after-free, format string, injection, etc.)
-# Python coverage: 160+ CWEs (SQL injection, XSS, command injection, SSRF, etc.)
+# C++ coverage: buffer overflow, use-after-free, format string, injection, etc.
+# Python coverage: SQL injection, XSS, command injection, SSRF, etc.
 #
 # Results appear in the GitHub Security tab and as PR annotations.
 
@@ -43,7 +43,7 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
-          queries: security-extended  # 200+ CWEs (vs 168 in default suite)
+          queries: security-extended  # broader than the default suite
 
       # For C++: replace autobuild with your build command if needed.
       # CodeQL must intercept the compilation to build its database.
