@@ -250,7 +250,7 @@ jobs:
           } > /tmp/cis-dashboard.md
 
           ALL_IDS_FILE="/tmp/cis-all-ids.txt"
-          > "$ALL_IDS_FILE"
+          : > "$ALL_IDS_FILE"
 
           while IFS= read -r REPO; do
             [ -z "$REPO" ] && continue
@@ -359,9 +359,11 @@ jobs:
 
           cat /tmp/cis-dashboard.md >> "$GITHUB_STEP_SUMMARY"
 
-          echo "repo_count=$REPO_COUNT" >> "$GITHUB_OUTPUT"
-          echo "avg_percent=$AVG_PERCENT" >> "$GITHUB_OUTPUT"
-          echo "worst_score=$WORST_SCORE" >> "$GITHUB_OUTPUT"
+          {
+            echo "repo_count=$REPO_COUNT"
+            echo "avg_percent=$AVG_PERCENT"
+            echo "worst_score=$WORST_SCORE"
+          } >> "$GITHUB_OUTPUT"
 
           if [ -n "$FAILING_REPOS" ]; then
             echo "failing=true" >> "$GITHUB_OUTPUT"

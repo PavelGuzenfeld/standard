@@ -99,6 +99,7 @@ jobs:
         if: inputs.checkout_submodules != 'false'
         run: |
           git submodule init
+          # shellcheck disable=SC2016
           git submodule foreach --quiet 'echo $name' | while read -r mod; do
             echo "::group::$mod"
             if git submodule update -- "$mod" 2>&1; then

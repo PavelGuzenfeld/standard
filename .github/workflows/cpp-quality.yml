@@ -346,10 +346,10 @@ jobs:
           EXT_PATTERN="\.($(echo "${{ inputs.file_extensions }}" | tr ' ' '|'))$"
           FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- | grep -E "$EXT_PATTERN" || true)
           if [ -z "$FILES" ]; then
-            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No C++ files changed."
           else
-            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "skip=false" >> "$GITHUB_OUTPUT"
             echo "$FILES" > /tmp/changed_cpp_files.txt
             echo "Found $(echo "$FILES" | wc -l) changed file(s)."
           fi
@@ -381,7 +381,7 @@ jobs:
             fi
             if [ ! -s "$FILE_LIST" ]; then
               echo "All changed files are in excluded paths."
-              echo "skip=true" >> $GITHUB_OUTPUT
+              echo "skip=true" >> "$GITHUB_OUTPUT"
             fi
           fi
 
@@ -393,7 +393,7 @@ jobs:
             echo "paths<<EOF"
             echo "${{ inputs.build_cache_paths }}" | tr ' ' '\n'
             echo "EOF"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
 
       - name: Restore build cache
         if: steps.changed.outputs.skip == 'false' && inputs.build_cache_key != ''
@@ -469,8 +469,8 @@ jobs:
             fi
           done
 
-          echo "warnings=$WARNS" >> $GITHUB_OUTPUT
-          echo "errors=$TIDY_ERRS" >> $GITHUB_OUTPUT
+          echo "warnings=$WARNS" >> "$GITHUB_OUTPUT"
+          echo "errors=$TIDY_ERRS" >> "$GITHUB_OUTPUT"
 
           if [ "$TIDY_ERRS" -gt 0 ] || [ "$WARNS" -gt 0 ]; then
             echo "clang-tidy: $TIDY_ERRS error(s) and $WARNS warning(s) found."
@@ -498,10 +498,10 @@ jobs:
           EXT_PATTERN="\.($(echo "${{ inputs.file_extensions }}" | tr ' ' '|'))$"
           FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- | grep -E "$EXT_PATTERN" || true)
           if [ -z "$FILES" ]; then
-            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No C++ files changed."
           else
-            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "skip=false" >> "$GITHUB_OUTPUT"
             echo "$FILES" > /tmp/changed_cpp_files.txt
             echo "Found $(echo "$FILES" | wc -l) changed file(s)."
           fi
@@ -533,7 +533,7 @@ jobs:
             fi
             if [ ! -s "$FILE_LIST" ]; then
               echo "All changed files are in excluded paths."
-              echo "skip=true" >> $GITHUB_OUTPUT
+              echo "skip=true" >> "$GITHUB_OUTPUT"
             fi
           fi
 
@@ -606,7 +606,7 @@ jobs:
             ERRORS=$(echo "$OUTPUT" | grep -cE '^.+:[0-9]+:.*error:' || true)
           fi
 
-          echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+          echo "errors=$ERRORS" >> "$GITHUB_OUTPUT"
 
           if [ "${{ inputs.cppcheck_strict }}" = "true" ] && [ "$CPPCHECK_EXIT" -ne 0 ]; then
             echo "cppcheck: exited with code $CPPCHECK_EXIT (strict mode)."
@@ -637,10 +637,10 @@ jobs:
           EXT_PATTERN="\.($(echo "${{ inputs.file_extensions }}" | tr ' ' '|'))$"
           FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- | grep -E "$EXT_PATTERN" || true)
           if [ -z "$FILES" ]; then
-            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No C++ files changed."
           else
-            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "skip=false" >> "$GITHUB_OUTPUT"
             echo "$FILES" > /tmp/changed_cpp_files.txt
             echo "Found $(echo "$FILES" | wc -l) changed file(s)."
           fi
@@ -672,7 +672,7 @@ jobs:
             fi
             if [ ! -s "$FILE_LIST" ]; then
               echo "All changed files are in excluded paths."
-              echo "skip=true" >> $GITHUB_OUTPUT
+              echo "skip=true" >> "$GITHUB_OUTPUT"
             fi
           fi
 
@@ -701,15 +701,15 @@ jobs:
         if: steps.changed.outputs.skip == 'false'
         id: clang-format
         run: |
-          FORMAT_ARGS="--dry-run --Werror"
+          FORMAT_ARGS=(--dry-run --Werror)
           if [ -n "${{ inputs.clang_format_config }}" ]; then
-            FORMAT_ARGS="$FORMAT_ARGS --style=file:${{ inputs.clang_format_config }}"
+            FORMAT_ARGS+=("--style=file:${{ inputs.clang_format_config }}")
           fi
 
           VIOLATIONS=0
           while IFS= read -r file; do
             [ -f "$file" ] || continue
-            OUTPUT=$(docker exec cf-container clang-format $FORMAT_ARGS "$file" 2>&1 || true)
+            OUTPUT=$(docker exec cf-container clang-format "${FORMAT_ARGS[@]}" "$file" 2>&1 || true)
 
             if [ -n "$OUTPUT" ]; then
               echo "$OUTPUT"
@@ -724,7 +724,7 @@ jobs:
             fi
           done < /tmp/changed_cpp_files.txt
 
-          echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
+          echo "violations=$VIOLATIONS" >> "$GITHUB_OUTPUT"
 
           if [ "$VIOLATIONS" -gt 0 ]; then
             echo "clang-format: $VIOLATIONS file(s) with violations."
@@ -774,7 +774,7 @@ jobs:
 
           if [ -z "$FILES" ]; then
             echo "No test files changed — skipping doctest check."
-            echo "violations=0" >> $GITHUB_OUTPUT
+            echo "violations=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -815,7 +815,7 @@ jobs:
             fi
           done <<< "$FILES"
 
-          echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
+          echo "violations=$VIOLATIONS" >> "$GITHUB_OUTPUT"
 
           if [ "$VIOLATIONS" -gt 0 ]; then
             echo ""
@@ -893,7 +893,7 @@ jobs:
 
           if [ -z "$CHANGED_FILES" ]; then
               echo "No files changed — skipping file naming check."
-              echo "violations=0" >> $GITHUB_OUTPUT
+              echo "violations=0" >> "$GITHUB_OUTPUT"
               exit 0
           fi
 
@@ -929,7 +929,7 @@ jobs:
               echo "$name" | grep -qE "$SNAKE_CASE" && return 0
               for prefix in $ALLOWED_PREFIXES; do
                   if [[ "$name" == "${prefix}"* ]]; then
-                      local stripped="${name#$prefix}"
+                      local stripped="${name#"$prefix"}"
                       [ -n "$stripped" ] && echo "$stripped" | grep -qE "$SNAKE_CASE" && return 0
                   fi
               done
@@ -967,7 +967,7 @@ jobs:
               done
           done <<< "$CHANGED_FILES"
 
-          echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
+          echo "violations=$VIOLATIONS" >> "$GITHUB_OUTPUT"
 
           if [ "$VIOLATIONS" -gt 0 ]; then
               echo "file-naming: $VIOLATIONS violation(s) found."
@@ -1015,7 +1015,7 @@ jobs:
 
           if [ -z "$FILES" ]; then
             echo "No non-test C++ files changed — skipping cout ban check."
-            echo "violations=0" >> $GITHUB_OUTPUT
+            echo "violations=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -1042,7 +1042,7 @@ jobs:
             fi
           done <<< "$FILES"
 
-          echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
+          echo "violations=$VIOLATIONS" >> "$GITHUB_OUTPUT"
 
           if [ "$VIOLATIONS" -gt 0 ]; then
             echo ""
@@ -1091,7 +1091,7 @@ jobs:
 
           if [ -z "$FILES" ]; then
             echo "No non-test C++ files changed — skipping new/delete ban check."
-            echo "violations=0" >> $GITHUB_OUTPUT
+            echo "violations=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -1124,7 +1124,7 @@ jobs:
             fi
           done <<< "$FILES"
 
-          echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
+          echo "violations=$VIOLATIONS" >> "$GITHUB_OUTPUT"
 
           if [ "$VIOLATIONS" -gt 0 ]; then
             echo ""
@@ -1150,10 +1150,10 @@ jobs:
           EXT_PATTERN="\.($(echo "${{ inputs.file_extensions }}" | tr ' ' '|'))$"
           FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- | grep -E "$EXT_PATTERN" || true)
           if [ -z "$FILES" ]; then
-            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No C++ files changed."
           else
-            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "skip=false" >> "$GITHUB_OUTPUT"
             echo "$FILES" > /tmp/changed_cpp_files.txt
             echo "Found $(echo "$FILES" | wc -l) changed file(s)."
           fi
@@ -1185,7 +1185,7 @@ jobs:
             fi
             if [ ! -s "$FILE_LIST" ]; then
               echo "All changed files are in excluded paths."
-              echo "skip=true" >> $GITHUB_OUTPUT
+              echo "skip=true" >> "$GITHUB_OUTPUT"
             fi
           fi
 
@@ -1202,10 +1202,10 @@ jobs:
         id: flawfinder
         run: |
           export PATH="$HOME/.local/bin:$PATH"
-          FILES=$(cat /tmp/changed_cpp_files.txt | tr '\n' ' ')
+          read -r -a FILES < <(tr '\n' ' ' < /tmp/changed_cpp_files.txt)
 
-          flawfinder --minlevel=${{ inputs.flawfinder_min_level }} --sarif --dataonly $FILES > flawfinder.sarif 2>/dev/null || true
-          flawfinder --minlevel=${{ inputs.flawfinder_min_level }} --columns --context --dataonly $FILES > flawfinder.txt 2>&1 || true
+          flawfinder --minlevel=${{ inputs.flawfinder_min_level }} --sarif --dataonly "${FILES[@]}" > flawfinder.sarif 2>/dev/null || true
+          flawfinder --minlevel=${{ inputs.flawfinder_min_level }} --columns --context --dataonly "${FILES[@]}" > flawfinder.txt 2>&1 || true
 
           echo "::group::Flawfinder Results"
           cat flawfinder.txt
@@ -1214,7 +1214,7 @@ jobs:
           HITS=$(grep -cE '^.+:[0-9]+:[0-9]+:' flawfinder.txt 2>/dev/null || true)
           [ -z "$HITS" ] && HITS=0
           echo "Flawfinder found ${HITS} potential issues (minlevel=${{ inputs.flawfinder_min_level }})"
-          echo "hits=$HITS" >> $GITHUB_OUTPUT
+          echo "hits=$HITS" >> "$GITHUB_OUTPUT"
 
           if [ "$HITS" -gt 0 ]; then
             echo "::error::Flawfinder found ${HITS} CWE issues. Suppress false positives with '// Flawfinder: ignore' or fix the findings."
@@ -1263,7 +1263,7 @@ jobs:
             echo "paths<<EOF"
             echo "${{ inputs.build_cache_paths }}" | tr ' ' '\n'
             echo "EOF"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
 
       - name: Restore build cache
         if: inputs.build_cache_key != ''
@@ -1373,7 +1373,7 @@ jobs:
             echo "paths<<EOF"
             echo "${{ inputs.build_cache_paths }}" | tr ' ' '\n'
             echo "EOF"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
 
       - name: Restore build cache
         if: inputs.build_cache_key != ''
@@ -1482,10 +1482,10 @@ jobs:
           EXT_PATTERN="\.($(echo "${{ inputs.file_extensions }}" | tr ' ' '|'))$"
           FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- | grep -E "$EXT_PATTERN" || true)
           if [ -z "$FILES" ]; then
-            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No C++ files changed."
           else
-            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "skip=false" >> "$GITHUB_OUTPUT"
             echo "$FILES" > /tmp/changed_cpp_files.txt
             echo "Found $(echo "$FILES" | wc -l) changed file(s)."
           fi
@@ -1517,7 +1517,7 @@ jobs:
             fi
             if [ ! -s "$FILE_LIST" ]; then
               echo "All changed files are in excluded paths."
-              echo "skip=true" >> $GITHUB_OUTPUT
+              echo "skip=true" >> "$GITHUB_OUTPUT"
             fi
           fi
 
@@ -1529,7 +1529,7 @@ jobs:
             echo "paths<<EOF"
             echo "${{ inputs.build_cache_paths }}" | tr ' ' '\n'
             echo "EOF"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
 
       - name: Restore build cache
         if: steps.changed.outputs.skip == 'false' && inputs.build_cache_key != ''
@@ -1624,7 +1624,7 @@ jobs:
             echo "paths<<EOF"
             echo "${{ inputs.build_cache_paths }}" | tr ' ' '\n'
             echo "EOF"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
 
       - name: Restore build cache
         if: inputs.build_cache_key != ''
@@ -1772,7 +1772,7 @@ jobs:
             echo "paths<<EOF"
             echo "${{ inputs.build_cache_paths }}" | tr ' ' '\n'
             echo "EOF"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
 
       - name: Restore build cache
         if: inputs.build_cache_key != ''
