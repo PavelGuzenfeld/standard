@@ -1,0 +1,51 @@
+site_name: standard
+site_description: Reusable GitHub Actions for C++ and Python quality gates.
+site_url: https://pavelguzenfeld.com/standard/
+repo_url: https://github.com/PavelGuzenfeld/standard
+repo_name: PavelGuzenfeld/standard
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: green
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: green
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
+  - Usage: usage.md
+  - Quickstart: CONSUMER-QUICKSTART.md
+  - Workflows and inputs: workflows.md
+  - Configs: configs.md
+  - Gate and PR checks: SDLC.md
+  - Compliance: COMPLIANCE.md
+  - Versioning: VERSIONING.md
+  - Integration: INTEGRATION.md
+  - Conventions: conventions.md
