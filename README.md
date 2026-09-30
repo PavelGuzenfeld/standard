@@ -71,6 +71,7 @@ The full site is at <https://pavelguzenfeld.com/standard/>. The same pages live 
 | [`infra-lint.yml`](.github/workflows/infra-lint.yml) | ShellCheck, Hadolint, cmake-lint, dangerous-workflow audit, binary-artifact scan, Gitleaks |
 | [`python-quality.yml`](.github/workflows/python-quality.yml) | ruff/flake8, pytest, diff-cover |
 | [`sast-python.yml`](.github/workflows/sast-python.yml) | Semgrep, pip-audit, CodeQL |
+| [`fuzz.yml`](.github/workflows/fuzz.yml) | ClusterFuzzLite; skipped without `.clusterfuzzlite/Dockerfile` |
 | [`sbom.yml`](.github/workflows/sbom.yml) | Syft container SBOM, source dependency scan, Grype, license check |
 | [`version-check.yml`](.github/workflows/version-check.yml) | SemVer in package.xml, CMakeLists.txt, pyproject.toml |
 | [`auto-release.yml`](.github/workflows/auto-release.yml) | Conventional-commit version bump, git tag, GitHub Release, SLSA provenance |
@@ -310,6 +311,19 @@ Composite actions for single steps live in `actions/`: `diff-files`, `clang-tidy
 
 </details>
 
+<details>
+<summary><strong>Fuzz Inputs</strong></summary>
+
+| Input | Default | Description |
+|-------|---------|-------------|
+| `sanitizer` | `address` | Sanitizer: address, undefined, memory or coverage |
+| `fuzz_seconds` | `600` | Total fuzzing time in seconds |
+| `language` | `c++` | Project language |
+| `mode` | `code-change` | `code-change` for PRs, `batch` for scheduled full runs |
+| `runner` | `"ubuntu-latest"` | Runner labels as a JSON string or array |
+
+</details>
+
 
 ## Configs
 
@@ -324,7 +338,7 @@ Composite actions for single steps live in `actions/`: `diff-files`, `clang-tidy
 | [`.pre-commit-config.yaml`](configs/.pre-commit-config.yaml) | clang-format, clang-tidy, cppcheck hooks |
 | [`CMakePresets-sanitizers.json`](configs/CMakePresets-sanitizers.json) | ASan, TSan, release-hardened presets |
 | [`ci-multi-compiler.yml`](configs/ci-multi-compiler.yml) | GCC-13 and Clang-21 matrix, ccache |
-| [`ci-fuzz.yml`](configs/ci-fuzz.yml) | libFuzzer with corpus caching |
+| [`ci-fuzz.yml`](configs/ci-fuzz.yml) | Caller of `fuzz.yml` (ClusterFuzzLite) |
 | [`ci-codeql.yml`](configs/ci-codeql.yml) | CodeQL for C++ and Python |
 | [`ci-infer.yml`](configs/ci-infer.yml) | Infer: Pulse, InferBO, RacerD |
 | [`cmake-warnings.cmake`](configs/cmake-warnings.cmake) | `-Wall -Wextra -Wpedantic -Werror` plus extras |

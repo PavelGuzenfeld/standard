@@ -94,3 +94,9 @@ jobs:
       - run: bash tests/test_patterns.sh
         env:
           TS_DEPS_DIR: ${{ github.workspace }}/tests/ts-tools
+
+  fuzz-skip:
+    uses: ./.github/workflows/fuzz.yml
+    permissions:
+      contents: read
+      pull-requests: read
