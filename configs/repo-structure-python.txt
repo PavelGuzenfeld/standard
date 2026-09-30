@@ -1,0 +1,5 @@
+dir:src/
+dir:tests/
+file:pyproject.toml
+file?README.md
+file?LICENSE
