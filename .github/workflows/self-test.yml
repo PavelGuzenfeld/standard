@@ -37,6 +37,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: bash tests/test_test_mirror.sh
 
+  naming-exemptions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: bash tests/test_naming_exemptions.sh
+
   ts-naming:
     runs-on: ubuntu-latest
     permissions:

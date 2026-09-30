@@ -167,21 +167,7 @@ baseline_file_naming() {
     SNAKE_CASE='^[a-z][a-z0-9_]*$'
     ALLOWED_PREFIXES="_"
 
-    BUILTIN_EXEMPT_FILES=(
-        "CMakeLists.txt" "Dockerfile" "README.md" "CLAUDE.md"
-        "CHANGELOG.md" "CONTRIBUTING.md" "LICENSE" "Makefile"
-        "Doxyfile" "package.xml" "pyproject.toml" "setup.py"
-        "setup.cfg" "Cargo.toml" "Cargo.lock"
-    )
-    BUILTIN_EXEMPT_PATTERNS=(
-        '^requirements.*\.txt$'
-        '^\.'
-        '^__init__\.py$'
-        '^__main__\.py$'
-        '^__pycache__$'
-        '^py\.typed$'
-        '^[A-Z][A-Z_-]*\.md$'
-    )
+    source "$(dirname "${BASH_SOURCE[0]}")/naming-exemptions.sh"
 
     is_exempt_filename() {
         local name="$1"
