@@ -17,10 +17,10 @@ cd /path/to/your-repo
 standard-ci init --preset recommended
 ```
 
-This generates:
-- `.github/workflows/cpp-quality.yml` — clang-tidy, cppcheck, clang-format, flawfinder
-- `.github/workflows/python-quality.yml` — ruff, diff-quality
-- `.github/workflows/infra-lint.yml` — ShellCheck, Hadolint, Gitleaks
+This generates, for the languages it detects:
+- `.github/workflows/cpp-quality.yml`
+- `.github/workflows/python-quality.yml` and `.github/workflows/sast-python.yml`
+- `.github/workflows/infra-lint.yml`
 - `.standard.yml` — config file for the compliance bot
 
 Commit and push. PRs will now run quality checks.
@@ -32,11 +32,13 @@ with all features enabled.
 
 ## Presets
 
-| Preset | Workflows | Use case |
-|--------|-----------|----------|
-| `minimal` | clang-tidy, cppcheck, ruff | Fast CI, essential checks only |
-| `recommended` | + clang-format, flawfinder, infra-lint | Good balance of coverage and speed |
-| `full` | + sanitizers, coverage, IWYU, SBOM, SAST | Maximum quality enforcement |
+| Preset | Enabled beyond defaults | Use case |
+|--------|-------------------------|----------|
+| `minimal` | Python SAST: Semgrep, pip-audit | Fast CI, essential checks only |
+| `recommended` | + clang-format, file naming, flawfinder, infra-lint | Good balance of coverage and speed |
+| `full` | + banned patterns, doctest, SARIF, sanitizers, IWYU, more infra-lint, CodeQL | Maximum quality enforcement |
+
+The exact inputs per preset are in `src/standard_ci/presets.py`.
 
 ## Keeping up to date
 

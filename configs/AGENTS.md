@@ -17,7 +17,7 @@ Only changed files are checked — but all new and modified code must pass.
 
 > Remove items below that your project has not enabled.
 
-- **clang-format** — C++23, 120-column, 4-space indent, Allman braces
+- **clang-format** — 120-column, 4-space indent, Allman braces
 - **File naming** — snake_case for all files and directories
 - **Banned: cout/printf** — use structured logging instead
 - **Banned: raw new/delete** — use smart pointers (`std::make_unique`, `std::make_shared`)
@@ -41,7 +41,7 @@ Valid: `flight_controller.cpp`, `nav_utils/`, `terrain_map.hpp`
 Invalid: `FlightController.cpp`, `NavUtils/`, `terrainMap.hpp`
 
 **Built-in exemptions** (no config needed):
-`CMakeLists.txt`, `Dockerfile`, `README.md`, `LICENSE`, `CHANGELOG.md`, `AGENTS.md`,
+`CMakeLists.txt`, `Dockerfile`, `README.md`, `LICENSE`, `CHANGELOG.md`, ALL-CAPS markdown files (`AGENTS.md`, `SECURITY.md`),
 dotfiles (`.clang-tidy`, `.gitignore`), `__init__.py`, `requirements*.txt`
 
 **Package directories**: `include/<package_name>/` must also be snake_case.
@@ -54,7 +54,8 @@ dotfiles (`.clang-tidy`, `.gitignore`), `__init__.py`, `requirements*.txt`
 | Variables / parameters | `snake_case` | `max_altitude` |
 | Types / classes / structs | `PascalCase` | `FlightController` |
 | Private members | `snake_case_` (trailing underscore) | `config_`, `state_` |
-| Constants / enums | `UPPER_CASE` | `MAX_RETRIES` |
+| Constants | `UPPER_CASE` | `MAX_RETRIES` |
+| Enum constants | `PascalCase` | `Idle`, `Armed` |
 | Namespaces | `snake_case` | `nav_utils` |
 
 ### Include Convention
@@ -109,7 +110,7 @@ cmake --preset release-hardened # Production hardening (FORTIFY, PIE, RELRO)
 
 ### clang-format Settings
 
-- Standard: C++23
+- Standard: Latest
 - Column limit: 120
 - Indent: 4 spaces
 - Braces: Allman (opening brace on new line)
@@ -168,7 +169,7 @@ Generator scripts to bootstrap quality tooling in your repo:
 ./scripts/install-hooks.sh
 
 # Generate suppression/baseline files for incremental adoption
-./scripts/generate-baseline.sh
+./scripts/generate-baseline.sh cppcheck    # or file-naming, clang-format, flawfinder
 
 # Generate README badge markdown
 ./scripts/generate-badges.sh
@@ -231,7 +232,7 @@ Every project integrating this standard must have a quality workflow in `.github
 ### Required Workflows
 
 - **C++**: `cpp-quality.yml` calling the reusable workflow
-  - Required inputs: `docker_image`, `compile_commands_path`
+  - Required input: `docker_image` (`compile_commands_path` defaults to `build`)
   - Always enabled: clang-tidy, cppcheck
   - Opt-in: clang-format, file naming, banned patterns, identifier naming
 - **Python**: `python-quality.yml` + `sast-python.yml`
