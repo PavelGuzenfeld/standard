@@ -2,16 +2,12 @@
 
 All projects consuming this standard **must** follow Semantic Versioning (SemVer) with the rules below.
 
----
-
 ## Initial Version
 
 Every new project, package, library, or component starts at **`0.0.1`**.
 
 - `0.0.1` or `0.0.0.1` — not `1.0.0`, not `0.1.0`, not `0.0.0`
 - This applies to: ROS2 packages (`package.xml`), CMake projects (`project(... VERSION ...)`), Python packages (`pyproject.toml`), Docker images, Helm charts, and any other versionable artifact
-
----
 
 ## Version Format
 
@@ -20,7 +16,7 @@ major.minor.patch[-suffix]
 major.minor.patch.tweak[-suffix]
 ```
 
-3 or 4 numeric segments separated by dots. **Everything lowercase.** Version strings contain only digits, dots, hyphens, and lowercase letters.
+3 or 4 numeric segments separated by dots. Only digits, dots, hyphens and lowercase letters.
 
 ### Validation Regex
 
@@ -35,34 +31,12 @@ For git tags (with `v` prefix):
 ```
 
 Valid: `0.0.1`, `0.0.0.1`, `1.2.3-rc-1`, `1.2.0-proj-1234`, `0.0.3-gps-denied-nav`
-Invalid: `1.0`, `1.0.0-RC1`, `1.0.0-Beta.1`, `1.0.0_feature`
 
-| Segment | Meaning | When to bump |
-|---------|---------|-------------|
-| **major** | Breaking changes | Public API removed/changed, protocol incompatibility, data format break |
-| **minor** | New features | New API added, new capability, backward-compatible behavior change |
-| **patch** | Bug fixes | Bug fix, performance improvement, internal refactor, documentation |
+Invalid: `1.0`, `1.0.0-RC1`, `1.0.0-Beta.1`, `1.0.0_feature`
 
 ### Suffixes
 
-Two valid suffix types:
-
-**Release candidate** (`-rc-N`):
-```
-1.2.0-rc-1
-0.0.3-rc-2
-```
-
-**Feature or ticket annotation** (`-name`):
-```
-1.2.0-proj-1234
-0.0.3-gps-denied-nav
-1.0.0-rc-1-proj-567
-```
-
-No `alpha`, `beta`, or other pre-release conventions. Code is either released, an rc, or annotated with a feature/ticket.
-
----
+Two types: a release candidate, `-rc-N` (`1.2.0-rc-1`), and a feature or ticket annotation, `-name` (`1.2.0-proj-1234`). They combine: `1.0.0-rc-1-proj-567`. No `alpha`, `beta` or other pre-release names.
 
 ## `0.x.y` — Development Phase
 
@@ -76,8 +50,6 @@ While `MAJOR` is `0`, the project is in initial development:
 1. Public API is defined and documented
 2. All CI quality gates pass
 3. Explicit decision by project owner
-
----
 
 ## Bump Rules
 
@@ -117,8 +89,6 @@ While `MAJOR` is `0`, the project is in initial development:
 | Renaming internal (non-public) functions | PATCH — no public API impact |
 | Adding a new dependency | MINOR if optional, MAJOR if it requires consumer changes |
 
----
-
 ## Where to Set Versions
 
 | Artifact | Location | Example |
@@ -129,16 +99,12 @@ While `MAJOR` is `0`, the project is in initial development:
 | Docker image | Tag: `ghcr.io/org/image:0.0.1` | CI/CD pipeline |
 | Git tag | `git tag v0.0.1` | Release workflow |
 
----
-
 ## Git Tags
 
 - Tags use the `v` prefix: `v0.0.1`, `v1.2.3`
 - Every release **must** have a corresponding git tag
 - Tags are immutable — never delete or move a published tag
 - Annotated tags preferred: `git tag -a v0.0.1 -m "Initial release"`
-
----
 
 ## Changelog
 
@@ -152,13 +118,11 @@ Every version bump should have a corresponding entry in `CHANGELOG.md` (if the p
 
 Categories: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
----
-
 ## Enforcement
 
 ### Git Tag Validation (CI)
 
-A CI job can validate that git tags match the version regex before allowing a release:
+Validate tags against the regex before a release:
 
 ```yaml
 - name: Validate tag format
@@ -171,52 +135,11 @@ A CI job can validate that git tags match the version regex before allowing a re
     fi
 ```
 
-### Source File Version Check (CI)
+### Source File Version Check
 
-Validate version strings in `package.xml`, `CMakeLists.txt`, and `pyproject.toml` on every PR:
-
-```yaml
-- name: Validate version strings in source files
-  run: |
-    VERSION_RE='^[0-9]+(\.[0-9]+){2,3}(-[a-z0-9]+(-[a-z0-9]+)*)?$'
-    ERRORS=0
-
-    # package.xml
-    for f in $(find . -name 'package.xml' -not -path '*/build/*' -not -path '*/.git/*'); do
-      VER=$(grep -oP '(?<=<version>)[^<]+' "$f" || true)
-      if [ -n "$VER" ] && ! echo "$VER" | grep -qE "$VERSION_RE"; then
-        echo "::error file=$f::Invalid version '$VER' — must match $VERSION_RE"
-        ERRORS=$((ERRORS + 1))
-      fi
-    done
-
-    # CMakeLists.txt project(... VERSION ...)
-    for f in $(find . -name 'CMakeLists.txt' -not -path '*/build/*' -not -path '*/.git/*'); do
-      VER=$(grep -oP 'project\s*\([^)]*VERSION\s+\K[0-9][^\s)]*' "$f" || true)
-      if [ -n "$VER" ] && ! echo "$VER" | grep -qE "$VERSION_RE"; then
-        echo "::error file=$f::Invalid version '$VER' — must match $VERSION_RE"
-        ERRORS=$((ERRORS + 1))
-      fi
-    done
-
-    # pyproject.toml
-    for f in $(find . -name 'pyproject.toml' -not -path '*/build/*' -not -path '*/.git/*'); do
-      VER=$(grep -oP '^version\s*=\s*"\K[^"]+' "$f" || true)
-      if [ -n "$VER" ] && ! echo "$VER" | grep -qE "$VERSION_RE"; then
-        echo "::error file=$f::Invalid version '$VER' — must match $VERSION_RE"
-        ERRORS=$((ERRORS + 1))
-      fi
-    done
-
-    if [ "$ERRORS" -gt 0 ]; then
-      echo "Found $ERRORS invalid version string(s)."
-      exit 1
-    fi
-    echo "All version strings valid."
-```
+[`version-check.yml`](../.github/workflows/version-check.yml) validates the version in `package.xml`, `CMakeLists.txt` and `pyproject.toml` against the regex above on every PR.
 
 ### Reusable Auto-Release Workflow
 
-The [`auto-release.yml`](../.github/workflows/auto-release.yml) workflow automates version bumps based on conventional commit prefixes (`feat:`, `fix:`, `feat!:`, `BREAKING CHANGE:`). It creates annotated git tags and GitHub Releases on every push to `main`. See the [Integration Guide](INTEGRATION.md#auto-release-setup) for setup instructions.
+[`auto-release.yml`](../.github/workflows/auto-release.yml) bumps versions from conventional commit prefixes and tags every push to `main`. Setup is in the [Integration Guide](INTEGRATION.md#auto-release).
 
-The [`version-check.yml`](../.github/workflows/version-check.yml) workflow validates that version strings in `package.xml`, `CMakeLists.txt`, and `pyproject.toml` follow the SemVer regex on every PR.

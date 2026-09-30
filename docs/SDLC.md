@@ -1,61 +1,6 @@
 # Software Development Lifecycle
 
-This document describes the full quality and security process enforced by this tooling, from developer workstation through merge.
-
-## Pipeline Overview
-
-```
- Developer Workstation          Pull Request               Post-Merge
- ─────────────────────         ──────────────────          ──────────────
- pre-commit hooks              diff-aware linting          CodeQL scheduled
-   clang-format                  clang-tidy (Docker)       Infer scheduled
-   clang-tidy                    cppcheck (Docker)         Fuzz corpus runs
-   cppcheck                      clang-format              Trend dashboard (weekly)
-                                 flawfinder (CWE)
- local scripts                   ruff / flake8
-   diff-clang-tidy.sh           diff-cover
-   diff-cppcheck.sh
-   diff-clang-format.sh        script & container linting
-   diff-file-naming.sh           ShellCheck (shell scripts)
-                                  Hadolint (Dockerfiles)
-                                  cmake-lint (CMake files)
-                                  Gitleaks (secrets detection)
- CMake presets
-                                security & supply chain
-   debug-asan                    dangerous-workflow audit
-   debug-tsan                    binary-artifact scan
-   release-hardened
-                                banned pattern checks
-   debug-tsan                    cout/printf ban
-   release-hardened              raw new/delete ban
-                                  gtest/gbenchmark ban
- sanitizer builds                snake_case file naming
-   ASan + UBSan
-   TSan                        runtime analysis
-                                 ASan + UBSan (opt-in)
-                                 TSan (opt-in)
-                                 gcov/lcov coverage (opt-in)
-                                 IWYU (opt-in)
-
-                               SAST scanners
-                                 Semgrep (Python)
-                                 CodeQL (C++ & Python)
-                                 Infer (C++)
-                                 pip-audit (Python)
-
-                               supply chain
-                                 SBOM (Syft + source scan)
-                                 Grype vulnerability scan
-                                 license policy check
-
-         git push ──────────> PR opened ──────────> merge
-              │                    │                   │
-              │                    │                   └─ post-merge scans
-              │                    └─ quality gate (all checks must pass)
-              └─ pre-commit hooks run locally
-```
-
----
+Quality and security checks from developer workstation through merge. Post-merge, CodeQL, Infer and fuzz corpus runs are scheduled, and the trend dashboard runs weekly.
 
 ## Phase 1: Developer Workstation
 
@@ -75,41 +20,13 @@ Template: [`configs/.pre-commit-config.yaml`](../configs/.pre-commit-config.yaml
 | `check-yaml` | Validates YAML syntax |
 | `check-added-large-files` | Blocks files > 500 KB |
 
-Install: `pip install pre-commit && pre-commit install`
+Install with `pip install pre-commit && pre-commit install`, or run `./scripts/install-hooks.sh`.
 
 ### Local Scripts
 
-Run the same diff-aware checks that CI uses. **All C++ scripts and tests must run inside the project's Docker dev container**, not on the host. The Docker image must contain all tools and dependencies so every CI check is reproducible locally.
+The `diff-*.sh` scripts run the CI checks on changed files. They are listed in the [README](../README.md#scripts). Run every C++ script and test inside the project's Docker dev container, never on the host.
 
-```bash
-# Inside your Docker dev container:
-
-# clang-tidy on changed files
-./scripts/diff-clang-tidy.sh origin/main build "cpp hpp h"
-
-# cppcheck on changed files
-CPPCHECK_SUPPRESS=cppcheck.suppress ./scripts/diff-cppcheck.sh origin/main
-
-# clang-format on changed files
-./scripts/diff-clang-format.sh origin/main "cpp hpp h"
-
-# file naming convention check
-./scripts/diff-file-naming.sh origin/main naming-exceptions.txt
-
-# IWYU on changed files (non-blocking)
-./scripts/diff-iwyu.sh origin/main build
-
-# added source modules have a mirrored test
-./scripts/diff-test-mirror.sh origin/main
-```
-
-### Hook Installer
-
-As an alternative to manual `pre-commit install`, use the installer script:
-
-```bash
-./scripts/install-hooks.sh
-```
+`cppcheck` takes its suppressions from the environment: `CPPCHECK_SUPPRESS=cppcheck.suppress ./scripts/diff-cppcheck.sh origin/main`.
 
 ### CMake Presets for Sanitizer Builds
 
@@ -140,8 +57,6 @@ include(cmake-warnings.cmake)
 target_link_libraries(my_target PRIVATE warnings)
 ```
 
----
-
 ## Phase 2: Pull Request Quality Gate
 
 Automated checks that run on every PR. All must pass before merge.
@@ -150,7 +65,7 @@ Automated checks that run on every PR. All must pass before merge.
 
 Workflow: [`cpp-quality.yml`](../.github/workflows/cpp-quality.yml)
 
-Only files changed in the PR are checked. Detection uses `git diff --name-only --diff-filter=ACMR` against the base branch. Pre-existing issues in untouched code never block PRs.
+Changed files are found with `git diff --name-only --diff-filter=ACMR` against the base branch. Issues in untouched code never block PRs.
 
 | Check | Tool | Workflow | Default |
 |-------|------|----------|---------|
@@ -170,7 +85,7 @@ Only files changed in the PR are checked. Detection uses `git diff --name-only -
 | Include analysis | IWYU | `cpp-quality.yml` (Docker) | Opt-in |
 | Hardening verification | readelf (PIE, RELRO, NX, canary, CET) | `cpp-quality.yml` (Docker) | Opt-in |
 
-clang-tidy, cppcheck, and clang-format run inside the caller's Docker image, so they see the exact toolchain, headers, and `compile_commands.json` that the project uses. Infrastructure lints (ShellCheck, Hadolint, cmake-lint, dangerous-workflow audit, binary-artifact scan, Gitleaks secrets detection) run on the host. Sanitizers, coverage, and IWYU run inside Docker with full build toolchain.
+The Workflow column shows where each check runs: in the caller's Docker image (their toolchain, headers and `compile_commands.json`) or on the host.
 
 ### Diff-Aware Linting (Python)
 
@@ -202,7 +117,7 @@ Built-in file naming exceptions: `CMakeLists.txt`, `Dockerfile`, `README.md`, `L
 
 ### PR Comments
 
-Each workflow posts a summary comment on the PR with a hidden HTML marker. On subsequent pushes, the same comment is updated instead of creating duplicates.
+Each workflow posts one summary comment, found again by a hidden marker and updated on later pushes.
 
 | Workflow | Marker |
 |----------|--------|
@@ -212,11 +127,7 @@ Each workflow posts a summary comment on the PR with a hidden HTML marker. On su
 | Infrastructure lint | `<!-- infra-lint-report -->` |
 | SBOM & supply chain | `<!-- sbom-report -->` |
 
-### GitHub Annotations
-
-Errors and warnings appear inline on the PR diff — reviewers see issues exactly where they occur, without reading CI logs.
-
----
+Errors and warnings also appear as inline annotations on the PR diff.
 
 ## Phase 3: Security Scanning (SAST)
 
@@ -248,7 +159,7 @@ Template: [`configs/ci-infer.yml`](../configs/ci-infer.yml)
 | InferBO | Buffer overflow at multiple severity levels |
 | RacerD | Data races, lock ordering, thread safety violations |
 
-RacerD is unique among open-source SAST tools for thread safety analysis. Valuable for multi-threaded C++ (ROS2 executors, async callbacks).
+RacerD covers thread safety, which matters for ROS2 executors and async callbacks.
 
 ### pip-audit (Python)
 
@@ -256,8 +167,6 @@ Workflow: [`sast-python.yml`](../.github/workflows/sast-python.yml)
 
 - Checks `requirements.txt` against known CVE databases
 - Uses `pypa/gh-action-pip-audit@v1.1.0`
-
----
 
 ## Phase 3b: SBOM & Supply Chain
 
@@ -284,31 +193,13 @@ Additional checks that strengthen supply chain security posture:
 | SLSA provenance | `auto-release.yml` | Attests build provenance for releases using `actions/attest-build-provenance` |
 | Security policy | `SECURITY.md` | Defines vulnerability reporting process (OpenSSF Scorecard requirement) |
 
----
-
 ## Phase 4: Testing & Hardening
 
 ### Edge Case Checklist
 
 Template: [`configs/test-checklist.md`](../configs/test-checklist.md)
 
-Every test suite must cover these 11 mandatory categories:
-
-1. **Empty inputs** — empty containers, zero-length spans, null optionals
-2. **Boundary conditions** — min/max values, off-by-one, size limits
-3. **Single-element** — containers with exactly one item
-4. **Invalid inputs** — out-of-range, wrong type, malformed data
-5. **Resource exhaustion** — allocation failure, full buffers, timeout
-6. **Concurrent access** — data races, lock ordering, atomic correctness
-7. **Nanobench baselines** — performance-sensitive paths have benchmarks
-8. **ASan + UBSan pass** — all tests pass under `debug-asan` preset
-9. **TSan pass** — threaded code passes under `debug-tsan` preset
-10. **Release + sanitizers** — tests pass under `release-asan` (optimizer exploits different UB)
-11. **Fuzz harness** — parsing/input-handling code has a libFuzzer harness
-
-### Sanitizer Builds
-
-Run tests with AddressSanitizer, UndefinedBehaviorSanitizer, and ThreadSanitizer using the CMake presets.
+The [checklist template](../configs/test-checklist.md) lists 11 mandatory categories, from empty inputs and boundaries to sanitizer passes under `debug-asan`, `debug-tsan` and `release-asan`, and a libFuzzer harness for parsing code.
 
 ### Multi-Compiler CI
 
@@ -327,12 +218,7 @@ Template: [`configs/ci-fuzz.yml`](../configs/ci-fuzz.yml)
 - Crash artifact upload on failure
 - Weekly scheduled + PR trigger
 
-```cpp
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
-    my_parser(data, size);
-    return 0;
-}
-```
+Harness example: [Integration Guide](INTEGRATION.md#9-fuzzing).
 
 ### Production Hardening
 
@@ -364,20 +250,3 @@ The `hardening` job in `cpp-quality.yml` builds with the `release-hardened` pres
 | CET | `readelf -n` | `.note.gnu.property` with IBT + SHSTK (x86-64, from `-fcf-protection=full`) |
 
 Standalone script: `scripts/check-hardening.sh <binary_path>...`
-
----
-
-## Summary: What Runs When
-
-| Phase | Trigger | Checks |
-|-------|---------|--------|
-| Pre-commit | `git commit` | clang-format, clang-tidy, cppcheck, whitespace, YAML |
-| PR (C++) | Pull request | clang-tidy, cppcheck, clang-format, flawfinder, file naming, banned patterns |
-| PR (Infra) | Pull request | ShellCheck, Hadolint, cmake-lint, dangerous-workflow audit, binary-artifact scan, Gitleaks secrets detection (all opt-in) |
-| PR (Runtime) | Pull request | ASan/UBSan, TSan, coverage, IWYU (all opt-in) |
-| PR (Python) | Pull request | ruff/flake8, pytest, diff-cover |
-| PR (SAST) | Pull request | Semgrep, pip-audit, CodeQL (optional) |
-| PR (SBOM) | Pull request | Syft, Grype, source SBOM, license check |
-| Post-merge | Schedule/push | CodeQL, Infer, fuzz corpus runs |
-| Trend report | Weekly schedule | Quality trend dashboard: pass rates per check, trend arrows, Slack/Discussions |
-| Local dev | Manual | Scripts, sanitizer presets, CMake warnings |
