@@ -61,7 +61,10 @@ def _lint(tmp_path, source, overrides):
     git("add", ".")
     git("commit", "-m", "change")
     return subprocess.run(
-        ["bash", "-c", _lint_script(overrides)], cwd=tmp_path, capture_output=True, text=True
+        ["bash", "-c", _lint_script(overrides)],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
     )
 
 
