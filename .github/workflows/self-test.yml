@@ -30,7 +30,7 @@ jobs:
         with:
           node-version: 22
       - run: sudo apt-get install -y jq
-      - run: pip install -q import-linter ast-grep-cli
+      - run: pip install -q --require-hashes -r .github/requirements/layering.txt
       - run: bash tests/test_layering.sh
 
   agents-md-generator:
@@ -89,5 +89,8 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
-      - run: pip install -q gdtoolkit
+      - run: pip install -q --require-hashes -r .github/requirements/patterns.txt
+      - run: npm ci --prefix tests/ts-tools
       - run: bash tests/test_patterns.sh
+        env:
+          TS_DEPS_DIR: ${{ github.workspace }}/tests/ts-tools
