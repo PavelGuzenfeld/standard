@@ -7,7 +7,9 @@ usage() {
 
 case "${1:-}" in
     -h|--help) usage; exit 0 ;;
+    -*) usage >&2; exit 1 ;;
 esac
+[ $# -le 2 ] || { usage >&2; exit 1; }
 
 EXCLUDE_FILE="${1:-}"
 FILE_LIST="${2:-}"

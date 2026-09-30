@@ -8,7 +8,7 @@ usage() {
 case "${1:-}" in
     -h|--help) usage; exit 0 ;;
 esac
-[ $# -ge 1 ] || { usage; exit 1; }
+[ $# -ge 1 ] || { usage >&2; exit 1; }
 
 CONFIG_FILE="$1"
 ROOT_DIR="${2:-.}"
