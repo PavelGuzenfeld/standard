@@ -249,7 +249,7 @@ jobs:
 | `python_linter` | `ruff` | Linter: `ruff` or `flake8` |
 | `source_dirs` | `src` | Source directories |
 | `test_dirs` | `tests` | Test directories |
-| `ruff_select` | `E,W,F,I,N` | Ruff rule selection |
+| `ruff_select` | `E,W,F,I,N` | Ruff rule selection. Overrides `select` and `ignore` in pyproject.toml; drop `E` to skip E501 line-length errors |
 | `enable_tests` | `true` | Run pytest and collect coverage (disable for projects with external test deps like ROS2) |
 | `base_ref` | `''` | Base branch for diff comparison (falls back to github.base_ref, then main) |
 | `fail_under` | `100` | Minimum diff-quality score (0-100) |
