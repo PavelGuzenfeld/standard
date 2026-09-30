@@ -249,7 +249,7 @@ jobs:
 | `python_linter` | `ruff` | Linter: `ruff` or `flake8` |
 | `source_dirs` | `src` | Source directories |
 | `test_dirs` | `tests` | Test directories |
-| `ruff_select` | `E,W,F,I` | Ruff rule selection |
+| `ruff_select` | `E,W,F,I,N` | Ruff rule selection |
 | `enable_tests` | `true` | Run pytest and collect coverage (disable for projects with external test deps like ROS2) |
 | `base_ref` | `''` | Base branch for diff comparison (falls back to github.base_ref, then main) |
 | `fail_under` | `100` | Minimum diff-quality score (0-100) |
@@ -382,6 +382,7 @@ jobs:
 | [`.clang-tidy`](configs/.clang-tidy) | clang-analyzer, cppcoreguidelines, modernize, bugprone, performance, readability |
 | [`.clang-format`](configs/.clang-format) | C++23, 120-col, 4-space indent, Allman braces |
 | [`.clang-tidy-naming`](configs/.clang-tidy-naming) | Identifier naming: snake_case functions, PascalCase types, trailing `_` private |
+| [`eslint-naming.config.mjs`](configs/eslint-naming.config.mjs) | TypeScript naming: snake_case, PascalCase types and .tsx components, no `I` prefix, trailing `_` private |
 | [`cppcheck.suppress`](configs/cppcheck.suppress) | Generic suppressions with commented vendor examples |
 | [`naming-exceptions.txt`](configs/naming-exceptions.txt) | File naming exception template (one regex per line) |
 | [`.pre-commit-config.yaml`](configs/.pre-commit-config.yaml) | Pre-commit hooks: clang-format, clang-tidy, cppcheck |
@@ -393,6 +394,7 @@ jobs:
 | [`cmake-warnings.cmake`](configs/cmake-warnings.cmake) | Warning flags: -Wall -Wextra -Wpedantic -Werror + extras |
 | [`test-checklist.md`](configs/test-checklist.md) | Mandatory test edge case checklist (11 categories) |
 | [`repo-structure-ros2.txt`](configs/repo-structure-ros2.txt) | ROS2 package structure validation template |
+| `repo-structure-{python,cmake-cpp,typescript,godot}.txt` | Structure templates for other project types |
 | [`AGENTS.md`](configs/AGENTS.md) | AI agent instructions template for consuming projects |
 | [`SECURITY.md`](configs/SECURITY.md) | Security policy template for consuming projects |
 | [`dependabot.yml`](configs/dependabot.yml) | Dependabot config template for consuming projects |
@@ -412,6 +414,8 @@ Run the same logic as CI, only on files changed vs a base branch:
 | `diff-file-naming.sh` | snake_case naming on changed files |
 | `diff-iwyu.sh` | Include-What-You-Use on changed files |
 | `diff-gdlint.sh` | GDScript naming (gdlint) on changed files |
+| `diff-ts-naming.sh` | typescript-eslint naming-convention on changed .ts/.tsx (needs `eslint-naming.config.mjs`, eslint, typescript-eslint) |
+| `diff-test-mirror.sh` | added source modules have a mirrored test |
 
 ```bash
 ./scripts/diff-clang-tidy.sh origin/main build "cpp hpp h"
@@ -449,6 +453,9 @@ Generate project scaffolding from the standard:
 | `check-dangerous-workflows.sh` | Audit workflow files for injection patterns |
 | `check-hardening.sh` | Verify ELF binary hardening (PIE, RELRO, NX, canary) |
 | `filter-excludes.sh` | Filter file lists against exclusion patterns |
+| `check-layering.sh` | Run the repo's layering contract (`.importlinter`, `.dependency-cruiser.cjs`, or `.layers` for C++ and GDScript); skips if none |
+
+`.layers` lists directories lowest layer first, one per line. A lower layer may not `#include` or `preload`/`load` a higher one, and cycles fail. Use it as `PavelGuzenfeld/standard/actions/layering@main`.
 
 ```bash
 ./scripts/check-repo-structure.sh configs/repo-structure-ros2.txt .
@@ -477,6 +484,7 @@ scripts/
   diff-clang-format.sh      Diff-aware clang-format runner
   diff-file-naming.sh       Diff-aware snake_case naming check
   diff-iwyu.sh              Diff-aware Include-What-You-Use runner
+  diff-ts-naming.sh         Diff-aware typescript-eslint naming-convention check
   generate-workflow.sh       Generate workflow YAML files
   generate-agents-md.sh      Generate tailored AGENTS.md
   generate-baseline.sh       Generate suppression/baseline files

@@ -29,6 +29,7 @@ scripts/
   diff-file-naming.sh       Diff-aware snake_case naming check
   diff-iwyu.sh              Diff-aware Include-What-You-Use runner
   diff-gdlint.sh            Diff-aware GDScript naming check (gdlint)
+  diff-ts-naming.sh         Diff-aware typescript-eslint naming-convention check
   generate-workflow.sh       Generate workflow YAML files for consuming repos
   generate-agents-md.sh      Generate tailored AGENTS.md for consuming repos
   generate-baseline.sh       Generate suppression/baseline files

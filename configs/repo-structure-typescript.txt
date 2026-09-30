@@ -1,0 +1,6 @@
+dir:src/
+dir?tests/
+file:package.json
+file:tsconfig.json
+file?README.md
+file?LICENSE

@@ -691,6 +691,79 @@ assert_no_match "$CET_FEATURE_PATTERN" '  Type:                              DYN
 
 echo ""
 
+echo "=== 12. End-to-end: diff-ts-naming.sh ==="
+
+TS_SCRIPT="$SCRIPT_DIR/scripts/diff-ts-naming.sh"
+TS_CONFIG="$SCRIPT_DIR/configs/eslint-naming.config.mjs"
+
+if ! command -v npm >/dev/null 2>&1; then
+    echo "  SKIP: npm not available"
+else
+    TS_TMP=$(mktemp -d)
+    cd "$TS_TMP"
+    git init -q
+    git config user.email "test@test.com"
+    git config user.name "Test"
+    printf 'node_modules\n' > .gitignore
+    echo "{}" > package.json
+    if [ -n "${TS_DEPS_DIR:-}" ]; then
+        ln -s "$TS_DEPS_DIR/node_modules" node_modules
+    else
+        npm install --silent eslint typescript typescript-eslint >/dev/null 2>&1
+    fi
+    cp "$TS_CONFIG" eslint-naming.config.mjs
+    git add .gitignore package.json eslint-naming.config.mjs
+    git commit -q -m "init"
+    git branch -M main
+    git checkout -q -b feature/ts
+
+    ts_naming_passes() {
+        local desc="$1" file="$2" body="$3"
+        printf '%s\n' "$body" > "$file"
+        git add "$file"
+        if bash "$TS_SCRIPT" main >/dev/null 2>&1; then pass "$desc"; else fail "$desc"; fi
+        git rm -q -f --cached "$file"
+        rm -f "$file"
+    }
+    ts_naming_fails() {
+        local desc="$1" file="$2" body="$3"
+        printf '%s\n' "$body" > "$file"
+        git add "$file"
+        if bash "$TS_SCRIPT" main >/dev/null 2>&1; then fail "$desc"; else pass "$desc"; fi
+        git rm -q -f --cached "$file"
+        rm -f "$file"
+    }
+
+    ts_naming_fails  "interface IFrame rejected"              a.ts 'export interface IFrame { id: number }'
+    ts_naming_passes "interface Frame accepted"               a.ts 'export interface Frame { id: number }'
+    ts_naming_fails  "function Parse_frame rejected"          a.ts 'export function Parse_frame(): number { return 1 }'
+    ts_naming_passes "function parse_frame accepted"          a.ts 'export function parse_frame(): number { return 1 }'
+    ts_naming_fails  "function parseFrame rejected"           a.ts 'export function parseFrame(): number { return 1 }'
+    ts_naming_fails  "private _count rejected"                a.ts 'export class A { private _count = 0; get(): number { return this._count } }'
+    ts_naming_fails  "private count without suffix rejected"  a.ts 'export class A { private count = 0; get(): number { return this.count } }'
+    ts_naming_passes "private count_ accepted"                a.ts 'export class A { private count_ = 0; get(): number { return this.count_ } }'
+    ts_naming_passes "#private count_ accepted"               a.ts 'export class A { #count_ = 0; get(): number { return this.#count_ } }'
+    ts_naming_fails  "#private count without suffix rejected" a.ts 'export class A { #count = 0; get(): number { return this.#count } }'
+    ts_naming_passes "UPPER_CASE constant accepted"           a.ts 'export const MAX_FRAMES = 4'
+    ts_naming_passes "snake_case variable accepted"           a.ts 'export const frame_count = 4'
+    ts_naming_fails  "camelCase variable rejected"            a.ts 'export const frameCount = 4'
+    ts_naming_passes "PascalCase tsx component accepted"      a.tsx 'export function FrameView(): null { return null }'
+    ts_naming_fails  "PascalCase function in .ts rejected"    a.ts 'export function FrameView(): null { return null }'
+
+    printf 'export function Bad_name(): void {}\n' > legacy.ts
+    git add legacy.ts
+    git commit -q -m legacy
+    git checkout -q -b feature/ts2
+    printf 'export function good_name(): void {}\n' > fresh.ts
+    git add fresh.ts
+    if bash "$TS_SCRIPT" HEAD >/dev/null 2>&1; then pass "unchanged legacy file does not fail diff"; else fail "unchanged legacy file does not fail diff"; fi
+
+    cd "$SCRIPT_DIR"
+    rm -rf "$TS_TMP"
+fi
+
+echo ""
+
 # =============================================================================
 echo "=== 12. End-to-end: diff-gdlint.sh ==="
 # =============================================================================
