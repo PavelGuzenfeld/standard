@@ -1,17 +1,17 @@
 import tseslint from "typescript-eslint";
 
 const privateMember = {
-  format: ["camelCase"],
+  format: ["snake_case"],
   leadingUnderscore: "forbid",
   trailingUnderscore: "require",
 };
 
 const namingConvention = (functionFormats) => [
   "error",
-  { selector: "default", format: ["camelCase"] },
-  { selector: "variable", format: ["camelCase", "UPPER_CASE"] },
+  { selector: "default", format: ["snake_case"] },
+  { selector: "variable", format: ["snake_case", "UPPER_CASE"] },
   { selector: "function", format: functionFormats },
-  { selector: "parameter", format: ["camelCase"], leadingUnderscore: "allow" },
+  { selector: "parameter", format: ["snake_case"], leadingUnderscore: "allow" },
   { selector: "typeLike", format: ["PascalCase"] },
   {
     selector: "interface",
@@ -32,13 +32,13 @@ export default [
     languageOptions: { parser: tseslint.parser },
     plugins: { "@typescript-eslint": tseslint.plugin },
     rules: {
-      "@typescript-eslint/naming-convention": namingConvention(["camelCase"]),
+      "@typescript-eslint/naming-convention": namingConvention(["snake_case"]),
     },
   },
   {
     files: ["**/*.tsx"],
     rules: {
-      "@typescript-eslint/naming-convention": namingConvention(["camelCase", "PascalCase"]),
+      "@typescript-eslint/naming-convention": namingConvention(["snake_case", "PascalCase"]),
     },
   },
 ];
