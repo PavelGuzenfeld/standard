@@ -17,10 +17,10 @@ It detects languages from `CMakeLists.txt`, `package.xml` and `pyproject.toml`, 
 - `.github/workflows/infra-lint.yml`
 - `.standard.yml`, which the compliance bot reads
 
-Each ref is pinned to the SHA of the latest tag, with the tag as a comment. Use `--pin TAG` to pick another tag:
+Each ref is pinned to the commit SHA of the latest tag, with the tag as a comment. `standard-ci` fills in `<sha>` and `<tag>`. Use `--pin TAG` to pick another tag:
 
 ```yaml
-uses: PavelGuzenfeld/standard/.github/workflows/cpp-quality.yml@d5c13383c0f780fa19dea17d3157076fe9e8efd9 # v0.23.17
+uses: PavelGuzenfeld/standard/.github/workflows/cpp-quality.yml@<sha> # <tag>
 ```
 
 ## 2. Pick a preset

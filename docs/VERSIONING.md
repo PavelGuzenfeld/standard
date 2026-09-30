@@ -105,6 +105,7 @@ While `MAJOR` is `0`, the project is in initial development:
 - Every release **must** have a corresponding git tag
 - Tags are immutable — never delete or move a published tag
 - Annotated tags preferred: `git tag -a v0.0.1 -m "Initial release"`
+- [Auto-release](INTEGRATION.md#auto-release) tags every push to `main` from conventional commit prefixes
 
 ## Changelog
 
@@ -138,8 +139,3 @@ Validate tags against the regex before a release:
 ### Source File Version Check
 
 [`version-check.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/.github/workflows/version-check.yml) validates the version in `package.xml`, `CMakeLists.txt` and `pyproject.toml` against the regex above on every PR.
-
-### Reusable Auto-Release Workflow
-
-[`auto-release.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/.github/workflows/auto-release.yml) bumps versions from conventional commit prefixes and tags every push to `main`. Setup is in the [Integration Guide](INTEGRATION.md#auto-release).
-

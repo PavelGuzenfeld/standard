@@ -168,20 +168,19 @@ Workflow: [`sbom.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/.git
 | Check | Tool | What it does |
 |-------|------|-------------|
 | Container SBOM | Syft | Scans Docker image for apt/pip/system packages |
-| Source SBOM | Custom script | Parses CMake FetchContent, .gitmodules, package.xml, pyproject.toml |
+| Source SBOM | Your script | Runs the script named by `source_sbom_script` as `python3 <script> --output source-sbom.cdx.json`. This repo ships none, so what it parses is up to you |
 | Vulnerability scan | Grype | Scans merged SBOM against CVE databases |
-| License check | Custom script | Validates dependencies against license policy |
+| License check | Built-in checker or `license_check_script` | Checks the SBOMs against `license_policy_file` |
 
 All artifacts (SPDX JSON, CycloneDX JSON, Grype report) are uploaded as GitHub Actions artifacts. Results are posted as a PR summary comment.
 
 ### Supply Chain Hygiene
 
-Additional checks that strengthen supply chain security posture:
+Release provenance is in [Auto-Release](INTEGRATION.md#auto-release). Other checks:
 
 | Check | Tool | What it does |
 |-------|------|-------------|
 | Dependency updates | Dependabot | Monitors GitHub Actions and pip ecosystems for outdated dependencies |
-| SLSA provenance | `auto-release.yml` | Attests build provenance for releases using `actions/attest-build-provenance` |
 | Security policy | `SECURITY.md` | Defines vulnerability reporting process (OpenSSF Scorecard requirement) |
 
 ## Phase 4: Testing & Hardening
