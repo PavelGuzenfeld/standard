@@ -9,7 +9,7 @@ usage() {
 case "${1:-}" in
     -h|--help) usage; exit 0 ;;
 esac
-[ $# -ge 1 ] || { usage; exit 1; }
+[ $# -ge 1 ] || { usage >&2; exit 1; }
 
 BASE_BRANCH="$1"
 EXTENSIONS="${2:-cpp hpp h cc cxx}"

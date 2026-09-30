@@ -618,7 +618,8 @@ else
     if [ -n "${TS_DEPS_DIR:-}" ]; then
         ln -s "$TS_DEPS_DIR/node_modules" node_modules
     else
-        npm install --silent eslint typescript typescript-eslint >/dev/null 2>&1
+        cp "$SCRIPT_DIR/tests/ts-tools/package.json" "$SCRIPT_DIR/tests/ts-tools/package-lock.json" .
+        npm ci --silent >/dev/null 2>&1
     fi
     cp "$TS_CONFIG" eslint-naming.config.mjs
     git add .gitignore package.json eslint-naming.config.mjs

@@ -8,7 +8,7 @@ usage() {
 case "${1:-}" in
     -h|--help) usage; exit 0 ;;
 esac
-[ $# -ge 2 ] || { usage; exit 1; }
+[ $# -ge 2 ] || { usage >&2; exit 1; }
 
 BASE_BRANCH="$1"
 COMPILE_COMMANDS="$2"

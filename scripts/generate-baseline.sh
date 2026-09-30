@@ -37,7 +37,7 @@ usage() {
 }
 
 if [[ $# -eq 0 ]]; then
-    usage
+    usage >&2
     exit 1
 fi
 
@@ -52,7 +52,7 @@ while [[ $# -gt 0 ]]; do
         --output)        OUTPUT="$2"; shift 2 ;;
         --includes)      CPPCHECK_INCLUDES="$2"; shift 2 ;;
         --std)           CPPCHECK_STD="$2"; shift 2 ;;
-        *) echo "Unknown option: $1"; usage; exit 1 ;;
+        *) echo "Unknown option: $1" >&2; usage >&2; exit 1 ;;
     esac
 done
 
@@ -164,38 +164,9 @@ baseline_file_naming() {
 
     echo "Scanning all files for naming violations..."
 
-    SNAKE_CASE='^[a-z][a-z0-9_]*$'
-    ALLOWED_PREFIXES="_"
+    export ALLOWED_PREFIXES="_"
 
     source "$(dirname "${BASH_SOURCE[0]}")/naming-exemptions.sh"
-
-    is_exempt_filename() {
-        local name="$1"
-        for exempt in "${BUILTIN_EXEMPT_FILES[@]}"; do
-            [ "$name" = "$exempt" ] && return 0
-        done
-        return 1
-    }
-
-    is_exempt_pattern() {
-        local name="$1"
-        for pattern in "${BUILTIN_EXEMPT_PATTERNS[@]}"; do
-            echo "$name" | grep -qE "$pattern" && return 0
-        done
-        return 1
-    }
-
-    is_snake_case() {
-        local name="$1"
-        echo "$name" | grep -qE "$SNAKE_CASE" && return 0
-        for prefix in $ALLOWED_PREFIXES; do
-            if [[ "$name" == "${prefix}"* ]]; then
-                local stripped="${name#$prefix}"
-                [ -n "$stripped" ] && echo "$stripped" | grep -qE "$SNAKE_CASE" && return 0
-            fi
-        done
-        return 1
-    }
 
     local all_files
     all_files=$(git ls-files 2>/dev/null || find . -type f | sed 's|^\./||')
@@ -371,7 +342,7 @@ case "$TOOL" in
     *)
         echo "Error: unknown tool '$TOOL'"
         echo ""
-        usage
+        usage >&2
         exit 1
         ;;
 esac

@@ -26,10 +26,11 @@ class TestGenerateStarterWorkflow:
         yaml = generate_starter_workflow(tmpl, FAKE_SHA, FAKE_TAG)
         assert "$default-branch" in yaml
 
-    def test_cpp_quality_has_docker_todo(self):
+    def test_cpp_quality_docker_image_is_failing_placeholder(self):
         tmpl = TEMPLATES[0]
         yaml = generate_starter_workflow(tmpl, FAKE_SHA, FAKE_TAG)
-        assert "# TODO:" in yaml
+        assert "docker_image: REQUIRED_DOCKER_IMAGE\n" in yaml
+        assert "TODO" not in yaml
 
     def test_python_quality_has_sast(self):
         tmpl = TEMPLATES[1]

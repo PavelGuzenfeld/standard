@@ -8,7 +8,9 @@ usage() {
 
 case "${1:-}" in
     -h|--help) usage; exit 0 ;;
+    -*) usage >&2; exit 1 ;;
 esac
+[ $# -le 1 ] || { usage >&2; exit 1; }
 
 ROOT="$(cd "${1:-.}" && pwd)"
 DEPCRUISE_TARGET="${DEPCRUISE_TARGET:-src}"
@@ -18,6 +20,20 @@ STATUS=0
 RAN=0
 EDGES="$(mktemp)"
 trap 'rm -f "$EDGES"' EXIT
+
+require_tools() {
+    local tool missing=0
+    for tool in "$@"; do
+        command -v "$tool" > /dev/null || { echo "missing tool: $tool" >&2; missing=1; }
+    done
+    [ "$missing" -eq 0 ] || exit 1
+}
+
+require_node_22() {
+    local major
+    major="$(node -p 'process.versions.node.split(".")[0]')"
+    [ "$major" -ge 22 ] || { echo "missing tool: node >= 22" >&2; exit 1; }
+}
 
 run_python() {
     RAN=1
@@ -50,7 +66,7 @@ resolve_include() {
 collect_cpp_edges() {
     local language
     for language in c cpp; do
-        ast-grep run -l "$language" -p '#include $H' --json=stream . 2>/dev/null
+        ast-grep run -l "$language" -p '#include $H' --json=stream .
     done |
         jq -r '[.file, .metaVariables.single.H.text] | @tsv' |
         while IFS=$'\t' read -r file quoted; do
@@ -103,10 +119,17 @@ run_layers() {
     rm -f "$EDGES.err"
 }
 
-[ -f .importlinter ] && run_python
+TYPESCRIPT_CONFIG=""
 for config in .dependency-cruiser.cjs .dependency-cruiser.js .dependency-cruiser.json; do
-    [ -f "$config" ] && { run_typescript "$config"; break; }
+    [ -f "$config" ] && { TYPESCRIPT_CONFIG="$config"; break; }
 done
+
+[ -f .importlinter ] && require_tools lint-imports
+[ -n "$TYPESCRIPT_CONFIG" ] && { require_tools npx node; require_node_22; }
+[ -f .layers ] && require_tools jq tsort realpath ast-grep grep
+
+[ -f .importlinter ] && run_python
+[ -n "$TYPESCRIPT_CONFIG" ] && run_typescript "$TYPESCRIPT_CONFIG"
 [ -f .layers ] && run_layers
 
 if [ "$RAN" -eq 0 ]; then

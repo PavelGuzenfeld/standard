@@ -80,9 +80,12 @@ jobs:
           esac
 
       - name: Install chain-bench
+        env:
+          INPUT_CHAIN_BENCH_VERSION: ${{ inputs.chain_bench_version }}
+          STEP_ARCH_SUFFIX: ${{ steps.arch.outputs.suffix }}
         run: |
-          VERSION="${{ inputs.chain_bench_version }}"
-          SUFFIX="${{ steps.arch.outputs.suffix }}"
+          VERSION="${INPUT_CHAIN_BENCH_VERSION}"
+          SUFFIX="${STEP_ARCH_SUFFIX}"
           URL="https://github.com/aquasecurity/chain-bench/releases/download/v${VERSION}/chain-bench_${VERSION}_${SUFFIX}.tar.gz"
           echo "Downloading chain-bench v${VERSION} for ${SUFFIX}..."
           curl -sL "$URL" -o /tmp/chain-bench.tar.gz
@@ -93,12 +96,16 @@ jobs:
       - name: Discover repos
         id: discover
         env:
+          INPUT_ACTIVE_MONTHS: ${{ inputs.active_months }}
+          INPUT_MAX_REPOS: ${{ inputs.max_repos }}
+          INPUT_ORG: ${{ inputs.org }}
+          INPUT_REPOS: ${{ inputs.repos }}
           GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.scan_token || github.token }}
         run: |
-          ORG="${{ inputs.org }}"
-          EXPLICIT="${{ inputs.repos }}"
-          MAX="${{ inputs.max_repos }}"
-          ACTIVE_MONTHS="${{ inputs.active_months }}"
+          ORG="${INPUT_ORG}"
+          EXPLICIT="${INPUT_REPOS}"
+          MAX="${INPUT_MAX_REPOS}"
+          ACTIVE_MONTHS="${INPUT_ACTIVE_MONTHS}"
 
           if [ -n "$EXPLICIT" ]; then
             REPOS=""
@@ -230,10 +237,14 @@ jobs:
       - name: Generate org dashboard
         id: dashboard
         if: always()
+        env:
+          INPUT_CHAIN_BENCH_VERSION: ${{ inputs.chain_bench_version }}
+          INPUT_MIN_SCORE: ${{ inputs.min_score }}
+          INPUT_ORG: ${{ inputs.org }}
         run: |
           touch /tmp/repo-list.txt
-          MIN_SCORE="${{ inputs.min_score }}"
-          ORG="${{ inputs.org }}"
+          MIN_SCORE="${INPUT_MIN_SCORE}"
+          ORG="${INPUT_ORG}"
           WORST_SCORE=999
           TOTAL_PASSED=0
           TOTAL_CHECKS=0
@@ -354,7 +365,7 @@ jobs:
           {
             echo ""
             echo "---"
-            echo "<sub>Scanned by <a href=\"https://github.com/aquasecurity/chain-bench\">chain-bench</a> v${{ inputs.chain_bench_version }} via <a href=\"https://github.com/PavelGuzenfeld/standard\">standard</a></sub>"
+            echo "<sub>Scanned by <a href=\"https://github.com/aquasecurity/chain-bench\">chain-bench</a> v${INPUT_CHAIN_BENCH_VERSION} via <a href=\"https://github.com/PavelGuzenfeld/standard\">standard</a></sub>"
           } >> /tmp/cis-dashboard.md
 
           cat /tmp/cis-dashboard.md >> "$GITHUB_STEP_SUMMARY"
@@ -386,9 +397,10 @@ jobs:
       - name: Create/update tracking issue
         if: always() && inputs.create_tracking_issue
         env:
+          INPUT_ORG: ${{ inputs.org }}
           GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.scan_token || github.token }}
         run: |
-          ORG="${{ inputs.org }}"
+          ORG="${INPUT_ORG}"
           ISSUE_TITLE="CIS Supply Chain Compliance Dashboard"
           ISSUE_REPO="${ORG}/.github"
 
@@ -410,9 +422,12 @@ jobs:
 
       - name: Check threshold
         if: inputs.min_score > 0
+        env:
+          INPUT_MIN_SCORE: ${{ inputs.min_score }}
+          STEP_DASHBOARD_FAILING: ${{ steps.dashboard.outputs.failing }}
         run: |
-          if [ "${{ steps.dashboard.outputs.failing }}" = "true" ]; then
-            echo "::error::One or more repos scored below the minimum threshold of ${{ inputs.min_score }}/35"
+          if [ "${STEP_DASHBOARD_FAILING}" = "true" ]; then
+            echo "::error::One or more repos scored below the minimum threshold of ${INPUT_MIN_SCORE}/35"
             exit 1
           fi
-          echo "All repos meet the minimum threshold of ${{ inputs.min_score }}/35"
+          echo "All repos meet the minimum threshold of ${INPUT_MIN_SCORE}/35"

@@ -22,6 +22,9 @@ Only changed files are checked — but all new and modified code must pass.
 - **Banned: cout/printf** — use structured logging instead
 - **Banned: raw new/delete** — use smart pointers (`std::make_unique`, `std::make_shared`)
 - **Banned: gtest/gbenchmark** — use doctest and nanobench
+- **Flawfinder** — CWE lexical security scanning
+- **Coverage** — gcov/lcov test coverage reporting
+- **IWYU** — Include-What-You-Use analysis (non-blocking)
 - **Hardening verification** — PIE, RELRO, stack canary, NX checks on release binaries
 - **Identifier naming** — snake_case functions/variables, PascalCase types, trailing `_` for private members
 
@@ -29,7 +32,7 @@ Only changed files are checked — but all new and modified code must pass.
 
 - **Linting** — ruff (or flake8) on changed lines, zero violations required
 - **Coverage** — pytest + diff-cover, minimum score on changed lines
-- **SAST** — Semgrep (OWASP Top 10), pip-audit (CVE scanning)
+- **SAST** — Semgrep (OWASP Top 10), pip-audit (CVE scanning), CodeQL (deep analysis)
 
 ## C++ Conventions
 
@@ -102,7 +105,9 @@ cmake --preset release-hardened # Production hardening (FORTIFY, PIE, RELRO)
 
 ## Python Conventions
 
-Lint with ruff (preferred) or flake8, format with ruff format or black, test with pytest, cover changed lines with diff-cover, run Semgrep and pip-audit, follow PEP 8, and use type hints.
+Lint with ruff (preferred) or flake8, format with ruff format or black, test with pytest, cover changed lines with diff-cover, follow PEP 8, and use type hints.
+
+Static analysis: Semgrep, pip-audit, CodeQL.
 
 ## Local Verification
 
@@ -165,7 +170,7 @@ Every project integrating this standard must have a quality workflow in `.github
   - Always enabled: clang-tidy, cppcheck
   - Opt-in: clang-format, file naming, banned patterns, identifier naming
 - **Python**: `python-quality.yml` + `sast-python.yml`
-  - Linting (ruff/flake8), pytest + diff-cover, Semgrep, pip-audit
+  - Linting (ruff/flake8), pytest + diff-cover, Semgrep, pip-audit, CodeQL
 
 ### Optional Workflows
 

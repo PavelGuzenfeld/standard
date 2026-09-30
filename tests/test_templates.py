@@ -35,6 +35,11 @@ class TestGenerateWorkflow:
         assert "enable_flawfinder: true" in yaml
         assert "security-events: write" in yaml
 
+    def test_missing_required_input_is_failing_placeholder(self):
+        yaml = generate_workflow("cpp-quality", {}, self.SHA, self.TAG)
+        assert "docker_image: REQUIRED_DOCKER_IMAGE\n" in yaml
+        assert "TODO" not in yaml
+
     def test_python_quality_defaults(self):
         yaml = generate_workflow("python-quality", {}, self.SHA, self.TAG)
         assert "name: Python Quality" in yaml

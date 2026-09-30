@@ -9,15 +9,13 @@ usage() {
 case "${1:-}" in
     -h|--help) usage; exit 0 ;;
 esac
-[ $# -ge 1 ] || { usage; exit 1; }
+[ $# -ge 1 ] || { usage >&2; exit 1; }
 
 BASE_BRANCH="$1"
 EXCEPTIONS_FILE="${2:-}"
-ALLOWED_PREFIXES="${NAMING_ALLOWED_PREFIXES:-_}"
+export ALLOWED_PREFIXES="${NAMING_ALLOWED_PREFIXES:-_}"
 
 source "$(dirname "${BASH_SOURCE[0]}")/naming-exemptions.sh"
-
-SNAKE_CASE_PATTERN='^[a-z][a-z0-9_]*$'
 
 USER_EXCEPTIONS=()
 if [ -n "$EXCEPTIONS_FILE" ] && [ -f "$EXCEPTIONS_FILE" ]; then
@@ -39,26 +37,6 @@ fi
 FILE_COUNT=$(echo "$CHANGED_FILES" | wc -l)
 echo "Checking file naming conventions on $FILE_COUNT changed file(s)..."
 
-is_exempt_filename() {
-    local name="$1"
-    for exempt in "${BUILTIN_EXEMPT_FILES[@]}"; do
-        if [ "$name" = "$exempt" ]; then
-            return 0
-        fi
-    done
-    return 1
-}
-
-is_exempt_pattern() {
-    local name="$1"
-    for pattern in "${BUILTIN_EXEMPT_PATTERNS[@]}"; do
-        if echo "$name" | grep -qE "$pattern"; then
-            return 0
-        fi
-    done
-    return 1
-}
-
 is_user_exception() {
     local name="$1"
     for pattern in "${USER_EXCEPTIONS[@]}"; do
@@ -66,25 +44,6 @@ is_user_exception() {
             return 0
         fi
     done
-    return 1
-}
-
-is_snake_case() {
-    local name="$1"
-
-    if echo "$name" | grep -qE "$SNAKE_CASE_PATTERN"; then
-        return 0
-    fi
-
-    for prefix in $ALLOWED_PREFIXES; do
-        if [[ "$name" == "${prefix}"* ]]; then
-            local stripped="${name#$prefix}"
-            if [ -n "$stripped" ] && echo "$stripped" | grep -qE "$SNAKE_CASE_PATTERN"; then
-                return 0
-            fi
-        fi
-    done
-
     return 1
 }
 

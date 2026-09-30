@@ -84,7 +84,7 @@ The full site is at <https://pavelguzenfeld.com/standard/>. The same pages live 
 | [`scheduled-health.yml`](.github/workflows/scheduled-health.yml) | Open an issue when a scheduled upstream workflow fails |
 | [`release.yml`](.github/workflows/release.yml) | This repo only: triggers auto-release and version-sync on push to main |
 
-Composite actions for single steps live in `actions/`: `diff-files`, `clang-tidy`, `cppcheck`, `clang-format`, `ruff-check`, `shellcheck`, `gitleaks`, `gdlint`, `ts-naming`, `layering`. Use one as `PavelGuzenfeld/standard/actions/<name>@<sha>`.
+Composite actions for single steps live in `actions/`: `diff-files`, `clang-tidy`, `cppcheck`, `clang-format`, `ruff-check`, `shellcheck`, `gitleaks`, `gdlint`, `ts-naming`, `layering`. Use one as `PavelGuzenfeld/standard/actions/<name>@<sha>`. `ruff-check` and the ruff mode of `python-quality` need a diff-cover that lists the `ruff.check` driver; Python 3.8 cannot install one (diff-cover 9.2.0 has none).
 
 ## Workflow Inputs
 
@@ -233,7 +233,7 @@ Composite actions for single steps live in `actions/`: `diff-files`, `clang-tidy
 | `source_dirs` | `src` | Source directories |
 | `test_dirs` | `tests` | Test directories |
 | `ruff_version` | `0.16.5` | Ruff version to install |
-| `diff_cover_version` | `10.5.1` | diff-cover version to install |
+| `diff_cover_version` | `10.5.1` | diff-cover version to install. The ruff step needs a diff-cover that lists the `ruff.check` driver, which Python 3.8 cannot install (diff-cover 9.2.0 has none) |
 | `ruff_select` | `E,W,F,I,N` | Ruff rule selection. Overrides `select` and `ignore` in pyproject.toml; drop `E` to skip E501 line-length errors |
 | `enable_tests` | `true` | Run pytest and collect coverage (disable for projects with external test deps like ROS2) |
 | `base_ref` | `''` | Base branch for diff comparison (falls back to github.base_ref, then main) |
