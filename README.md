@@ -393,6 +393,7 @@ jobs:
 | [`cmake-warnings.cmake`](configs/cmake-warnings.cmake) | Warning flags: -Wall -Wextra -Wpedantic -Werror + extras |
 | [`test-checklist.md`](configs/test-checklist.md) | Mandatory test edge case checklist (11 categories) |
 | [`repo-structure-ros2.txt`](configs/repo-structure-ros2.txt) | ROS2 package structure validation template |
+| `repo-structure-{python,cmake-cpp,typescript,godot}.txt` | Structure templates for other project types |
 | [`AGENTS.md`](configs/AGENTS.md) | AI agent instructions template for consuming projects |
 | [`SECURITY.md`](configs/SECURITY.md) | Security policy template for consuming projects |
 | [`dependabot.yml`](configs/dependabot.yml) | Dependabot config template for consuming projects |
