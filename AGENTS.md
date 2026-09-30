@@ -30,6 +30,7 @@ scripts/
   diff-iwyu.sh              Diff-aware Include-What-You-Use runner
   diff-gdlint.sh            Diff-aware GDScript naming check (gdlint)
   diff-ts-naming.sh         Diff-aware typescript-eslint naming-convention check
+  diff-test-mirror.sh       Diff-aware check that added source modules have a mirrored test
   generate-workflow.sh       Generate workflow YAML files for consuming repos
   generate-agents-md.sh      Generate tailored AGENTS.md for consuming repos
   generate-baseline.sh       Generate suppression/baseline files
@@ -42,6 +43,7 @@ scripts/
 configs/                    Drop-in configs, CI templates, and agent instructions (17 files)
 tests/
   test_patterns.sh          Pattern validation tests (176 tests, bash)
+  test_test_mirror.sh       Tests for diff-test-mirror.sh (bash)
   test_calculator.py        Python demo tests (pytest)
 docs/
   SDLC.md                   Full software development lifecycle document

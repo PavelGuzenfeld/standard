@@ -106,6 +106,10 @@ if [ -f "$SCRIPTS_DIR/diff-iwyu.sh" ]; then
     CHECKS+=("iwyu")
 fi
 
+if [ -f "$SCRIPTS_DIR/diff-test-mirror.sh" ]; then
+    CHECKS+=("test-mirror")
+fi
+
 if [ ${#CHECKS[@]} -eq 0 ]; then
     echo "No diff-* scripts found in $SCRIPTS_DIR — nothing to install."
     echo "Copy scripts from the standard repo first."
@@ -203,6 +207,10 @@ else
 fi
 
 IWYU
+            ;;
+        test-mirror)
+            echo 'run_check "test-mirror" "$SCRIPTS_DIR/diff-test-mirror.sh" "$BASE"'
+            echo ""
             ;;
     esac
 done
