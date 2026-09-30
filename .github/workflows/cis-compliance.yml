@@ -55,9 +55,12 @@ jobs:
           esac
 
       - name: Install chain-bench
+        env:
+          INPUT_CHAIN_BENCH_VERSION: ${{ inputs.chain_bench_version }}
+          STEP_ARCH_SUFFIX: ${{ steps.arch.outputs.suffix }}
         run: |
-          VERSION="${{ inputs.chain_bench_version }}"
-          SUFFIX="${{ steps.arch.outputs.suffix }}"
+          VERSION="${INPUT_CHAIN_BENCH_VERSION}"
+          SUFFIX="${STEP_ARCH_SUFFIX}"
           URL="https://github.com/aquasecurity/chain-bench/releases/download/v${VERSION}/chain-bench_${VERSION}_${SUFFIX}.tar.gz"
           echo "Downloading chain-bench v${VERSION} for ${SUFFIX}..."
           curl -sL "$URL" -o /tmp/chain-bench.tar.gz
@@ -67,8 +70,10 @@ jobs:
 
       - name: Determine branch
         id: branch
+        env:
+          INPUT_BRANCH: ${{ inputs.branch }}
         run: |
-          BRANCH="${{ inputs.branch }}"
+          BRANCH="${INPUT_BRANCH}"
           if [ -z "$BRANCH" ]; then
             BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
           fi
@@ -96,10 +101,11 @@ jobs:
       - name: Run chain-bench scan
         id: scan
         env:
+          STEP_BRANCH_NAME: ${{ steps.branch.outputs.name }}
           SCAN_TOKEN: ${{ steps.app-token.outputs.token || secrets.scan_token || github.token }}
         run: |
           REPO_URL="https://github.com/${{ github.repository }}"
-          BRANCH="${{ steps.branch.outputs.name }}"
+          BRANCH="${STEP_BRANCH_NAME}"
 
           echo "Scanning ${REPO_URL} branch=${BRANCH}..."
           /tmp/chain-bench scan \
@@ -144,12 +150,18 @@ jobs:
       - name: Generate detailed report
         id: report
         if: always()
+        env:
+          INPUT_MIN_SCORE: ${{ inputs.min_score }}
+          STEP_BRANCH_NAME: ${{ steps.branch.outputs.name }}
+          STEP_SCAN_PASSED: ${{ steps.scan.outputs.passed }}
+          STEP_SCAN_PERCENT: ${{ steps.scan.outputs.percent }}
+          STEP_SCAN_TOTAL: ${{ steps.scan.outputs.total }}
         run: |
-          PASSED="${{ steps.scan.outputs.passed }}"
-          TOTAL="${{ steps.scan.outputs.total }}"
-          PERCENT="${{ steps.scan.outputs.percent }}"
-          BRANCH="${{ steps.branch.outputs.name }}"
-          MIN_SCORE="${{ inputs.min_score }}"
+          PASSED="${STEP_SCAN_PASSED}"
+          TOTAL="${STEP_SCAN_TOTAL}"
+          PERCENT="${STEP_SCAN_PERCENT}"
+          BRANCH="${STEP_BRANCH_NAME}"
+          MIN_SCORE="${INPUT_MIN_SCORE}"
 
           {
             echo "## CIS Software Supply Chain v1.0"
@@ -244,9 +256,12 @@ jobs:
 
       - name: Check threshold
         if: inputs.min_score > 0
+        env:
+          INPUT_MIN_SCORE: ${{ inputs.min_score }}
+          STEP_SCAN_PASSED: ${{ steps.scan.outputs.passed }}
         run: |
-          PASSED=${{ steps.scan.outputs.passed }}
-          MIN=${{ inputs.min_score }}
+          PASSED=${STEP_SCAN_PASSED}
+          MIN=${INPUT_MIN_SCORE}
           if [ "$PASSED" -lt "$MIN" ]; then
             echo "::error::CIS compliance score ${PASSED}/35 is below minimum threshold ${MIN}/35"
             exit 1

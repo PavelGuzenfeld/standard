@@ -79,8 +79,10 @@ jobs:
 
       - name: Get changed shell scripts
         id: changed
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
         run: |
-          FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- | grep -E '\.(sh|bash)$' || true)
+          FILES=$(git diff --name-only --diff-filter=ACMR "origin/${INPUT_BASE_REF}" -- | grep -E '\.(sh|bash)$' || true)
           if [ -z "$FILES" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No shell scripts changed."
@@ -92,8 +94,10 @@ jobs:
 
       - name: Filter excluded paths
         if: steps.changed.outputs.skip == 'false' && inputs.exclude_file != ''
+        env:
+          INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
         run: |
-          EXCLUDE_FILE="${{ inputs.exclude_file }}"
+          EXCLUDE_FILE="${INPUT_EXCLUDE_FILE}"
           FILE_LIST="/tmp/changed_scripts.txt"
           if [ -f "$EXCLUDE_FILE" ] && [ -f "$FILE_LIST" ]; then
             PATTERNS=()
@@ -132,8 +136,10 @@ jobs:
       - name: Run ShellCheck
         if: steps.changed.outputs.skip == 'false'
         id: shellcheck
+        env:
+          INPUT_SHELLCHECK_SEVERITY: ${{ inputs.shellcheck_severity }}
         run: |
-          SEVERITY="${{ inputs.shellcheck_severity }}"
+          SEVERITY="${INPUT_SHELLCHECK_SEVERITY}"
           VIOLATIONS=0
 
           while IFS= read -r file; do
@@ -179,8 +185,10 @@ jobs:
 
       - name: Get changed Dockerfiles
         id: changed
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
         run: |
-          FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- | grep -E '(^|/)Dockerfile' || true)
+          FILES=$(git diff --name-only --diff-filter=ACMR "origin/${INPUT_BASE_REF}" -- | grep -E '(^|/)Dockerfile' || true)
           if [ -z "$FILES" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No Dockerfiles changed."
@@ -201,10 +209,12 @@ jobs:
       - name: Run Hadolint
         if: steps.changed.outputs.skip == 'false'
         id: hadolint
+        env:
+          INPUT_HADOLINT_CONFIG: ${{ inputs.hadolint_config }}
         run: |
           CONFIG_ARG=()
-          if [ -n "${{ inputs.hadolint_config }}" ] && [ -f "${{ inputs.hadolint_config }}" ]; then
-            CONFIG_ARG=(--config "${{ inputs.hadolint_config }}")
+          if [ -n "${INPUT_HADOLINT_CONFIG}" ] && [ -f "${INPUT_HADOLINT_CONFIG}" ]; then
+            CONFIG_ARG=(--config "${INPUT_HADOLINT_CONFIG}")
           fi
 
           VIOLATIONS=0
@@ -253,8 +263,10 @@ jobs:
 
       - name: Get changed CMake files
         id: changed
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
         run: |
-          FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- | grep -E '(CMakeLists\.txt|\.cmake)$' || true)
+          FILES=$(git diff --name-only --diff-filter=ACMR "origin/${INPUT_BASE_REF}" -- | grep -E '(CMakeLists\.txt|\.cmake)$' || true)
           if [ -z "$FILES" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No CMake files changed."
@@ -266,8 +278,10 @@ jobs:
 
       - name: Filter excluded paths
         if: steps.changed.outputs.skip == 'false' && inputs.exclude_file != ''
+        env:
+          INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
         run: |
-          EXCLUDE_FILE="${{ inputs.exclude_file }}"
+          EXCLUDE_FILE="${INPUT_EXCLUDE_FILE}"
           FILE_LIST="/tmp/changed_cmake_files.txt"
           if [ -f "$EXCLUDE_FILE" ] && [ -f "$FILE_LIST" ]; then
             PATTERNS=()
@@ -306,11 +320,13 @@ jobs:
       - name: Run cmake-lint
         if: steps.changed.outputs.skip == 'false'
         id: cmake-lint
+        env:
+          INPUT_CMAKE_LINT_CONFIG: ${{ inputs.cmake_lint_config }}
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           CONFIG_ARG=()
-          if [ -n "${{ inputs.cmake_lint_config }}" ] && [ -f "${{ inputs.cmake_lint_config }}" ]; then
-            CONFIG_ARG=(--config-files "${{ inputs.cmake_lint_config }}")
+          if [ -n "${INPUT_CMAKE_LINT_CONFIG}" ] && [ -f "${INPUT_CMAKE_LINT_CONFIG}" ]; then
+            CONFIG_ARG=(--config-files "${INPUT_CMAKE_LINT_CONFIG}")
           fi
 
           VIOLATIONS=0
@@ -353,8 +369,10 @@ jobs:
 
       - name: Get changed workflow files
         id: changed
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
         run: |
-          FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- '.github/workflows/*.yml' '.github/workflows/*.yaml' || true)
+          FILES=$(git diff --name-only --diff-filter=ACMR "origin/${INPUT_BASE_REF}" -- '.github/workflows/*.yml' '.github/workflows/*.yaml' || true)
           if [ -z "$FILES" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No workflow files changed."
@@ -430,8 +448,10 @@ jobs:
 
       - name: Get changed files
         id: changed
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
         run: |
-          FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- || true)
+          FILES=$(git diff --name-only --diff-filter=ACMR "origin/${INPUT_BASE_REF}" -- || true)
           if [ -z "$FILES" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No files changed."
@@ -486,8 +506,11 @@ jobs:
 
       - name: Scan for secrets
         id: scan
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+          INPUT_GITLEAKS_CONFIG: ${{ inputs.gitleaks_config }}
         run: |
-          BASE_REF="${{ inputs.base_ref || github.base_ref || 'main' }}"
+          BASE_REF="${INPUT_BASE_REF}"
 
           # Ensure jq is available (self-hosted runners may lack it)
           if ! command -v jq &>/dev/null; then
@@ -503,8 +526,8 @@ jobs:
           fi
 
           CONFIG_ARG=()
-          if [ -n "${{ inputs.gitleaks_config }}" ] && [ -f "${{ inputs.gitleaks_config }}" ]; then
-            CONFIG_ARG=(--config "${{ inputs.gitleaks_config }}")
+          if [ -n "${INPUT_GITLEAKS_CONFIG}" ] && [ -f "${INPUT_GITLEAKS_CONFIG}" ]; then
+            CONFIG_ARG=(--config "${INPUT_GITLEAKS_CONFIG}")
           fi
 
           /tmp/gitleaks detect --source=. --log-opts="origin/${BASE_REF}..HEAD" \
