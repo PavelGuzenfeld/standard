@@ -4,13 +4,7 @@ From a bare repo to a failing check you can read.
 
 ## 1. Opt a repo in
 
-```bash
-pip install git+https://github.com/PavelGuzenfeld/standard.git
-cd your-repo
-standard-ci init --preset recommended
-```
-
-It writes the workflows for the languages it detects and `.standard.yml`. Commit and push. [Quickstart](CONSUMER-QUICKSTART.md) lists the presets.
+Install `standard-ci`, run `standard-ci init`, then commit and push. The [Quickstart](CONSUMER-QUICKSTART.md) has the commands and lists the presets.
 
 ## 2. C++
 

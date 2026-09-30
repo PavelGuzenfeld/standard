@@ -2,17 +2,7 @@
 
 Quick-start workflow files are in the [README](https://github.com/PavelGuzenfeld/standard/blob/main/README.md#quick-start). Every input and default is in [Workflow Inputs](https://github.com/PavelGuzenfeld/standard/blob/main/README.md#workflow-inputs).
 
-## Generators
-
-```bash
-./scripts/generate-workflow.sh
-./scripts/generate-agents-md.sh
-./scripts/install-hooks.sh
-./scripts/generate-baseline.sh
-./scripts/generate-badges.sh
-```
-
-They write workflow files, an `AGENTS.md`, git hooks, baseline files and badge markdown. They are idempotent, so re-run them as you enable more checks. The steps below are the manual route.
+The [README scripts table](https://github.com/PavelGuzenfeld/standard/blob/main/README.md#scripts) lists the generators (`generate-workflow.sh`, `generate-agents-md.sh`, `install-hooks.sh`, `generate-baseline.sh`, `generate-badges.sh`). They are idempotent, so re-run them as you enable more checks. The steps below are the manual route.
 
 ## C++ Setup
 
@@ -157,7 +147,6 @@ if(ENABLE_FUZZING)
 endif()
 ```
 
-The template runs libFuzzer with ASan/UBSan, caches the corpus, uploads crash artifacts, and triggers on PRs and weekly.
 
 ## Python Setup
 
