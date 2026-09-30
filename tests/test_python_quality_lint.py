@@ -10,9 +10,18 @@ import pytest
 
 WORKFLOW = Path(__file__).parent.parent / ".github/workflows/python-quality.yml"
 
+def _diff_quality_has_ruff():
+    if shutil.which("diff-quality") is None:
+        return False
+    help_text = subprocess.run(
+        ["diff-quality", "--help"], capture_output=True, text=True
+    ).stdout
+    return "ruff.check" in help_text
+
+
 pytestmark = pytest.mark.skipif(
-    shutil.which("diff-quality") is None or shutil.which("ruff") is None,
-    reason="needs diff-quality and ruff on PATH",
+    not _diff_quality_has_ruff() or shutil.which("ruff") is None,
+    reason="needs diff-quality with the ruff.check driver and ruff on PATH",
 )
 
 
