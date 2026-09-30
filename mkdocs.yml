@@ -42,10 +42,10 @@ nav:
   - Home: index.md
   - Usage: usage.md
   - Quickstart: CONSUMER-QUICKSTART.md
+  - Integration: INTEGRATION.md
   - Workflows and inputs: workflows.md
   - Configs: configs.md
   - Gate and PR checks: SDLC.md
   - Compliance: COMPLIANCE.md
   - Versioning: VERSIONING.md
-  - Integration: INTEGRATION.md
   - Conventions: conventions.md
