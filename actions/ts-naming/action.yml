@@ -1,0 +1,51 @@
+name: 'TS Naming'
+description: 'Run diff-aware TypeScript naming checks with typescript-eslint'
+
+inputs:
+  base_ref:
+    description: 'Base branch for diff comparison'
+    default: ''
+  config_file:
+    description: 'eslint naming config in the workspace (empty copies the shipped configs/eslint-naming.config.mjs)'
+    default: ''
+  extensions:
+    description: 'Space-separated file extensions to check'
+    default: 'ts tsx'
+  node_version:
+    description: 'Node.js version to use'
+    default: '22'
+  eslint_version:
+    description: 'eslint version to install (empty for latest)'
+    default: ''
+  typescript_eslint_version:
+    description: 'typescript-eslint version to install (empty for latest)'
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node_version }}
+
+    - shell: bash
+      run: |
+        ESLINT="eslint"
+        if [ -n "${{ inputs.eslint_version }}" ]; then
+          ESLINT="eslint@${{ inputs.eslint_version }}"
+        fi
+        TSESLINT="typescript-eslint"
+        if [ -n "${{ inputs.typescript_eslint_version }}" ]; then
+          TSESLINT="typescript-eslint@${{ inputs.typescript_eslint_version }}"
+        fi
+        npm install --no-save "$ESLINT" "$TSESLINT" typescript
+
+    - shell: bash
+      run: |
+        BASE="${{ inputs.base_ref || github.base_ref || 'main' }}"
+        CONFIG="${{ inputs.config_file }}"
+        if [ -z "$CONFIG" ]; then
+          CONFIG="eslint-naming.config.mjs"
+          cp "${{ github.action_path }}/../../configs/eslint-naming.config.mjs" "$CONFIG"
+        fi
+        TS_NAMING_CONFIG="$CONFIG" bash "${{ github.action_path }}/../../scripts/diff-ts-naming.sh" "origin/${BASE}" "${{ inputs.extensions }}"
