@@ -382,6 +382,7 @@ jobs:
 | [`.clang-tidy`](configs/.clang-tidy) | clang-analyzer, cppcoreguidelines, modernize, bugprone, performance, readability |
 | [`.clang-format`](configs/.clang-format) | C++23, 120-col, 4-space indent, Allman braces |
 | [`.clang-tidy-naming`](configs/.clang-tidy-naming) | Identifier naming: snake_case functions, PascalCase types, trailing `_` private |
+| [`eslint-naming.config.mjs`](configs/eslint-naming.config.mjs) | TypeScript naming: camelCase, PascalCase types and .tsx components, no `I` prefix, trailing `_` private |
 | [`cppcheck.suppress`](configs/cppcheck.suppress) | Generic suppressions with commented vendor examples |
 | [`naming-exceptions.txt`](configs/naming-exceptions.txt) | File naming exception template (one regex per line) |
 | [`.pre-commit-config.yaml`](configs/.pre-commit-config.yaml) | Pre-commit hooks: clang-format, clang-tidy, cppcheck |
@@ -410,6 +411,7 @@ Run the same logic as CI, only on files changed vs a base branch:
 | `diff-clang-format.sh` | clang-format on changed files |
 | `diff-file-naming.sh` | snake_case naming on changed files |
 | `diff-iwyu.sh` | Include-What-You-Use on changed files |
+| `diff-ts-naming.sh` | typescript-eslint naming-convention on changed .ts/.tsx (needs `eslint-naming.config.mjs`, eslint, typescript-eslint) |
 
 ```bash
 ./scripts/diff-clang-tidy.sh origin/main build "cpp hpp h"
@@ -475,6 +477,7 @@ scripts/
   diff-clang-format.sh      Diff-aware clang-format runner
   diff-file-naming.sh       Diff-aware snake_case naming check
   diff-iwyu.sh              Diff-aware Include-What-You-Use runner
+  diff-ts-naming.sh         Diff-aware typescript-eslint naming-convention check
   generate-workflow.sh       Generate workflow YAML files
   generate-agents-md.sh      Generate tailored AGENTS.md
   generate-baseline.sh       Generate suppression/baseline files
