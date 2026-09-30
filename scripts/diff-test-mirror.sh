@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_BRANCH="${1:?Usage: diff-test-mirror.sh <base_branch>}"
+usage() {
+    echo "Usage: $0 <base_branch>"
+    echo "Environment: MIRROR_SOURCE_ROOT MIRROR_TEST_ROOT MIRROR_TEST_PATTERNS MIRROR_EXEMPT_GLOBS"
+}
+
+case "${1:-}" in
+    -h|--help) usage; exit 0 ;;
+esac
+[ $# -ge 1 ] || { usage; exit 1; }
+
+BASE_BRANCH="$1"
 SOURCE_ROOT="${MIRROR_SOURCE_ROOT:-src}"
 TEST_ROOT="${MIRROR_TEST_ROOT:-tests}"
 DEFAULT_TEST_PATTERNS="test_{name}.py {name}_test.cpp"

@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_BRANCH="${1:?Usage: diff-ts-naming.sh <base_branch> [extensions]}"
+usage() {
+    echo "Usage: $0 <base_branch> [extensions]"
+    echo "Environment: TS_NAMING_CONFIG"
+}
+
+case "${1:-}" in
+    -h|--help) usage; exit 0 ;;
+esac
+[ $# -ge 1 ] || { usage; exit 1; }
+
+BASE_BRANCH="$1"
 EXTENSIONS="${2:-ts tsx}"
 CONFIG_FILE="${TS_NAMING_CONFIG:-eslint-naming.config.mjs}"
 

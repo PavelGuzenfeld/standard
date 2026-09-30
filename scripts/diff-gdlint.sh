@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_BRANCH="${1:?Usage: diff-gdlint.sh <base_branch> [config_file]}"
+usage() {
+    echo "Usage: $0 <base_branch> [config_file]"
+}
+
+case "${1:-}" in
+    -h|--help) usage; exit 0 ;;
+esac
+[ $# -ge 1 ] || { usage; exit 1; }
+
+BASE_BRANCH="$1"
 CONFIG_FILE="${2:-$(cd "$(dirname "$0")/.." && pwd)/configs/gdlintrc}"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
