@@ -1,0 +1,23 @@
+class-name: ([A-Z][a-z0-9]*)+
+class-variable-name: '[a-z][a-z0-9]*(_[a-z0-9]+)*_?'
+constant-name: '[A-Z][A-Z0-9]*(_[A-Z0-9]+)*_?'
+load-constant-name: (([A-Z][a-z0-9]*)+|[A-Z][A-Z0-9]*(_[A-Z0-9]+)*_?)
+function-name: (_(init|static_init|ready|enter_tree|exit_tree|process|physics_process|input|shortcut_input|unhandled_input|unhandled_key_input|draw|notification|get|set|get_property_list|property_can_revert|property_get_revert|validate_property|to_string|gui_input|get_configuration_warnings|has_point|get_minimum_size|can_drop_data|drop_data|get_drag_data|make_custom_tooltip|integrate_forces)|_on_[a-z0-9]+(_[a-z0-9]+)*|[a-z][a-z0-9]*(_[a-z0-9]+)*_?)
+signal-name: '[a-z][a-z0-9]*(_[a-z0-9]+)*'
+disable:
+- class-definitions-order
+- comparison-with-itself
+- duplicated-load
+- expression-not-assigned
+- function-arguments-number
+- max-file-lines
+- max-line-length
+- max-public-methods
+- max-returns
+- mixed-tabs-and-spaces
+- no-elif-return
+- no-else-return
+- tab-characters
+- trailing-whitespace
+- unnecessary-pass
+- unused-argument

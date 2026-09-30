@@ -1,0 +1,40 @@
+name: 'GDLint Naming'
+description: 'Run diff-aware GDScript naming checks with gdlint'
+
+inputs:
+  base_ref:
+    description: 'Base branch for diff comparison'
+    default: ''
+  config_file:
+    description: 'gdlintrc to use (empty for the shipped configs/gdlintrc)'
+    default: ''
+  gdtoolkit_version:
+    description: 'gdtoolkit version to install (empty for latest)'
+    default: ''
+  python_version:
+    description: 'Python version to use'
+    default: '3.12'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python_version }}
+
+    - shell: bash
+      run: |
+        PKG="gdtoolkit"
+        if [ -n "${{ inputs.gdtoolkit_version }}" ]; then
+          PKG="gdtoolkit==${{ inputs.gdtoolkit_version }}"
+        fi
+        pip install "$PKG"
+
+    - shell: bash
+      run: |
+        BASE="${{ inputs.base_ref || github.base_ref || 'main' }}"
+        CONFIG="${{ inputs.config_file }}"
+        if [ -z "$CONFIG" ]; then
+          CONFIG="${{ github.action_path }}/../../configs/gdlintrc"
+        fi
+        bash "${{ github.action_path }}/../../scripts/diff-gdlint.sh" "origin/${BASE}" "$CONFIG"
