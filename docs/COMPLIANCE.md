@@ -26,7 +26,7 @@ Every run: scan + dashboard. With `auto_update: true`: also opens PRs.
 ```
   ┌───────────────────────────────────────┐
   │  1. Checkout PavelGuzenfeld/standard  │
-  │  2. pip install standard-ci           │
+  │  2. pip install the standard package  │
   │  3. standard-ci scan --org ORG        │
   │     → finds repos with .standard.yml  │
   │     → checks SHA pins vs latest       │
@@ -128,7 +128,7 @@ workflows:
 
 ```bash
 cd /path/to/consumer-repo
-pip install standard-ci   # or: pip install git+https://github.com/PavelGuzenfeld/standard.git
+pip install git+https://github.com/PavelGuzenfeld/standard.git
 standard-ci init --preset recommended
 # Creates .github/workflows/*.yml + .standard.yml
 git add . && git commit -m "chore: onboard standard-ci" && git push
@@ -161,7 +161,11 @@ The dashboard is in the **Summary** tab (step summary).
 
 Each run uploads a `compliance-dashboard` artifact (markdown file).
 
-**Option C: Run locally**
+**Option C: Pinned gist**
+
+Set `post_to_gist: true` and `gist_id` on the workflow to update a pinned gist with the dashboard.
+
+**Option D: Run locally**
 
 ```bash
 export GITHUB_TOKEN=ghp_...
@@ -373,7 +377,8 @@ unless the repo has an App token with org-level read access.
 |-------|---------|-------------|
 | `org` | (required) | GitHub org or user to scan |
 | `repos` | `""` | Comma-separated repo names (empty = auto-discover) |
-| `max_repos` | `20` | Max repos to scan per run |
+| `max_repos` | `100` | Max repos to scan per run |
+| `active_months` | `6` | Only scan repos pushed within this many months (0 = all repos) |
 | `min_score` | `0` | Minimum CIS score (0 = report only) |
 | `chain_bench_version` | `0.1.10` | chain-bench release version |
 | `create_tracking_issue` | `false` | Post results to a tracking issue |

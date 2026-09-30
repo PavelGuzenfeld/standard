@@ -9,64 +9,28 @@ This repo provides reusable GitHub Actions workflows for diff-aware C++ and Pyth
 ## Project Structure
 
 ```
-.github/workflows/
-  cpp-quality.yml           Reusable C++ quality workflow (56 inputs, 14+ opt-in checks)
-  infra-lint.yml            Reusable infrastructure lint workflow (ShellCheck, Hadolint, cmake-lint, dangerous-workflow audit, binary-artifact scan, Gitleaks secrets detection)
-  python-quality.yml        Reusable Python quality workflow (ruff/flake8, pytest, diff-cover)
-  sast-python.yml           Reusable Python SAST workflow (Semgrep, pip-audit, CodeQL)
-  sbom.yml                  Reusable SBOM & supply chain workflow (Syft, Grype, license check)
-  version-check.yml         Reusable version validation workflow (SemVer in package.xml, CMakeLists.txt, pyproject.toml)
-  auto-release.yml          Reusable auto-release (conventional commits → semver tag → GitHub Release → SLSA provenance)
-  trend-dashboard.yml       Reusable trend dashboard (weekly quality trend report, Slack/Discussions posting)
-  release.yml               Triggers auto-release on push to main
-  self-test.yml             Dogfood: runs python-quality on this repo's demo code
-  gatekeeper-checks.yml     Push checks for this repo (multi-version Python)
-  pull-request-feedback.yml PR feedback for this repo
-scripts/
-  diff-clang-tidy.sh        Diff-aware clang-tidy runner
-  diff-cppcheck.sh          Diff-aware cppcheck runner
-  diff-clang-format.sh      Diff-aware clang-format runner
-  diff-file-naming.sh       Diff-aware snake_case naming check
-  diff-iwyu.sh              Diff-aware Include-What-You-Use runner
-  diff-gdlint.sh            Diff-aware GDScript naming check (gdlint)
-  diff-ts-naming.sh         Diff-aware typescript-eslint naming-convention check
-  diff-test-mirror.sh       Diff-aware check that added source modules have a mirrored test
-  generate-workflow.sh       Generate workflow YAML files for consuming repos
-  generate-agents-md.sh      Generate tailored AGENTS.md for consuming repos
-  generate-baseline.sh       Generate suppression/baseline files
-  generate-badges.sh         Generate README badge markdown
-  install-hooks.sh           Install git pre-commit hooks
-  check-repo-structure.sh    Validate repo directory structure
-  check-dangerous-workflows.sh Audit workflow files for injection patterns
-  check-hardening.sh         Verify ELF binary hardening properties
-  filter-excludes.sh         Filter file lists against exclusion patterns
-configs/                    Drop-in configs, CI templates, and agent instructions (17 files)
-tests/
-  test_patterns.sh          Pattern validation tests (176 tests, bash)
-  test_test_mirror.sh       Tests for diff-test-mirror.sh (bash)
-  test_calculator.py        Python demo tests (pytest)
-docs/
-  SDLC.md                   Full software development lifecycle document
-  INTEGRATION.md            Step-by-step integration guide
-  VERSIONING.md             SemVer policy and bump rules
-  ROADMAP.md                Conventions, coding standards, and planned features
-  COMPARISON.md             Industry comparison (Google, Microsoft, JFrog, MegaLinter, etc.)
-src/calculator.py           Python demo module
+.github/workflows/   Reusable workflows (workflow_call) and this repo's own CI
+actions/             Composite actions
+scripts/             Diff-aware checks, generators, and utilities
+configs/             Drop-in configs, CI templates, and agent instructions
+src/standard_ci/     standard-ci CLI package
+src/calculator.py    Python demo module
+tests/               Bash pattern and script tests, pytest suites
+docs/                SDLC, integration, versioning, roadmap, comparison, compliance, quickstart
+AGENTS.md            AI agent instructions for contributing to this repo
 ```
 
 ## Running Tests
 
 ```bash
-# Pattern validation tests (bash, no dependencies)
 bash tests/test_patterns.sh
-
-# Python demo tests
-pytest tests/test_calculator.py
-
-# Self-test workflow runs python-quality.yml on the demo code (CI only)
+bash tests/test_layering.sh
+bash tests/test_repo_structure.sh
+bash tests/test_test_mirror.sh
+pytest tests
 ```
 
-`test_patterns.sh` is the primary test suite. It validates grep/regex patterns used by the workflow jobs and scripts. All 176 tests must pass.
+`test_patterns.sh` validates grep/regex patterns used by the workflow jobs and scripts. Every assertion must pass.
 
 ## Adding a New Check
 
@@ -82,7 +46,7 @@ Follow this pattern (every existing check follows it):
 
 - Jobs that are always-on: `clang-tidy`, `cppcheck`, diff-aware linting
 - Opt-in jobs: gated by a boolean input defaulting to `false`
-- Every job ends with `>> $GITHUB_STEP_SUMMARY` for the summary and posts annotations via `::warning file=...`
+- Jobs post annotations via `::warning file=...`
 - The `summary` job collects all results and posts/updates a single PR comment
 
 ### Script Conventions
@@ -107,19 +71,16 @@ Two script families:
 Tests in `test_patterns.sh` follow this structure:
 
 ```bash
-# ── Section N: Description ──────────────────────────────────────
-pass=0 fail=0
+echo "=== N. Description ==="
 
-assert_match   "pattern" "input that should match"    "test description"
-assert_nomatch "pattern" "input that should not match" "test description"
-
-section_summary "Section Name"
+assert_matches  "pattern" "input that should match"    "test description"
+assert_no_match "pattern" "input that should not match" "test description"
 ```
 
-- Sections are numbered sequentially (1, 2, 3...)
-- `assert_match` / `assert_nomatch` are defined at the top of the file
-- Each section has its own `pass`/`fail` counters and calls `section_summary`
-- The file ends with a total summary and `exit $exit_code`
+- Sections are numbered sequentially (1, 2, 3...) in their `=== N. ... ===` headers
+- `assert_matches` / `assert_no_match` are defined at the top of the file
+- `PASS`, `FAIL` and `TOTAL` are global counters shared by all sections
+- The file ends with a total summary and exits 1 if any test failed
 - E2E tests (end-to-end) create temporary git repos and run actual scripts
 
 When adding tests: add a new numbered section, don't modify existing sections.
@@ -159,9 +120,7 @@ When adding a check: update all relevant docs. When adding a script: add to READ
 
 - Don't run C++ quality checks or tests on the host — always use the Docker dev container
 - Don't change workflow input defaults from `false` to `true` — opt-in checks must stay opt-in
-- Don't add Python dependencies to the C++ workflow — it runs inside the caller's Docker image
 - Don't break backward compatibility on workflow inputs — existing callers must not break
-- Don't use `actions/checkout` inside reusable workflows — the caller handles checkout
 - Don't modify existing test sections in `test_patterns.sh` — add new sections instead
 - Don't hardcode paths — use workflow inputs for all paths
 - Don't add AI attribution footers to commits, PRs, or code comments

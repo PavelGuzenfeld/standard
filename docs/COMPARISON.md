@@ -9,15 +9,15 @@ No single tool in the industry combines all of: diff-aware C++ deep checks (clan
 
 ## Feature Coverage
 
-### What `standard` provides (7 reusable workflows):
-- **C++ quality** (56 inputs): clang-tidy, cppcheck, clang-format, flawfinder, ASan/UBSan, TSan, gcov/lcov coverage, IWYU, binary hardening verification
-- **Python quality** (10 inputs): ruff/flake8, pytest, diff-cover
-- **Python SAST** (9 inputs): Semgrep, pip-audit, CodeQL
-- **Infra lint** (14 inputs): ShellCheck, Hadolint, cmake-lint, dangerous-workflow audit, binary-artifact scan, Gitleaks secrets detection
-- **SBOM/supply chain** (8 inputs): Syft, Grype, license compliance, SLSA provenance, Dependabot config
-- **Version check** (3 inputs): SemVer validation in package.xml, CMakeLists.txt, pyproject.toml
-- **Auto-release** (2 inputs): conventional commits → semver tag → GitHub Release → SLSA provenance
-- **Extras**: banned patterns (cout/printf, new/delete, gtest), snake_case file naming, 17 drop-in configs, 5 generator scripts, PR scoreboard comments (5 workflows)
+### What `standard` provides :
+- **C++ quality**: clang-tidy, cppcheck, clang-format, flawfinder, ASan/UBSan, TSan, gcov/lcov coverage, IWYU, binary hardening verification
+- **Python quality**: ruff/flake8, pytest, diff-cover
+- **Python SAST**: Semgrep, pip-audit, CodeQL
+- **Infra lint**: ShellCheck, Hadolint, cmake-lint, dangerous-workflow audit, binary-artifact scan, Gitleaks secrets detection
+- **SBOM/supply chain**: Syft, Grype, license compliance, SLSA provenance, Dependabot config
+- **Version check**: SemVer validation in package.xml, CMakeLists.txt, pyproject.toml
+- **Auto-release**: conventional commits → semver tag → GitHub Release → SLSA provenance
+- **Extras**: banned patterns (cout/printf, new/delete, gtest), snake_case file naming, drop-in configs, generator scripts, PR scoreboard comments
 - **Templates**: CodeQL (ci-codeql.yml), Infer (ci-infer.yml), libFuzzer (ci-fuzz.yml), multi-compiler (ci-multi-compiler.yml), CMakePresets-sanitizers.json, cmake-warnings.cmake
 
 ### Architecture advantage:
@@ -72,7 +72,7 @@ Note: cmake_template's former unique advantages (hardening, fuzzing, CMakePreset
 
 | Tool | What it does | C++ value |
 |------|-------------|-----------|
-| **CodeQL** (GHAS) | Deep semantic/dataflow SAST, 87 C++ queries, ~50 CWEs, buildless mode GA | **Best C++ security analysis** — but security only, not quality/style |
+| **CodeQL** (GHAS) | Deep semantic/dataflow SAST, C++ queries, buildless mode GA | **Best C++ security analysis** — but security only, not quality/style |
 | **BinSkim** v4.4.8 | Binary hardening validation: PIE, RELRO, NX, stack-protector, FORTIFY, CFG (PE+ELF, 27 PE + 11 ELF rules) | Strong post-build validation. Similar to standard's hardening job but more rules |
 | **DevSkim** v1.0.70 | Regex-based security linter (banned APIs, weak crypto) | Shallow — no AST/dataflow, catches low-hanging fruit only |
 | **msvc-code-analysis-action** | MSVC /analyze + Core Guidelines | **Abandoned** (last release Aug 2021), Windows-only |
@@ -99,7 +99,7 @@ Note: cmake_template's former unique advantages (hardening, fuzzing, CMakePreset
 | **Sonatype Lifecycle** | CPE-based C++ vuln matching, curated CVE data beyond NVD | CPE matching produces false positives. Requires Conan manifests or SBOMs. Commercial |
 | **Coverity** | Deepest C++ analysis, MISRA/CERT/AUTOSAR, <15% false positives | $50k-200k+/yr |
 | **PVS-Studio** | Proprietary rules, copy-paste detection, 64-bit portability checks | $570+/yr. C++/C#/Java only |
-| **CodeQL** | 87 C++ queries, dataflow analysis, free for public repos, buildless mode | Security only. Slow. $49/committer/mo for private repos |
+| **CodeQL** | C++ queries, dataflow analysis, free for public repos, buildless mode | Security only. Slow. $49/committer/mo for private repos |
 | **Semgrep** | Fast (10s scans), easy custom rules, 40+ languages | Pattern-based (shallow C++), no builds |
 
 ### Dependency Update Tools
@@ -116,13 +116,13 @@ Note: cmake_template's former unique advantages (hardening, fuzzing, CMakePreset
 | Feature | Source | Priority | Notes |
 |---------|--------|----------|-------|
 | ClusterFuzzLite as reusable workflow | Google | Medium | ci-fuzz.yml template exists but not workflow_call |
-| OpenSSF Scorecard Action | Google/OpenSSF | Low | SECURITY.md + Dependabot + SLSA + dangerous-workflow already cover key checks |
 | Copy-paste detection (jscpd) | MegaLinter | Low | Code smell, not bugs. High noise |
 | BinSkim (richer binary checks) | Microsoft | Low | standard's readelf-based hardening job covers the essentials; BinSkim adds stack-clash-protection + SafeStack |
 | Renovate support in generate-workflow.sh | Renovate | Low | Better C++ dep update support than Dependabot (Conan) |
 | ~~Trend dashboard~~ | Internal | **Done** | `trend-dashboard.yml` — weekly aggregate scan results, Slack/Discussions posting |
 
 ### Already Done (previously listed as TODO):
+- ~~OpenSSF Scorecard~~ → scorecard.yml + README badge
 - ~~Hardening flags~~ → CMakePresets-sanitizers.json + hardening verification job
 - ~~SLSA provenance~~ → auto-release.yml with enable_provenance
 - ~~Secrets detection~~ → enable_gitleaks in infra-lint.yml

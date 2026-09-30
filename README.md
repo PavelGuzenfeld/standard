@@ -84,6 +84,8 @@ jobs:
 | **[Versioning Rules](docs/VERSIONING.md)** | SemVer policy: initial versions, bump rules, git tags |
 | **[Roadmap](docs/ROADMAP.md)** | Conventions, coding standards, and planned features |
 | **[Industry Comparison](docs/COMPARISON.md)** | Feature-by-feature comparison with Google, Microsoft, JFrog, MegaLinter, and others |
+| **[Consumer Quickstart](docs/CONSUMER-QUICKSTART.md)** | `standard-ci` presets and the workflow files `init` writes |
+| **[Compliance](docs/COMPLIANCE.md)** | CIS compliance scans and org-wide drift updates |
 
 ## Reusable Workflows
 
@@ -97,12 +99,19 @@ jobs:
 | [`version-check.yml`](.github/workflows/version-check.yml) | Multi | SemVer validation in package.xml, CMakeLists.txt, pyproject.toml |
 | [`auto-release.yml`](.github/workflows/auto-release.yml) | Multi | Reusable auto-release: conventional-commit version bumps, git tags, GitHub Releases, SLSA provenance |
 | [`trend-dashboard.yml`](.github/workflows/trend-dashboard.yml) | Multi | Weekly quality trend report: pass rates per check, trend arrows, Slack/Discussions posting |
-| [`release.yml`](.github/workflows/release.yml) | — | Triggers auto-release on push to main (standard repo) |
+| [`version-sync.yml`](.github/workflows/version-sync.yml) | Multi | Sync version files (CMakeLists.txt, README FetchContent, pyproject.toml, package.xml, package.json) to a release tag |
+| [`cis-compliance.yml`](.github/workflows/cis-compliance.yml) | Multi | CIS supply-chain compliance scan of one repo |
+| [`cis-org-compliance.yml`](.github/workflows/cis-org-compliance.yml) | Multi | CIS supply-chain compliance scan across an org |
+| [`compliance.yml`](.github/workflows/compliance.yml) | Multi | Scan an org for standard-ci drift, optionally open update PRs |
+| [`install-test.yml`](.github/workflows/install-test.yml) | C++ | Install the package and check `find_package` from a consumer |
+| [`pre-commit.yml`](.github/workflows/pre-commit.yml) | Multi | Run pre-commit hooks in CI |
+| [`scheduled-health.yml`](.github/workflows/scheduled-health.yml) | Multi | Open an issue when a scheduled upstream workflow fails |
+| [`release.yml`](.github/workflows/release.yml) | — | Triggers auto-release and version-sync on push to main (standard repo) |
 
 ## Workflow Inputs
 
 <details>
-<summary><strong>C++ Inputs</strong> (56 inputs)</summary>
+<summary><strong>C++ Inputs</strong></summary>
 
 **Core:**
 
@@ -112,7 +121,7 @@ jobs:
 | `compile_commands_path` | `build` | Path to compile_commands.json inside the container |
 | `source_mount` | `/workspace/src` | Where repo source is mounted inside the container |
 | `source_setup` | `''` | Shell command to source before tools (e.g., ROS2 setup.bash) |
-| `runner` | `ubuntu-latest` | Runner labels as JSON |
+| `runner` | `"ubuntu-latest"` | Runner labels as a JSON string or array |
 | `file_extensions` | `cpp hpp h cc cxx` | Space-separated C++ file extensions to check |
 | `exclude_file` | `''` | Path to file listing excluded paths (one per line, `#` comments) |
 | `pre_analysis_script` | `''` | Script to run inside Docker before analysis |
@@ -218,14 +227,10 @@ jobs:
 </details>
 
 <details>
-<summary><strong>Infra Lint Inputs</strong> (14 inputs)</summary>
+<summary><strong>Infra Lint Inputs</strong></summary>
 
 | Input | Default | Description |
 |-------|---------|-------------|
-| `enable_shellcheck` | `false` | Enable ShellCheck for shell scripts (opt-in) |
-| `shellcheck_severity` | `warning` | Minimum severity: error, warning, info, style |
-| `enable_hadolint` | `false` | Enable Hadolint for Dockerfiles (opt-in) |
-| `hadolint_config` | `''` | Path to .hadolint.yaml config file |
 | `enable_cmake_lint` | `false` | Enable cmake-lint for CMake files (opt-in) |
 | `cmake_lint_config` | `''` | Path to .cmake-format.yaml config file |
 | `enable_dangerous_workflows` | `false` | Enable dangerous-workflow pattern audit (opt-in) |
@@ -234,13 +239,13 @@ jobs:
 | `gitleaks_config` | `''` | Path to .gitleaks.toml config file |
 | `exclude_file` | `''` | Path to file listing excluded paths (one per line, `#` comments) |
 | `base_ref` | `''` | Base branch for diff |
-| `runner` | `ubuntu-latest` | Runner labels as JSON |
-| `select_jobs` | `all` | Comma-separated jobs to run (all, shellcheck, hadolint, cmake-lint, dangerous-workflows, binary-artifacts, gitleaks) |
+| `runner` | `"ubuntu-latest"` | Runner labels as a JSON string or array |
+| `select_jobs` | `all` | Comma-separated jobs to run (all, cmake-lint, dangerous-workflows, binary-artifacts, gitleaks) |
 
 </details>
 
 <details>
-<summary><strong>Python Inputs</strong> (10 inputs)</summary>
+<summary><strong>Python Inputs</strong></summary>
 
 | Input | Default | Description |
 |-------|---------|-------------|
@@ -249,16 +254,18 @@ jobs:
 | `python_linter` | `ruff` | Linter: `ruff` or `flake8` |
 | `source_dirs` | `src` | Source directories |
 | `test_dirs` | `tests` | Test directories |
+| `ruff_version` | `0.16.5` | Ruff version to install |
+| `diff_cover_version` | `10.5.1` | diff-cover version to install |
 | `ruff_select` | `E,W,F,I,N` | Ruff rule selection. Overrides `select` and `ignore` in pyproject.toml; drop `E` to skip E501 line-length errors |
 | `enable_tests` | `true` | Run pytest and collect coverage (disable for projects with external test deps like ROS2) |
 | `base_ref` | `''` | Base branch for diff comparison (falls back to github.base_ref, then main) |
 | `fail_under` | `100` | Minimum diff-quality score (0-100) |
-| `runner` | `ubuntu-latest` | Runner label |
+| `runner` | `"ubuntu-latest"` | Runner labels as a JSON string or array |
 
 </details>
 
 <details>
-<summary><strong>Python SAST Inputs</strong> (10 inputs)</summary>
+<summary><strong>Python SAST Inputs</strong></summary>
 
 | Input | Default | Description |
 |-------|---------|-------------|
@@ -271,12 +278,12 @@ jobs:
 | `enable_codeql` | `false` | Enable CodeQL (free for public repos) |
 | `codeql_queries` | `security-extended` | CodeQL query suite |
 | `enable_code_scanning` | `true` | Upload SARIF to code scanning (set `false` on a private repo without Advanced Security) |
-| `runner` | `ubuntu-latest` | Runner label |
+| `runner` | `"ubuntu-latest"` | Runner labels as a JSON string or array |
 
 </details>
 
 <details>
-<summary><strong>SBOM Inputs</strong> (9 inputs)</summary>
+<summary><strong>SBOM Inputs</strong></summary>
 
 | Input | Default | Description |
 |-------|---------|-------------|
@@ -288,23 +295,23 @@ jobs:
 | `license_policy_file` | `''` | Path to license policy YAML (empty = skip license check) |
 | `license_check_script` | `''` | Path to license check Python script in caller repo |
 | `enable_code_scanning` | `true` | Upload SARIF to code scanning (set `false` on a private repo without Advanced Security) |
-| `runner` | `ubuntu-latest` | Runner labels as JSON |
+| `runner` | `"ubuntu-latest"` | Runner labels as a JSON string or array |
 
 </details>
 
 <details>
-<summary><strong>Version Check Inputs</strong> (3 inputs)</summary>
+<summary><strong>Version Check Inputs</strong></summary>
 
 | Input | Default | Description |
 |-------|---------|-------------|
 | `exclude_file` | `''` | Path to file listing excluded paths (one per line, `#` comments) |
 | `base_ref` | `''` | Base branch for diff (fallback when github.base_ref is empty) |
-| `runner` | `ubuntu-latest` | Runner labels as JSON |
+| `runner` | `"ubuntu-latest"` | Runner labels as a JSON string or array |
 
 </details>
 
 <details>
-<summary><strong>Auto-Release Inputs</strong> (2 inputs)</summary>
+<summary><strong>Auto-Release Inputs</strong></summary>
 
 | Input | Default | Description |
 |-------|---------|-------------|
@@ -314,14 +321,14 @@ jobs:
 </details>
 
 <details>
-<summary><strong>Trend Dashboard Inputs</strong> (4 inputs)</summary>
+<summary><strong>Trend Dashboard Inputs</strong></summary>
 
 | Input | Default | Description |
 |-------|---------|-------------|
 | `lookback_days` | `28` | Number of days of history to analyze |
 | `slack_webhook_url` | `''` | Slack webhook URL for posting trend report (empty = skip) |
 | `post_to_discussions` | `false` | Post trend report as a GitHub Discussion (opt-in) |
-| `runner` | `ubuntu-latest` | Runner labels as JSON |
+| `runner` | `"ubuntu-latest"` | Runner labels as a JSON string or array |
 
 </details>
 
@@ -356,7 +363,7 @@ jobs:
       ban_new: true
       enable_file_naming: true
       enable_sarif: true
-      runner: '[\"self-hosted\",\"X64\",\"Linux\"]'
+      runner: '["self-hosted","X64","Linux"]'
     permissions:
       contents: read
       pull-requests: write
@@ -380,7 +387,7 @@ jobs:
 | Config | Purpose |
 |--------|---------|
 | [`.clang-tidy`](configs/.clang-tidy) | clang-analyzer, cppcoreguidelines, modernize, bugprone, performance, readability |
-| [`.clang-format`](configs/.clang-format) | C++23, 120-col, 4-space indent, Allman braces |
+| [`.clang-format`](configs/.clang-format) | Standard Latest, 120-col, 4-space indent, Allman braces |
 | [`.clang-tidy-naming`](configs/.clang-tidy-naming) | Identifier naming: snake_case functions, PascalCase types, trailing `_` private |
 | [`eslint-naming.config.mjs`](configs/eslint-naming.config.mjs) | TypeScript naming: snake_case, PascalCase types and .tsx components, no `I` prefix, trailing `_` private |
 | [`cppcheck.suppress`](configs/cppcheck.suppress) | Generic suppressions with commented vendor examples |
@@ -389,10 +396,10 @@ jobs:
 | [`CMakePresets-sanitizers.json`](configs/CMakePresets-sanitizers.json) | CMake presets: ASan, TSan, release-hardened |
 | [`ci-multi-compiler.yml`](configs/ci-multi-compiler.yml) | Multi-compiler CI: GCC-13 + Clang-21, ccache |
 | [`ci-fuzz.yml`](configs/ci-fuzz.yml) | libFuzzer CI with corpus caching |
-| [`ci-codeql.yml`](configs/ci-codeql.yml) | CodeQL SAST: 200+ CWEs for C++, 160+ for Python |
+| [`ci-codeql.yml`](configs/ci-codeql.yml) | CodeQL SAST: CodeQL SAST for C++ and Python |
 | [`ci-infer.yml`](configs/ci-infer.yml) | Infer: Pulse, InferBO, RacerD thread safety |
 | [`cmake-warnings.cmake`](configs/cmake-warnings.cmake) | Warning flags: -Wall -Wextra -Wpedantic -Werror + extras |
-| [`test-checklist.md`](configs/test-checklist.md) | Mandatory test edge case checklist (11 categories) |
+| [`test-checklist.md`](configs/test-checklist.md) | Mandatory test edge case checklist |
 | [`repo-structure-ros2.txt`](configs/repo-structure-ros2.txt) | ROS2 package structure validation template |
 | `repo-structure-{python,cmake-cpp,typescript,godot}.txt` | Structure templates for other project types |
 | [`AGENTS.md`](configs/AGENTS.md) | AI agent instructions template for consuming projects |
@@ -467,47 +474,15 @@ TypeScript naming runs as `PavelGuzenfeld/standard/actions/ts-naming@main`: type
 ## Project Structure
 
 ```
-.github/workflows/
-  cpp-quality.yml           Reusable C++ quality workflow (56 inputs, 14+ opt-in checks)
-  infra-lint.yml            Reusable infrastructure lint workflow (ShellCheck, Hadolint, cmake-lint, dangerous-workflow audit, binary-artifact scan, Gitleaks secrets detection)
-  python-quality.yml        Reusable Python quality workflow (ruff/flake8, pytest, diff-cover)
-  sast-python.yml           Reusable Python SAST workflow (Semgrep, pip-audit, CodeQL)
-  sbom.yml                  Reusable SBOM & supply chain workflow (Syft, Grype, license check)
-  version-check.yml         Reusable version validation workflow (SemVer in package.xml, CMakeLists.txt, pyproject.toml)
-  auto-release.yml          Reusable auto-release (conventional commits → semver tag → GitHub Release → SLSA provenance)
-  trend-dashboard.yml       Reusable trend dashboard (weekly quality trend report, Slack/Discussions posting)
-  release.yml               Triggers auto-release on push to main
-  self-test.yml             Dogfood: runs python-quality on this repo's demo code
-  gatekeeper-checks.yml     Push checks for this repo
-  pull-request-feedback.yml PR feedback for this repo
-scripts/
-  diff-clang-tidy.sh        Diff-aware clang-tidy runner
-  diff-cppcheck.sh          Diff-aware cppcheck runner
-  diff-clang-format.sh      Diff-aware clang-format runner
-  diff-file-naming.sh       Diff-aware snake_case naming check
-  diff-iwyu.sh              Diff-aware Include-What-You-Use runner
-  diff-ts-naming.sh         Diff-aware typescript-eslint naming-convention check
-  generate-workflow.sh       Generate workflow YAML files
-  generate-agents-md.sh      Generate tailored AGENTS.md
-  generate-baseline.sh       Generate suppression/baseline files
-  generate-badges.sh         Generate README badge markdown
-  install-hooks.sh           Install git pre-commit hooks
-  check-repo-structure.sh    Validate repo directory structure
-  check-dangerous-workflows.sh Audit workflow files for injection patterns
-  check-hardening.sh         Verify ELF binary hardening properties
-  filter-excludes.sh         Filter file lists against exclusion patterns
-configs/                    Drop-in configs, CI templates, and agent instructions (17 files)
-tests/
-  test_patterns.sh          Pattern validation tests (176 tests)
-  test_calculator.py        Python demo tests
-docs/
-  SDLC.md                   Full software development lifecycle document
-  INTEGRATION.md            Step-by-step integration guide
-  VERSIONING.md             SemVer policy and bump rules
-  ROADMAP.md                Conventions, coding standards, and planned features
-  COMPARISON.md             Industry comparison (Google, Microsoft, JFrog, MegaLinter, etc.)
-AGENTS.md                   AI agent instructions for contributing to this repo
-src/calculator.py           Python demo module
+.github/workflows/   Reusable workflows (workflow_call) and this repo's own CI
+actions/             Composite actions
+scripts/             Diff-aware checks, generators, and utilities
+configs/             Drop-in configs, CI templates, and agent instructions
+src/standard_ci/     standard-ci CLI package
+src/calculator.py    Python demo module
+tests/               Bash pattern and script tests, pytest suites
+docs/                SDLC, integration, versioning, roadmap, comparison, compliance, quickstart
+AGENTS.md            AI agent instructions for contributing to this repo
 ```
 
 ## How It Works

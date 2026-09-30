@@ -9,9 +9,9 @@ Reusable workflows provide diff-aware quality gates on every PR:
 | Tool | Purpose | Mode |
 |------|---------|------|
 | clang-format | Code formatting | Opt-in, blocking |
-| clang-tidy | CERT + Core Guidelines + bugprone | Blocking (diff-aware) |
+| clang-tidy | clang-analyzer + Core Guidelines + bugprone | Blocking (diff-aware) |
 | cppcheck | Value-flow + CWE analysis | Blocking (diff-aware) |
-| Flawfinder | CWE lexical scan | Blocking (threshold=0) |
+| Flawfinder | CWE lexical scan | Blocking (any finding at or above `flawfinder_min_level`) |
 | IWYU | Include-What-You-Use analysis | Opt-in, report-only |
 
 **C++ Runtime Analysis:**
@@ -141,7 +141,7 @@ PR opened/updated
 Configure in GitHub repo settings (`Settings > Branches > Branch protection rules`):
 
 - **Require status checks to pass before merging**: enabled
-- **Required checks**: `clang-format`, `Clang-Tidy (CERT + Core Guidelines)`, `Cppcheck (CWE)`, `Flawfinder (CWE)`
+- **Required checks**: `clang-format`, `clang-tidy`, `cppcheck`, `flawfinder`
 - **Require branches to be up to date**: enabled (ensures checks run against latest base)
 
 ### Suppression Policy
@@ -151,7 +151,7 @@ When a finding is a false positive:
 | Tool | Suppression Method |
 |------|-------------------|
 | clang-tidy | `// NOLINTNEXTLINE(check-name)` or `// NOLINT(check-name)` |
-| cppcheck | Add to `.cppcheck-suppressions` file |
+| cppcheck | Add to `cppcheck.suppress` file |
 | flawfinder | `// Flawfinder: ignore` on the same line |
 | clang-format | Wrap with `// clang-format off` / `// clang-format on` |
 
@@ -187,8 +187,6 @@ PR opened / weekly schedule
 
 ### Reusable Workflow: `sbom.yml`
 
-8 inputs following existing conventions:
-
 | Input | Default | Description |
 |-------|---------|-------------|
 | `docker_image` | *required* | Docker image to scan |
@@ -198,11 +196,10 @@ PR opened / weekly schedule
 | `checkout_submodules` | `false` | Checkout submodules for source SBOM (true/false/recursive) |
 | `license_policy_file` | `''` | Path to license policy YAML (empty = skip license check) |
 | `license_check_script` | `''` | Path to license check Python script in caller repo |
-| `runner` | `ubuntu-latest` | Runner labels as JSON |
+| `enable_code_scanning` | `true` | Upload SARIF to code scanning (set `false` on a private repo without Advanced Security) |
+| `runner` | `"ubuntu-latest"` | Runner labels as JSON |
 
 ### Jobs
-
-4 jobs + summary:
 
 1. **container-sbom** — Syft scans Docker image, produces SPDX + CycloneDX JSON
 2. **source-sbom** — Custom script parses source manifests, produces CycloneDX JSON
@@ -268,7 +265,7 @@ Run full scans locally to audit the entire codebase (not just PR diffs):
 find . -name '*.cpp' | xargs clang-tidy -p build/
 
 # cppcheck (all files)
-cppcheck --enable=all --suppressions-list=.cppcheck-suppressions .
+cppcheck --enable=all --suppressions-list=cppcheck.suppress .
 
 # flawfinder (all files)
 flawfinder --minlevel=2 --columns --context .
@@ -311,16 +308,16 @@ Useful for initial onboarding of legacy codebases or periodic audits.
 | AGENTS.md generator (generate-agents-md.sh) | Done | - |
 | Binary hardening verification | Done | cpp-quality.yml |
 | Trend dashboard | Done | trend-dashboard.yml |
-| `standard-ci` CLI tool (v0.13.2) | Done | pip install |
+| `standard-ci` CLI tool | Done | pip install |
 | Starter workflow templates | Done | PavelGuzenfeld/.github |
-| Composite actions (7 actions) | Done | actions/ directory |
+| Composite actions | Done | actions/ directory |
 | Compliance workflow + CLI | Done | compliance.yml |
 
 ---
 
 ## Packaging & Enforcement Roadmap
 
-### Phase 1: `standard-ci` CLI (v0.13.2) — Done
+### Phase 1: `standard-ci` CLI — Done
 
 Python CLI (`pip install`) that replaces `generate-workflow.sh` with a proper tool:
 
@@ -331,11 +328,11 @@ standard-ci check
 ```
 
 - **Zero dependencies** — pure Python, works on >= 3.8
-- **SHA pinning** — resolves latest git tag to full SHA, emits `@<sha> # v2.2.3.4` in workflow refs
-- **Presets** — `minimal` (clang-tidy + cppcheck + ruff), `recommended` (+formatting, naming, secrets), `full` (everything)
+- **SHA pinning** — resolves latest git tag to full SHA, emits `@<sha> # <tag>` in workflow refs
+- **Presets** — `minimal`, `recommended`, `full`; inputs per preset live in `src/standard_ci/presets.py`
 - **Auto-detection** — scans for CMakeLists.txt, package.xml, pyproject.toml to pick workflows
 - **`.standard.yml` config** — records chosen preset, SHA, and per-workflow overrides for `update` and `check`
-- **4 workflows for MVP** — cpp-quality, python-quality, infra-lint, sast-python
+- **Workflows** — cpp-quality, python-quality, infra-lint, sast-python
 
 ### Phase 2: Starter Workflows — Done
 
@@ -354,7 +351,7 @@ standard-ci check
 | Action | Purpose | Docker? |
 |--------|---------|---------|
 | `actions/diff-files` | Shared diff-aware changed file detection | No |
-| `actions/clang-tidy` | C++ static analysis (CERT + Core Guidelines) | Yes |
+| `actions/clang-tidy` | C++ static analysis (Core Guidelines + bugprone) | Yes |
 | `actions/cppcheck` | C++ value-flow + CWE analysis | Yes |
 | `actions/clang-format` | C++ formatting check | Yes |
 | `actions/ruff-check` | Python linting via diff-quality | No |
@@ -362,6 +359,7 @@ standard-ci check
 | `actions/gitleaks` | Secrets detection | No |
 | `actions/gdlint` | GDScript naming via gdlint | No |
 | `actions/ts-naming` | TypeScript naming via typescript-eslint | No |
+| `actions/layering` | Layering contract (`.importlinter`, `.dependency-cruiser.cjs`, `.layers`) | No |
 
 Usage: `uses: PavelGuzenfeld/standard/actions/clang-tidy@<sha>` as a step in any job.
 

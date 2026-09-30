@@ -364,9 +364,9 @@ jobs:
 target-version = "py38"
 line-length = 88
 
-[tool.ruff.lint]
-select = ["E", "W", "F", "I"]
 ```
+
+The workflow's `ruff_select` input (default `E,W,F,I,N`) overrides `select` and `ignore` in `pyproject.toml`.
 
 ---
 
@@ -469,7 +469,7 @@ with:
   source_setup: 'source /opt/ros/humble/install/setup.bash'
   compile_commands_path: build/your_package
   cppcheck_include_file: cppcheck.include
-  runner: self-hosted
+  runner: '"self-hosted"'
 ```
 
 For projects that need to build `compile_commands.json` as part of CI (e.g., colcon workspaces), use the pre-analysis script + build cache:
@@ -481,7 +481,7 @@ with:
   compile_commands_path: build
   pre_analysis_script: .github/scripts/pre-analysis.sh
   build_cache_key: clang-tidy-build-${{ hashFiles('**/CMakeLists.txt', '**/package.xml') }}
-  runner: self-hosted
+  runner: '"self-hosted"'
 ```
 
 Example `.github/scripts/pre-analysis.sh`:
@@ -509,15 +509,15 @@ print(f'Merged {len(merged)} entries')
 "
 ```
 
-The `build_cache_key` input enables `actions/cache@v4` to cache build artifacts between runs. On cache hit, only changed packages need rebuilding.
+The `build_cache_key` input enables `actions/cache` to cache build artifacts between runs. On cache hit, only changed packages need rebuilding.
 
 ### Self-Hosted Runners
 
-Set `runner: self-hosted` (or your label) on any workflow:
+Set `runner` to a JSON string or array on any workflow:
 
 ```yaml
 with:
-  runner: self-hosted
+  runner: '"self-hosted"'
 ```
 
 ---
@@ -627,6 +627,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   release:
@@ -651,6 +653,8 @@ If no `v*` tag exists, the first release starts from `v0.0.1`.
 |-------|---------|-------------|
 | `default_bump` | `patch` | Default bump when no conventional commit prefix is detected |
 | `enable_provenance` | `false` | Enable SLSA provenance attestation for releases (opt-in) |
+
+Optional secrets `app_id` and `app_private_key` (GitHub App credentials): when both are set, release events trigger downstream workflows.
 
 ### How it works
 
@@ -886,6 +890,4 @@ jobs:
 
 For the complete list of all inputs with defaults and descriptions, see the main [README](../README.md).
 
-- [C++ inputs](../README.md#c-inputs) (56 inputs)
-- [Python inputs](../README.md#python-inputs) (8 inputs)
-- [Python SAST inputs](../README.md#python-sast-inputs) (8 inputs)
+

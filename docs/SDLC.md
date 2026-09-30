@@ -120,7 +120,7 @@ Template: [`configs/CMakePresets-sanitizers.json`](../configs/CMakePresets-sanit
 | `debug-asan` | AddressSanitizer + UndefinedBehaviorSanitizer |
 | `release-asan` | ASan/UBSan at -O2 — catches UB the optimizer exploits |
 | `debug-tsan` | ThreadSanitizer (mutually exclusive with ASan) |
-| `release-hardened` | `FORTIFY_SOURCE=3`, `_GLIBCXX_ASSERTIONS`, stack protector, CFI |
+| `release-hardened` | `FORTIFY_SOURCE=3`, `_GLIBCXX_ASSERTIONS`, stack protector, CET |
 | `debug` | Plain debug build |
 | `release` | Plain optimized build |
 
@@ -342,9 +342,12 @@ The `release-hardened` CMake preset enables:
 |------|---------|
 | `_FORTIFY_SOURCE=3` | Runtime buffer overflow detection |
 | `_GLIBCXX_ASSERTIONS` | Debug checks in libstdc++ containers |
+| `-ftrivial-auto-var-init=zero` | Zero-initialize automatic variables |
 | `-fstack-protector-strong` | Stack buffer overflow protection |
-| `-fcf-protection=full` | Control Flow Integrity (Intel CET) |
+| `-fstack-clash-protection` | Stack clash protection |
+| `-fcf-protection=full` | Intel CET (IBT + SHSTK), not CFI |
 | `-fPIE` / `-pie` | Position Independent Executable (ASLR) |
+| `-Wl,-z,relro,-z,now` | Full RELRO with immediate binding |
 
 ### Hardening Verification
 
