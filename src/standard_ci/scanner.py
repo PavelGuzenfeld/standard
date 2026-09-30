@@ -39,8 +39,10 @@ def list_org_repos(org, token=None):
 
     Returns list of dicts with 'full_name' and 'default_branch'.
     """
-    for endpoint in [f"https://api.github.com/orgs/{org}/repos",
-                     f"https://api.github.com/users/{org}/repos"]:
+    for endpoint in [
+        f"https://api.github.com/orgs/{org}/repos",
+        f"https://api.github.com/users/{org}/repos",
+    ]:
         url = f"{endpoint}?per_page=100&type=sources"
         try:
             raw = _api_get_paginated(url, token)
@@ -48,10 +50,12 @@ def list_org_repos(org, token=None):
             for r in raw:
                 if r.get("archived") or r.get("fork"):
                     continue
-                repos.append({
-                    "full_name": r["full_name"],
-                    "default_branch": r.get("default_branch", "main"),
-                })
+                repos.append(
+                    {
+                        "full_name": r["full_name"],
+                        "default_branch": r.get("default_branch", "main"),
+                    }
+                )
             return repos
         except urllib.error.HTTPError as e:
             if e.code == 404:
@@ -109,9 +113,7 @@ def scan_repo(repo_info, latest_sha, latest_tag, token=None):
     if result["current_sha"] == latest_sha:
         result["up_to_date"] = True
     else:
-        result["issues"].append(
-            f"SHA drift: {result['current_tag']} -> {latest_tag}"
-        )
+        result["issues"].append(f"SHA drift: {result['current_tag']} -> {latest_tag}")
 
     return result
 

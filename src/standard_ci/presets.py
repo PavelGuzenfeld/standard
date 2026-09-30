@@ -1,13 +1,9 @@
 """Preset configurations: minimal, recommended, full."""
 
-
 MINIMAL = {
-    "cpp-quality": {
-    },
-    "python-quality": {
-    },
-    "infra-lint": {
-    },
+    "cpp-quality": {},
+    "python-quality": {},
+    "infra-lint": {},
     "sast-python": {
         "enable_semgrep": True,
         "enable_pip_audit": True,

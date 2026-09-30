@@ -177,8 +177,8 @@ def generate_all_files(sha, tag):
         files[f"workflow-templates/{slug}.yml"] = generate_starter_workflow(
             tmpl, sha, tag
         )
-        files[f"workflow-templates/{slug}.properties.json"] = (
-            generate_properties_json(tmpl)
+        files[f"workflow-templates/{slug}.properties.json"] = generate_properties_json(
+            tmpl
         )
     return files
 
@@ -190,9 +190,7 @@ def _run_gh(args, check_rc=True):
             ["gh"] + args, capture_output=True, text=True, timeout=30
         )
     except FileNotFoundError:
-        raise RuntimeError(
-            "gh CLI not found. Install from https://cli.github.com/"
-        )
+        raise RuntimeError("gh CLI not found. Install from https://cli.github.com/")
     if check_rc and result.returncode != 0:
         raise RuntimeError(f"gh {' '.join(args)}: {result.stderr.strip()}")
     return result.stdout.strip(), result.returncode
@@ -225,13 +223,17 @@ def install_starters(org, sha, tag, dry_run=False, create_repo=False):
                 f"Repository {repo_name} does not exist. "
                 f"Use --create-repo to create it."
             )
-        _run_gh([
-            "repo", "create", repo_name,
-            "--public",
-            "--description",
-            "Organization-level GitHub configuration: "
-            "starter workflows, community health files",
-        ])
+        _run_gh(
+            [
+                "repo",
+                "create",
+                repo_name,
+                "--public",
+                "--description",
+                "Organization-level GitHub configuration: "
+                "starter workflows, community health files",
+            ]
+        )
         messages.append(f"Created repo: {repo_name}")
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -239,7 +241,9 @@ def install_starters(org, sha, tag, dry_run=False, create_repo=False):
 
         subprocess.run(
             ["git", "clone", f"git@github.com:{repo_name}.git", clone_dir],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
 
         templates_dir = os.path.join(clone_dir, "workflow-templates")
@@ -253,29 +257,40 @@ def install_starters(org, sha, tag, dry_run=False, create_repo=False):
 
         result = subprocess.run(
             ["git", "status", "--porcelain"],
-            capture_output=True, text=True, cwd=clone_dir,
+            capture_output=True,
+            text=True,
+            cwd=clone_dir,
         )
         if not result.stdout.strip():
             messages.append("No changes — starter workflows already up to date.")
             return messages
 
         subprocess.run(
-            ["git", "add", "-A"], cwd=clone_dir,
-            capture_output=True, text=True,
+            ["git", "add", "-A"],
+            cwd=clone_dir,
+            capture_output=True,
+            text=True,
         )
         subprocess.run(
-            ["git", "commit", "-m",
-             f"feat: update starter workflow templates to {tag}"],
-            cwd=clone_dir, capture_output=True, text=True,
+            [
+                "git",
+                "commit",
+                "-m",
+                f"feat: update starter workflow templates to {tag}",
+            ],
+            cwd=clone_dir,
+            capture_output=True,
+            text=True,
         )
         push_result = subprocess.run(
-            ["git", "push"], cwd=clone_dir,
-            capture_output=True, text=True, timeout=30,
+            ["git", "push"],
+            cwd=clone_dir,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         if push_result.returncode != 0:
-            raise RuntimeError(
-                f"git push failed: {push_result.stderr.strip()}"
-            )
+            raise RuntimeError(f"git push failed: {push_result.stderr.strip()}")
 
         messages.append(f"Pushed {len(files)} files to {repo_name}")
         for path in sorted(files):

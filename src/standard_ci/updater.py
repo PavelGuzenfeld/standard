@@ -62,8 +62,10 @@ def _resolve_via_git(tag):
         raise RuntimeError("No tags found via git ls-remote")
 
     if tag is None:
+
         def _version_key(entry):
             import re
+
             nums = re.findall(r"\d+", entry[1])
             return tuple(int(n) for n in nums) if nums else ()
 

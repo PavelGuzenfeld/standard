@@ -123,7 +123,10 @@ def cmd_update(args):
     config = read_config(config_path)
 
     if not config:
-        print("Error: .standard.yml not found — run `standard-ci init` first", file=sys.stderr)
+        print(
+            "Error: .standard.yml not found — run `standard-ci init` first",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     old_sha = config.get("sha", "")
@@ -255,12 +258,18 @@ def cmd_scan(args):
             if r["has_config"] and r["up_to_date"]:
                 print(f"  {name:<30} {r['current_tag']:<12} OK", file=sys.stderr)
             elif r["has_config"]:
-                print(f"  {name:<30} {r['current_tag']:<12} DRIFT -> {latest_tag}", file=sys.stderr)
+                print(
+                    f"  {name:<30} {r['current_tag']:<12} DRIFT -> {latest_tag}",
+                    file=sys.stderr,
+                )
             else:
                 print(f"  {name:<30} {'':12} NO CONFIG", file=sys.stderr)
 
-        print(f"\n{len(results)} repos: {len(current)} current, "
-              f"{len(drifted)} drifted, {len(unconfigured)} unconfigured", file=sys.stderr)
+        print(
+            f"\n{len(results)} repos: {len(current)} current, "
+            f"{len(drifted)} drifted, {len(unconfigured)} unconfigured",
+            file=sys.stderr,
+        )
 
     if args.exit_code:
         drifted = [r for r in results if r["has_config"] and not r["up_to_date"]]
@@ -282,16 +291,20 @@ def cmd_dashboard(args):
             with open(args.scan_results) as f:
                 content = f.read()
             if not content.strip():
-                print(f"Error: scan results file is empty: {args.scan_results}",
-                      file=sys.stderr)
+                print(
+                    f"Error: scan results file is empty: {args.scan_results}",
+                    file=sys.stderr,
+                )
                 sys.exit(1)
             data = json.loads(content)
         except json.JSONDecodeError as e:
             print(f"Error: invalid JSON in scan results: {e}", file=sys.stderr)
             sys.exit(1)
         except FileNotFoundError:
-            print(f"Error: scan results file not found: {args.scan_results}",
-                  file=sys.stderr)
+            print(
+                f"Error: scan results file not found: {args.scan_results}",
+                file=sys.stderr,
+            )
             sys.exit(1)
         results = data["repos"]
         latest_tag = data["latest_tag"]
@@ -323,16 +336,20 @@ def cmd_auto_update(args):
             with open(args.scan_results) as f:
                 content = f.read()
             if not content.strip():
-                print(f"Error: scan results file is empty: {args.scan_results}",
-                      file=sys.stderr)
+                print(
+                    f"Error: scan results file is empty: {args.scan_results}",
+                    file=sys.stderr,
+                )
                 sys.exit(1)
             data = json.loads(content)
         except json.JSONDecodeError as e:
             print(f"Error: invalid JSON in scan results: {e}", file=sys.stderr)
             sys.exit(1)
         except FileNotFoundError:
-            print(f"Error: scan results file not found: {args.scan_results}",
-                  file=sys.stderr)
+            print(
+                f"Error: scan results file not found: {args.scan_results}",
+                file=sys.stderr,
+            )
             sys.exit(1)
         scan_results = data["repos"]
         latest_tag = data["latest_tag"]
@@ -383,13 +400,23 @@ def main(argv=None):
         action="store_true",
         help="Accept all defaults without prompting",
     )
-    p_init.add_argument("--pin", metavar="TAG", help="Pin to specific tag (default: latest)")
-    p_init.add_argument("--output-dir", metavar="DIR", help="Project directory (default: .)")
+    p_init.add_argument(
+        "--pin", metavar="TAG", help="Pin to specific tag (default: latest)"
+    )
+    p_init.add_argument(
+        "--output-dir", metavar="DIR", help="Project directory (default: .)"
+    )
 
     p_update = sub.add_parser("update", help="Update SHA pins to latest release")
-    p_update.add_argument("--dry-run", action="store_true", help="Show what would change")
-    p_update.add_argument("--pin", metavar="TAG", help="Pin to specific tag (default: latest)")
-    p_update.add_argument("--output-dir", metavar="DIR", help="Project directory (default: .)")
+    p_update.add_argument(
+        "--dry-run", action="store_true", help="Show what would change"
+    )
+    p_update.add_argument(
+        "--pin", metavar="TAG", help="Pin to specific tag (default: latest)"
+    )
+    p_update.add_argument(
+        "--output-dir", metavar="DIR", help="Project directory (default: .)"
+    )
 
     p_starters = sub.add_parser(
         "install-starters",
@@ -405,19 +432,23 @@ def main(argv=None):
         "--dry-run", action="store_true", help="Show what would change"
     )
     p_starters.add_argument(
-        "--create-repo", action="store_true",
+        "--create-repo",
+        action="store_true",
         help="Create the .github repo if it doesn't exist",
     )
 
     p_check = sub.add_parser("check", help="Validate setup matches .standard.yml")
-    p_check.add_argument("--output-dir", metavar="DIR", help="Project directory (default: .)")
+    p_check.add_argument(
+        "--output-dir", metavar="DIR", help="Project directory (default: .)"
+    )
 
     p_scan = sub.add_parser("scan", help="Scan org repos for compliance")
     p_scan.add_argument("--org", required=True, help="GitHub org or user to scan")
     p_scan.add_argument("--token", help="GitHub token (default: GITHUB_TOKEN env)")
     p_scan.add_argument("--json", action="store_true", help="Output as JSON")
     p_scan.add_argument(
-        "--exit-code", action="store_true",
+        "--exit-code",
+        action="store_true",
         help="Exit non-zero if any repo is non-compliant",
     )
 
@@ -425,30 +456,37 @@ def main(argv=None):
     p_dash.add_argument("--org", required=True, help="GitHub org or user")
     p_dash.add_argument("--token", help="GitHub token (default: GITHUB_TOKEN env)")
     p_dash.add_argument(
-        "--format", choices=["markdown", "json"], default="markdown",
+        "--format",
+        choices=["markdown", "json"],
+        default="markdown",
         help="Output format (default: markdown)",
     )
     p_dash.add_argument(
-        "--scan-results", metavar="FILE",
+        "--scan-results",
+        metavar="FILE",
         help="Use pre-computed scan results JSON instead of scanning",
     )
 
     p_auto = sub.add_parser(
-        "auto-update", help="Open update PRs in drifted consumer repos",
+        "auto-update",
+        help="Open update PRs in drifted consumer repos",
     )
     p_auto.add_argument("--org", required=True, help="GitHub org or user")
     p_auto.add_argument("--token", help="GitHub token (default: GITHUB_TOKEN env)")
     p_auto.add_argument("--dry-run", action="store_true", help="Show what would change")
     p_auto.add_argument(
-        "--scan-results", metavar="FILE",
+        "--scan-results",
+        metavar="FILE",
         help="Use pre-computed scan results JSON instead of scanning",
     )
     p_auto.add_argument(
-        "--pr-title-prefix", default="chore(deps): ",
+        "--pr-title-prefix",
+        default="chore(deps): ",
         help="Prefix for auto-update PR titles",
     )
     p_auto.add_argument(
-        "--pr-labels", default="dependencies,standard-ci",
+        "--pr-labels",
+        default="dependencies,standard-ci",
         help="Comma-separated labels for auto-update PRs",
     )
 

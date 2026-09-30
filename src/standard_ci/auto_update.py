@@ -32,9 +32,25 @@ def _check_existing_pr(repo, branch, token=None):
     if token:
         env["GH_TOKEN"] = token
     result = subprocess.run(
-        ["gh", "pr", "list", "--repo", repo, "--head", branch,
-         "--state", "open", "--json", "number", "--limit", "1"],
-        capture_output=True, text=True, timeout=15, env=env,
+        [
+            "gh",
+            "pr",
+            "list",
+            "--repo",
+            repo,
+            "--head",
+            branch,
+            "--state",
+            "open",
+            "--json",
+            "number",
+            "--limit",
+            "1",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=15,
+        env=env,
     )
     if result.returncode != 0:
         return False
@@ -45,10 +61,15 @@ def _check_existing_pr(repo, branch, token=None):
         return False
 
 
-def auto_update_repos(scan_results, latest_tag, latest_sha,
-                      pr_title_prefix="chore(deps): ",
-                      pr_labels="dependencies,standard-ci",
-                      dry_run=False, token=None):
+def auto_update_repos(
+    scan_results,
+    latest_tag,
+    latest_sha,
+    pr_title_prefix="chore(deps): ",
+    pr_labels="dependencies,standard-ci",
+    dry_run=False,
+    token=None,
+):
     """For each drifted repo, clone, update SHA pins, and open a PR.
 
     Args:
@@ -87,8 +108,15 @@ def auto_update_repos(scan_results, latest_tag, latest_sha,
 
         try:
             _update_single_repo(
-                repo, old_sha, old_tag, latest_sha, latest_tag,
-                branch_name, pr_title, pr_labels, token,
+                repo,
+                old_sha,
+                old_tag,
+                latest_sha,
+                latest_tag,
+                branch_name,
+                pr_title,
+                pr_labels,
+                token,
             )
             messages.append(f"Opened PR in {repo}: {old_tag} -> {latest_tag}")
         except Exception as e:
@@ -100,8 +128,9 @@ def auto_update_repos(scan_results, latest_tag, latest_sha,
     return messages
 
 
-def _update_single_repo(repo, old_sha, old_tag, new_sha, new_tag,
-                         branch_name, pr_title, pr_labels, token):
+def _update_single_repo(
+    repo, old_sha, old_tag, new_sha, new_tag, branch_name, pr_title, pr_labels, token
+):
     """Clone a repo, update SHA pins, commit, push, and open a PR."""
     env = dict(os.environ)
     if token:
@@ -149,10 +178,14 @@ def _update_single_repo(repo, old_sha, old_tag, new_sha, new_tag,
 
         _run_checked(["git", "add", "-A"], cwd=clone_dir)
         _run_checked(
-            ["git", "commit", "-m",
-             f"chore(deps): update standard to {new_tag}\n\n"
-             f"Automated update from {old_tag} to {new_tag}.\n"
-             f"SHA: {old_sha[:12] if old_sha else '?'} -> {new_sha[:12]}"],
+            [
+                "git",
+                "commit",
+                "-m",
+                f"chore(deps): update standard to {new_tag}\n\n"
+                f"Automated update from {old_tag} to {new_tag}.\n"
+                f"SHA: {old_sha[:12] if old_sha else '?'} -> {new_sha[:12]}",
+            ],
             cwd=clone_dir,
         )
         _run_checked(["git", "push", "-u", "origin", branch_name], cwd=clone_dir)
@@ -172,13 +205,23 @@ def _update_single_repo(repo, old_sha, old_tag, new_sha, new_tag,
                 label_args.extend(["--label", label])
 
         cmd = [
-            "gh", "pr", "create",
-            "--repo", repo,
-            "--title", pr_title,
-            "--body", pr_body,
-            "--head", branch_name,
+            "gh",
+            "pr",
+            "create",
+            "--repo",
+            repo,
+            "--title",
+            pr_title,
+            "--body",
+            pr_body,
+            "--head",
+            branch_name,
         ] + label_args
 
         subprocess.run(
-            cmd, capture_output=True, text=True, timeout=30, env=env,
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=env,
         )

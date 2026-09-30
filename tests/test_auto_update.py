@@ -109,7 +109,10 @@ class TestAutoUpdateRepos:
         assert any("Opened PR" in m for m in messages)
 
     @patch("standard_ci.auto_update._check_existing_pr", return_value=False)
-    @patch("standard_ci.auto_update._update_single_repo", side_effect=RuntimeError("clone failed"))
+    @patch(
+        "standard_ci.auto_update._update_single_repo",
+        side_effect=RuntimeError("clone failed"),
+    )
     def test_handles_failure_gracefully(self, mock_update, mock_check):
         results = [_sample_scan_results()[1]]
         messages = auto_update_repos(
