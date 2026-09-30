@@ -23,12 +23,16 @@ class TestCLIInit:
         (project / "CMakeLists.txt").touch()
 
         with mock.patch("standard_ci.cli.resolve_tag_sha", side_effect=_mock_resolve):
-            main([
-                "init",
-                "--preset", "minimal",
-                "--non-interactive",
-                "--output-dir", str(project),
-            ])
+            main(
+                [
+                    "init",
+                    "--preset",
+                    "minimal",
+                    "--non-interactive",
+                    "--output-dir",
+                    str(project),
+                ]
+            )
 
         wf_dir = project / ".github" / "workflows"
         assert (wf_dir / "cpp-quality.yml").exists()
@@ -50,12 +54,16 @@ class TestCLIInit:
         (project / "pyproject.toml").touch()
 
         with mock.patch("standard_ci.cli.resolve_tag_sha", side_effect=_mock_resolve):
-            main([
-                "init",
-                "--preset", "recommended",
-                "--non-interactive",
-                "--output-dir", str(project),
-            ])
+            main(
+                [
+                    "init",
+                    "--preset",
+                    "recommended",
+                    "--non-interactive",
+                    "--output-dir",
+                    str(project),
+                ]
+            )
 
         wf_dir = project / ".github" / "workflows"
         assert (wf_dir / "python-quality.yml").exists()
@@ -70,12 +78,16 @@ class TestCLIInit:
         (project / "pyproject.toml").touch()
 
         with mock.patch("standard_ci.cli.resolve_tag_sha", side_effect=_mock_resolve):
-            main([
-                "init",
-                "--preset", "full",
-                "--non-interactive",
-                "--output-dir", str(project),
-            ])
+            main(
+                [
+                    "init",
+                    "--preset",
+                    "full",
+                    "--non-interactive",
+                    "--output-dir",
+                    str(project),
+                ]
+            )
 
         wf_dir = project / ".github" / "workflows"
         assert (wf_dir / "cpp-quality.yml").exists()
@@ -95,12 +107,16 @@ class TestCLICheck:
         (project / "CMakeLists.txt").touch()
 
         with mock.patch("standard_ci.cli.resolve_tag_sha", side_effect=_mock_resolve):
-            main([
-                "init",
-                "--preset", "minimal",
-                "--non-interactive",
-                "--output-dir", str(project),
-            ])
+            main(
+                [
+                    "init",
+                    "--preset",
+                    "minimal",
+                    "--non-interactive",
+                    "--output-dir",
+                    str(project),
+                ]
+            )
 
         main(["check", "--output-dir", str(project)])
 
@@ -121,12 +137,16 @@ class TestCLIUpdate:
         (project / "CMakeLists.txt").touch()
 
         with mock.patch("standard_ci.cli.resolve_tag_sha", side_effect=_mock_resolve):
-            main([
-                "init",
-                "--preset", "minimal",
-                "--non-interactive",
-                "--output-dir", str(project),
-            ])
+            main(
+                [
+                    "init",
+                    "--preset",
+                    "minimal",
+                    "--non-interactive",
+                    "--output-dir",
+                    str(project),
+                ]
+            )
 
         new_sha = "new123def456789012345678901234567890neww"
         new_tag = "v3.0.0"
@@ -135,11 +155,14 @@ class TestCLIUpdate:
             return new_sha, new_tag
 
         with mock.patch("standard_ci.cli.resolve_tag_sha", side_effect=_mock_new):
-            main([
-                "update",
-                "--dry-run",
-                "--output-dir", str(project),
-            ])
+            main(
+                [
+                    "update",
+                    "--dry-run",
+                    "--output-dir",
+                    str(project),
+                ]
+            )
 
         captured = capsys.readouterr()
         assert "Would update" in captured.out
@@ -153,12 +176,16 @@ class TestCLIUpdate:
         (project / "CMakeLists.txt").touch()
 
         with mock.patch("standard_ci.cli.resolve_tag_sha", side_effect=_mock_resolve):
-            main([
-                "init",
-                "--preset", "minimal",
-                "--non-interactive",
-                "--output-dir", str(project),
-            ])
+            main(
+                [
+                    "init",
+                    "--preset",
+                    "minimal",
+                    "--non-interactive",
+                    "--output-dir",
+                    str(project),
+                ]
+            )
 
         new_sha = "new123def456789012345678901234567890neww"
         new_tag = "v3.0.0"
@@ -167,10 +194,13 @@ class TestCLIUpdate:
             return new_sha, new_tag
 
         with mock.patch("standard_ci.cli.resolve_tag_sha", side_effect=_mock_new):
-            main([
-                "update",
-                "--output-dir", str(project),
-            ])
+            main(
+                [
+                    "update",
+                    "--output-dir",
+                    str(project),
+                ]
+            )
 
         content = (project / ".github" / "workflows" / "cpp-quality.yml").read_text()
         assert new_sha in content

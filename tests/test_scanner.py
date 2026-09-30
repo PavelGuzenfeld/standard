@@ -30,14 +30,30 @@ class TestListOrgRepos:
     @patch("standard_ci.scanner.urllib.request.urlopen")
     def test_returns_non_archived_repos(self, mock_urlopen):
         repos = [
-            {"full_name": "org/repo1", "default_branch": "main",
-             "archived": False, "fork": False},
-            {"full_name": "org/repo2", "default_branch": "develop",
-             "archived": True, "fork": False},
-            {"full_name": "org/repo3", "default_branch": "main",
-             "archived": False, "fork": True},
-            {"full_name": "org/repo4", "default_branch": "main",
-             "archived": False, "fork": False},
+            {
+                "full_name": "org/repo1",
+                "default_branch": "main",
+                "archived": False,
+                "fork": False,
+            },
+            {
+                "full_name": "org/repo2",
+                "default_branch": "develop",
+                "archived": True,
+                "fork": False,
+            },
+            {
+                "full_name": "org/repo3",
+                "default_branch": "main",
+                "archived": False,
+                "fork": True,
+            },
+            {
+                "full_name": "org/repo4",
+                "default_branch": "main",
+                "archived": False,
+                "fork": False,
+            },
         ]
         mock_urlopen.return_value = _make_api_response(repos)
         result = list_org_repos("org", token="test-token")
@@ -47,10 +63,22 @@ class TestListOrgRepos:
 
     @patch("standard_ci.scanner.urllib.request.urlopen")
     def test_paginates(self, mock_urlopen):
-        page1 = [{"full_name": "org/a", "default_branch": "main",
-                   "archived": False, "fork": False}]
-        page2 = [{"full_name": "org/b", "default_branch": "main",
-                   "archived": False, "fork": False}]
+        page1 = [
+            {
+                "full_name": "org/a",
+                "default_branch": "main",
+                "archived": False,
+                "fork": False,
+            }
+        ]
+        page2 = [
+            {
+                "full_name": "org/b",
+                "default_branch": "main",
+                "archived": False,
+                "fork": False,
+            }
+        ]
 
         resp1 = _make_api_response(
             page1, link_header='<https://api.github.com/next>; rel="next"'
@@ -93,7 +121,9 @@ class TestScanRepo:
         with patch("standard_ci.scanner.fetch_standard_config", return_value=None):
             result = scan_repo(
                 {"full_name": "org/repo", "default_branch": "main"},
-                "latest_sha", "v1.0.0", token="t",
+                "latest_sha",
+                "v1.0.0",
+                token="t",
             )
             assert not result["has_config"]
             assert "No .standard.yml found" in result["issues"]
@@ -103,7 +133,9 @@ class TestScanRepo:
         with patch("standard_ci.scanner.fetch_standard_config", return_value=config):
             result = scan_repo(
                 {"full_name": "org/repo", "default_branch": "main"},
-                "latest_sha", "v1.0.0", token="t",
+                "latest_sha",
+                "v1.0.0",
+                token="t",
             )
             assert result["has_config"]
             assert result["up_to_date"]
@@ -114,7 +146,9 @@ class TestScanRepo:
         with patch("standard_ci.scanner.fetch_standard_config", return_value=config):
             result = scan_repo(
                 {"full_name": "org/repo", "default_branch": "main"},
-                "latest_sha", "v1.0.0", token="t",
+                "latest_sha",
+                "v1.0.0",
+                token="t",
             )
             assert result["has_config"]
             assert not result["up_to_date"]

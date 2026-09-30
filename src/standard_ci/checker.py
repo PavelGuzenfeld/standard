@@ -16,7 +16,9 @@ def check(project_dir="."):
     config = read_config(config_path)
 
     if not config:
-        issues.append(("error", ".standard.yml not found — run `standard-ci init` first"))
+        issues.append(
+            ("error", ".standard.yml not found — run `standard-ci init` first")
+        )
         return issues
 
     workflows_dir = os.path.join(project_dir, ".github", "workflows")
@@ -37,7 +39,9 @@ def check(project_dir="."):
         wf_path = os.path.join(workflows_dir, wf["filename"])
 
         if not os.path.exists(wf_path):
-            issues.append(("error", f"Missing workflow file: .github/workflows/{wf['filename']}"))
+            issues.append(
+                ("error", f"Missing workflow file: .github/workflows/{wf['filename']}")
+            )
             continue
 
         with open(wf_path) as f:
@@ -50,19 +54,23 @@ def check(project_dir="."):
                 if match:
                     file_sha = match.group(1)
                     if file_sha != pinned_sha:
-                        issues.append((
-                            "warning",
-                            f"{wf['filename']}: SHA mismatch — "
-                            f"file has {file_sha[:12]}, config has {pinned_sha[:12]}"
-                        ))
+                        issues.append(
+                            (
+                                "warning",
+                                f"{wf['filename']}: SHA mismatch — "
+                                f"file has {file_sha[:12]}, "
+                                f"config has {pinned_sha[:12]}",
+                            )
+                        )
                 else:
-                    issues.append((
-                        "warning",
-                        f"{wf['filename']}: not pinned to a full SHA"
-                    ))
+                    issues.append(
+                        ("warning", f"{wf['filename']}: not pinned to a full SHA")
+                    )
 
     if not issues:
         tag_info = f" ({pinned_tag})" if pinned_tag else ""
-        issues.append(("ok", f"All {len(enabled)} workflows match .standard.yml{tag_info}"))
+        issues.append(
+            ("ok", f"All {len(enabled)} workflows match .standard.yml{tag_info}")
+        )
 
     return issues

@@ -10,6 +10,7 @@ import pytest
 
 WORKFLOW = Path(__file__).parent.parent / ".github/workflows/python-quality.yml"
 
+
 def _diff_quality_has_ruff():
     if shutil.which("diff-quality") is None:
         return False
@@ -80,9 +81,12 @@ class TestDefaultRuffSelect:
         assert "F403" in result.stdout + result.stderr
 
     def test_pascal_case_function_passes_when_consumer_drops_naming(self, tmp_path):
-        assert _lint(
-            tmp_path, "def ParseFrame():\n    return 1\n", {"ruff_select": "E,W,I"}
-        ).returncode == 0
+        assert (
+            _lint(
+                tmp_path, "def ParseFrame():\n    return 1\n", {"ruff_select": "E,W,I"}
+            ).returncode
+            == 0
+        )
 
     def test_snake_case_function_passes_default(self, tmp_path):
         assert _lint(tmp_path, "def parse_frame():\n    return 1\n", {}).returncode == 0

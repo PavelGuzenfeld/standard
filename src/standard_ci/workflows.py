@@ -1,6 +1,5 @@
 """Registry of reusable workflows and their inputs."""
 
-
 CPP_QUALITY = {
     "name": "cpp-quality",
     "filename": "cpp-quality.yml",

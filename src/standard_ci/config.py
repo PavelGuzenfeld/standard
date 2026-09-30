@@ -82,9 +82,7 @@ def _parse_lines(lines):
                 if not current_is_list:
                     data[current_key] = []
                     current_is_list = True
-                data[current_key].append(
-                    _parse_yaml_scalar(content[2:])
-                )
+                data[current_key].append(_parse_yaml_scalar(content[2:]))
             elif ":" in content:
                 k, _, v = content.partition(":")
                 k = k.strip()

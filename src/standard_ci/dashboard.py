@@ -43,25 +43,25 @@ def _generate_markdown(results, latest_tag, latest_sha, org):
     lines = [
         "## Standard Compliance Dashboard",
         "",
-        f"**Org:** {org} | **Latest:** {latest_tag} | "
-        f"**SHA:** `{latest_sha[:12]}`",
+        f"**Org:** {org} | **Latest:** {latest_tag} | **SHA:** `{latest_sha[:12]}`",
         "",
         "### Summary",
         "",
         f"- **{total}** repos scanned",
-        f"- **{len(current)}** compliant"
-        f" ({_pct(len(current), total)})",
+        f"- **{len(current)}** compliant ({_pct(len(current), total)})",
         f"- **{len(drifted)}** drifted (needs update)",
         f"- **{len(unconfigured)}** unconfigured",
         "",
     ]
 
-    lines.extend([
-        "### Repo Status",
-        "",
-        "| Repo | Config | Tag | Status | Workflows |",
-        "|:-----|:------:|:----|:------:|:----------|",
-    ])
+    lines.extend(
+        [
+            "### Repo Status",
+            "",
+            "| Repo | Config | Tag | Status | Workflows |",
+            "|:-----|:------:|:----|:------:|:----------|",
+        ]
+    )
 
     for r in sorted(results, key=lambda x: x["repo"]):
         repo_name = r["repo"].split("/")[-1]
@@ -79,18 +79,18 @@ def _generate_markdown(results, latest_tag, latest_sha, org):
     lines.append("")
 
     if drifted:
-        lines.extend([
-            "### Drift Details",
-            "",
-            "| Repo | Current | Latest | Action |",
-            "|:-----|:--------|:-------|:-------|",
-        ])
+        lines.extend(
+            [
+                "### Drift Details",
+                "",
+                "| Repo | Current | Latest | Action |",
+                "|:-----|:--------|:-------|:-------|",
+            ]
+        )
         for r in sorted(drifted, key=lambda x: x["repo"]):
             repo_name = r["repo"].split("/")[-1]
             cur = r["current_tag"] or "unknown"
-            lines.append(
-                f"| {repo_name} | {cur} | {latest_tag} | Update needed |"
-            )
+            lines.append(f"| {repo_name} | {cur} | {latest_tag} | Update needed |")
         lines.append("")
 
     return "\n".join(lines)
