@@ -98,6 +98,9 @@ CPPCHECK_SUPPRESS=cppcheck.suppress ./scripts/diff-cppcheck.sh origin/main
 
 # IWYU on changed files (non-blocking)
 ./scripts/diff-iwyu.sh origin/main build
+
+# added source modules have a mirrored test
+./scripts/diff-test-mirror.sh origin/main
 ```
 
 ### Hook Installer

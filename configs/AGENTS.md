@@ -149,6 +149,7 @@ Run locally before pushing:
 ./scripts/diff-clang-format.sh origin/main "cpp hpp h"
 ./scripts/diff-file-naming.sh origin/main naming-exceptions.txt
 ./scripts/diff-iwyu.sh origin/main build
+./scripts/diff-test-mirror.sh origin/main
 
 # Python
 ruff check src/ tests/
