@@ -46,3 +46,5 @@ jobs:
         with:
           fetch-depth: 0
       - uses: ./actions/ts-naming
+      - run: pip install -q gdtoolkit
+      - run: bash tests/test_patterns.sh

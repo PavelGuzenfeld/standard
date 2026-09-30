@@ -765,7 +765,7 @@ fi
 echo ""
 
 # =============================================================================
-echo "=== 12. End-to-end: diff-gdlint.sh ==="
+echo "=== 13. End-to-end: diff-gdlint.sh ==="
 # =============================================================================
 
 GDLINT_SCRIPT="$SCRIPT_DIR/scripts/diff-gdlint.sh"
