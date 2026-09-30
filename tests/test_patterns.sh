@@ -17,6 +17,14 @@ fail() {
     echo "  FAIL: $1"
 }
 
+skip_or_fail() {
+    if [ -n "${CI:-}" ]; then
+        fail "$1"
+    else
+        echo "  SKIP: $1"
+    fi
+}
+
 assert_matches() {
     local pattern="$1" input="$2" desc="$3"
     if echo "$input" | grep -qE "$pattern"; then
@@ -199,12 +207,11 @@ echo ""
 
 echo "=== 5. file-naming built-in exemptions ==="
 
-EXEMPT_FILES="CMakeLists.txt Dockerfile README.md CLAUDE.md CHANGELOG.md CONTRIBUTING.md LICENSE Makefile Doxyfile package.xml pyproject.toml setup.py setup.cfg Cargo.toml Cargo.lock"
-EXEMPT_PATTERNS='^requirements.*\.txt$ ^\. ^__init__\.py$ ^__main__\.py$ ^__pycache__$ ^py\.typed$'
+source "$(dirname "$0")/../scripts/naming-exemptions.sh"
 
 check_exempt_file() {
     local name="$1" desc="$2"
-    for f in $EXEMPT_FILES; do
+    for f in "${BUILTIN_EXEMPT_FILES[@]}"; do
         if [ "$name" = "$f" ]; then
             pass "$desc"
             return
@@ -215,7 +222,7 @@ check_exempt_file() {
 
 check_exempt_pattern() {
     local name="$1" desc="$2"
-    for p in $EXEMPT_PATTERNS; do
+    for p in "${BUILTIN_EXEMPT_PATTERNS[@]}"; do
         if echo "$name" | grep -qE "$p"; then
             pass "$desc"
             return
@@ -226,13 +233,13 @@ check_exempt_pattern() {
 
 check_not_exempt() {
     local name="$1" desc="$2"
-    for f in $EXEMPT_FILES; do
+    for f in "${BUILTIN_EXEMPT_FILES[@]}"; do
         if [ "$name" = "$f" ]; then
             fail "$desc — $name should NOT be exempt"
             return
         fi
     done
-    for p in $EXEMPT_PATTERNS; do
+    for p in "${BUILTIN_EXEMPT_PATTERNS[@]}"; do
         if echo "$name" | grep -qE "$p"; then
             fail "$desc — $name matched exempt pattern $p"
             return
@@ -259,6 +266,8 @@ check_exempt_pattern "__pycache__"         "__pycache__ exempt"
 check_exempt_pattern "py.typed"            "py.typed exempt"
 check_exempt_pattern "requirements.txt"    "requirements.txt exempt"
 check_exempt_pattern "requirements-dev.txt" "requirements-dev.txt exempt"
+check_exempt_pattern "SECURITY.md"         "SECURITY.md exempt (uppercase doc)"
+check_exempt_pattern "CODE_OF_CONDUCT.md"  "CODE_OF_CONDUCT.md exempt (uppercase doc)"
 
 check_not_exempt "MyClass.cpp"      "MyClass.cpp not exempt"
 check_not_exempt "badName.hpp"      "badName.hpp not exempt"
@@ -597,7 +606,7 @@ TS_SCRIPT="$SCRIPT_DIR/scripts/diff-ts-naming.sh"
 TS_CONFIG="$SCRIPT_DIR/configs/eslint-naming.config.mjs"
 
 if ! command -v npm >/dev/null 2>&1; then
-    echo "  SKIP: npm not available"
+    skip_or_fail "npm not available"
 else
     TS_TMP=$(mktemp -d)
     cd "$TS_TMP"
@@ -668,7 +677,7 @@ echo ""
 echo "=== 13. End-to-end: diff-gdlint.sh ==="
 
 if ! command -v gdlint >/dev/null 2>&1; then
-    echo "  SKIP: gdlint not available (pip install gdtoolkit)"
+    skip_or_fail "gdlint not available (pip install gdtoolkit)"
 else
     GDLINT_SCRIPT="$SCRIPT_DIR/scripts/diff-gdlint.sh"
     GDLINT_REPO=$(mktemp -d)

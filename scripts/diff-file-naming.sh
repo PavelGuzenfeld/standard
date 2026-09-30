@@ -17,10 +17,6 @@ export ALLOWED_PREFIXES="${NAMING_ALLOWED_PREFIXES:-_}"
 
 source "$(dirname "${BASH_SOURCE[0]}")/naming-exemptions.sh"
 
-BUILTIN_EXEMPT_PATH_PATTERNS=(
-    '^\.'
-)
-
 USER_EXCEPTIONS=()
 if [ -n "$EXCEPTIONS_FILE" ] && [ -f "$EXCEPTIONS_FILE" ]; then
     while IFS= read -r line || [ -n "$line" ]; do
@@ -40,16 +36,6 @@ fi
 
 FILE_COUNT=$(echo "$CHANGED_FILES" | wc -l)
 echo "Checking file naming conventions on $FILE_COUNT changed file(s)..."
-
-is_exempt_path_segment() {
-    local segment="$1"
-    for pattern in "${BUILTIN_EXEMPT_PATH_PATTERNS[@]}"; do
-        if echo "$segment" | grep -qE "$pattern"; then
-            return 0
-        fi
-    done
-    return 1
-}
 
 is_user_exception() {
     local name="$1"
@@ -71,7 +57,7 @@ while IFS= read -r filepath; do
         segment="${SEGMENTS[$i]}"
         is_last=$(( i == SEGMENT_COUNT - 1 ))
 
-        if is_exempt_path_segment "$segment"; then
+        if echo "$segment" | grep -qE '^\.'; then
             break
         fi
 
