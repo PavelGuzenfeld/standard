@@ -46,7 +46,7 @@ def _lint_script(overrides):
     return re.sub(r"\$\{\{ inputs\.(\w+) \}\}", lambda m: defaults[m.group(1)], script)
 
 
-def _lint_passes(tmp_path, source, overrides):
+def _lint(tmp_path, source, overrides):
     def git(*args):
         subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
 
@@ -60,23 +60,29 @@ def _lint_passes(tmp_path, source, overrides):
     (tmp_path / "change.py").write_text(source)
     git("add", ".")
     git("commit", "-m", "change")
-    result = subprocess.run(
-        ["bash", "-c", _lint_script(overrides)], cwd=tmp_path, capture_output=True
+    return subprocess.run(
+        ["bash", "-c", _lint_script(overrides)],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
     )
-    return result.returncode == 0
 
 
 class TestDefaultRuffSelect:
     def test_pascal_case_function_fails_default(self, tmp_path):
-        assert not _lint_passes(tmp_path, "def ParseFrame():\n    return 1\n", {})
+        result = _lint(tmp_path, "def ParseFrame():\n    return 1\n", {})
+        assert result.returncode != 0
+        assert "N802" in result.stdout + result.stderr
 
     def test_star_import_fails_default(self, tmp_path):
-        assert not _lint_passes(tmp_path, "from os.path import *\n", {})
+        result = _lint(tmp_path, "from os.path import *\n", {})
+        assert result.returncode != 0
+        assert "F403" in result.stdout + result.stderr
 
     def test_pascal_case_function_passes_when_consumer_drops_naming(self, tmp_path):
-        assert _lint_passes(
+        assert _lint(
             tmp_path, "def ParseFrame():\n    return 1\n", {"ruff_select": "E,W,I"}
-        )
+        ).returncode == 0
 
     def test_snake_case_function_passes_default(self, tmp_path):
-        assert _lint_passes(tmp_path, "def parse_frame():\n    return 1\n", {})
+        assert _lint(tmp_path, "def parse_frame():\n    return 1\n", {}).returncode == 0
