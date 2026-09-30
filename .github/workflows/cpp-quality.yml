@@ -249,26 +249,40 @@ jobs:
         run: echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Verify Docker image tools
+        env:
+          INPUT_COMPILE_COMMANDS_PATH: ${{ inputs.compile_commands_path }}
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_ENABLE_CLANG_FORMAT: ${{ inputs.enable_clang_format }}
+          INPUT_ENABLE_CLANG_TIDY: ${{ inputs.enable_clang_tidy }}
+          INPUT_ENABLE_COVERAGE: ${{ inputs.enable_coverage }}
+          INPUT_ENABLE_CPPCHECK: ${{ inputs.enable_cppcheck }}
+          INPUT_ENABLE_HARDENING: ${{ inputs.enable_hardening }}
+          INPUT_ENABLE_IWYU: ${{ inputs.enable_iwyu }}
+          INPUT_ENABLE_SANITIZERS: ${{ inputs.enable_sanitizers }}
+          INPUT_ENABLE_TSAN: ${{ inputs.enable_tsan }}
+          INPUT_PRE_ANALYSIS_SCRIPT: ${{ inputs.pre_analysis_script }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
         run: |
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
 
           docker run --rm \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
-            -e ENABLE_TIDY="${{ inputs.enable_clang_tidy }}" \
-            -e ENABLE_CPPCHECK="${{ inputs.enable_cppcheck }}" \
-            -e ENABLE_FORMAT="${{ inputs.enable_clang_format }}" \
-            -e ENABLE_IWYU="${{ inputs.enable_iwyu }}" \
-            -e ENABLE_SANITIZERS="${{ inputs.enable_sanitizers }}" \
-            -e ENABLE_TSAN="${{ inputs.enable_tsan }}" \
-            -e ENABLE_COVERAGE="${{ inputs.enable_coverage }}" \
-            -e ENABLE_HARDENING="${{ inputs.enable_hardening }}" \
-            -e PRE_SCRIPT="${{ inputs.pre_analysis_script }}" \
-            -e CDB_PATH="${{ inputs.compile_commands_path }}/compile_commands.json" \
-            "${{ inputs.docker_image }}" \
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            -e ENABLE_TIDY="${INPUT_ENABLE_CLANG_TIDY}" \
+            -e ENABLE_CPPCHECK="${INPUT_ENABLE_CPPCHECK}" \
+            -e ENABLE_FORMAT="${INPUT_ENABLE_CLANG_FORMAT}" \
+            -e ENABLE_IWYU="${INPUT_ENABLE_IWYU}" \
+            -e ENABLE_SANITIZERS="${INPUT_ENABLE_SANITIZERS}" \
+            -e ENABLE_TSAN="${INPUT_ENABLE_TSAN}" \
+            -e ENABLE_COVERAGE="${INPUT_ENABLE_COVERAGE}" \
+            -e ENABLE_HARDENING="${INPUT_ENABLE_HARDENING}" \
+            -e PRE_SCRIPT="${INPUT_PRE_ANALYSIS_SCRIPT}" \
+            -e CDB_PATH="${INPUT_COMPILE_COMMANDS_PATH}/compile_commands.json" \
+            "${INPUT_DOCKER_IMAGE}" \
             bash -c "${SETUP_CMD}"'
               MISSING=""
               VERSIONS=""
@@ -342,9 +356,12 @@ jobs:
 
       - name: Get changed C++ files
         id: changed
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+          INPUT_FILE_EXTENSIONS: ${{ inputs.file_extensions }}
         run: |
-          EXT_PATTERN="\.($(echo "${{ inputs.file_extensions }}" | tr ' ' '|'))$"
-          FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- | grep -E "$EXT_PATTERN" || true)
+          EXT_PATTERN="\.($(echo "${INPUT_FILE_EXTENSIONS}" | tr ' ' '|'))$"
+          FILES=$(git diff --name-only --diff-filter=ACMR "origin/${INPUT_BASE_REF}" -- | grep -E "$EXT_PATTERN" || true)
           if [ -z "$FILES" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No C++ files changed."
@@ -356,8 +373,10 @@ jobs:
 
       - name: Filter excluded paths
         if: steps.changed.outputs.skip == 'false' && inputs.exclude_file != ''
+        env:
+          INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
         run: |
-          EXCLUDE_FILE="${{ inputs.exclude_file }}"
+          EXCLUDE_FILE="${INPUT_EXCLUDE_FILE}"
           FILE_LIST="/tmp/changed_cpp_files.txt"
           if [ -f "$EXCLUDE_FILE" ] && [ -f "$FILE_LIST" ]; then
             PATTERNS=()
@@ -388,10 +407,12 @@ jobs:
       - name: Prepare cache paths
         if: steps.changed.outputs.skip == 'false' && inputs.build_cache_key != ''
         id: cache-paths
+        env:
+          INPUT_BUILD_CACHE_PATHS: ${{ inputs.build_cache_paths }}
         run: |
           {
             echo "paths<<EOF"
-            echo "${{ inputs.build_cache_paths }}" | tr ' ' '\n'
+            echo "${INPUT_BUILD_CACHE_PATHS}" | tr ' ' '\n'
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -406,41 +427,53 @@ jobs:
 
       - name: Run pre-analysis script
         if: steps.changed.outputs.skip == 'false' && inputs.pre_analysis_script != ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_PRE_ANALYSIS_SCRIPT: ${{ inputs.pre_analysis_script }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
         run: |
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
           docker run --rm \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
-            "${{ inputs.docker_image }}" \
-            bash -c "${SETUP_CMD}bash ${{ inputs.pre_analysis_script }}"
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            "${INPUT_DOCKER_IMAGE}" \
+            bash -c "${SETUP_CMD}bash ${INPUT_PRE_ANALYSIS_SCRIPT}"
 
       - name: Run clang-tidy in Docker (batch)
         if: steps.changed.outputs.skip == 'false'
         id: clang-tidy
+        env:
+          INPUT_CLANG_TIDY_CONFIG: ${{ inputs.clang_tidy_config }}
+          INPUT_CLANG_TIDY_JOBS: ${{ inputs.clang_tidy_jobs }}
+          INPUT_COMPILE_COMMANDS_PATH: ${{ inputs.compile_commands_path }}
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
         run: |
           CONFIG_ARG=""
-          if [ -n "${{ inputs.clang_tidy_config }}" ]; then
-            CONFIG_ARG="--config-file=${{ inputs.clang_tidy_config }}"
+          if [ -n "${INPUT_CLANG_TIDY_CONFIG}" ]; then
+            CONFIG_ARG="--config-file=${INPUT_CLANG_TIDY_CONFIG}"
           fi
 
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
 
-          JOBS=${{ inputs.clang_tidy_jobs }}
+          JOBS=${INPUT_CLANG_TIDY_JOBS}
 
           cp /tmp/changed_cpp_files.txt changed_files.txt
 
           docker run --rm \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
-            "${{ inputs.docker_image }}" \
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            "${INPUT_DOCKER_IMAGE}" \
             bash -c "${SETUP_CMD}cat changed_files.txt | \
-              xargs -P${JOBS} -I{} clang-tidy -p ${{ inputs.compile_commands_path }} $CONFIG_ARG {} 2>&1" \
+              xargs -P${JOBS} -I{} clang-tidy -p ${INPUT_COMPILE_COMMANDS_PATH} $CONFIG_ARG {} 2>&1" \
             | tee /tmp/clang_tidy_output.txt || true
 
           # Note: grep -c outputs "0" AND exits non-zero when no matches,
@@ -494,9 +527,12 @@ jobs:
 
       - name: Get changed C++ files
         id: changed
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+          INPUT_FILE_EXTENSIONS: ${{ inputs.file_extensions }}
         run: |
-          EXT_PATTERN="\.($(echo "${{ inputs.file_extensions }}" | tr ' ' '|'))$"
-          FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- | grep -E "$EXT_PATTERN" || true)
+          EXT_PATTERN="\.($(echo "${INPUT_FILE_EXTENSIONS}" | tr ' ' '|'))$"
+          FILES=$(git diff --name-only --diff-filter=ACMR "origin/${INPUT_BASE_REF}" -- | grep -E "$EXT_PATTERN" || true)
           if [ -z "$FILES" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No C++ files changed."
@@ -508,8 +544,10 @@ jobs:
 
       - name: Filter excluded paths
         if: steps.changed.outputs.skip == 'false' && inputs.exclude_file != ''
+        env:
+          INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
         run: |
-          EXCLUDE_FILE="${{ inputs.exclude_file }}"
+          EXCLUDE_FILE="${INPUT_EXCLUDE_FILE}"
           FILE_LIST="/tmp/changed_cpp_files.txt"
           if [ -f "$EXCLUDE_FILE" ] && [ -f "$FILE_LIST" ]; then
             PATTERNS=()
@@ -540,52 +578,62 @@ jobs:
       - name: Run cppcheck in Docker
         if: steps.changed.outputs.skip == 'false'
         id: cppcheck
+        env:
+          INPUT_CPPCHECK_INCLUDES: ${{ inputs.cppcheck_includes }}
+          INPUT_CPPCHECK_INCLUDE_FILE: ${{ inputs.cppcheck_include_file }}
+          INPUT_CPPCHECK_INCONCLUSIVE: ${{ inputs.cppcheck_inconclusive }}
+          INPUT_CPPCHECK_STD: ${{ inputs.cppcheck_std }}
+          INPUT_CPPCHECK_STRICT: ${{ inputs.cppcheck_strict }}
+          INPUT_CPPCHECK_SUPPRESS: ${{ inputs.cppcheck_suppress }}
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
         run: |
-          CPPCHECK_ARGS="--enable=warning,style,performance,portability --template=gcc --std=${{ inputs.cppcheck_std }} --inline-suppr"
+          CPPCHECK_ARGS=("--enable=warning,style,performance,portability" --template=gcc "--std=${INPUT_CPPCHECK_STD}" --inline-suppr)
 
-          if [ "${{ inputs.cppcheck_inconclusive }}" = "true" ]; then
-            CPPCHECK_ARGS="$CPPCHECK_ARGS --inconclusive"
+          if [ "${INPUT_CPPCHECK_INCONCLUSIVE}" = "true" ]; then
+            CPPCHECK_ARGS+=(--inconclusive)
           fi
 
-          if [ "${{ inputs.cppcheck_strict }}" = "true" ]; then
-            CPPCHECK_ARGS="$CPPCHECK_ARGS --error-exitcode=1"
+          if [ "${INPUT_CPPCHECK_STRICT}" = "true" ]; then
+            CPPCHECK_ARGS+=(--error-exitcode=1)
           else
-            CPPCHECK_ARGS="$CPPCHECK_ARGS --error-exitcode=0"
+            CPPCHECK_ARGS+=(--error-exitcode=0)
           fi
 
-          if [ -n "${{ inputs.cppcheck_suppress }}" ] && [ -f "${{ inputs.cppcheck_suppress }}" ]; then
-            CPPCHECK_ARGS="$CPPCHECK_ARGS --suppressions-list=${{ inputs.cppcheck_suppress }}"
+          if [ -n "${INPUT_CPPCHECK_SUPPRESS}" ] && [ -f "${INPUT_CPPCHECK_SUPPRESS}" ]; then
+            CPPCHECK_ARGS+=("--suppressions-list=${INPUT_CPPCHECK_SUPPRESS}")
           fi
 
-          INCLUDE_ARGS=""
-          if [ -n "${{ inputs.cppcheck_includes }}" ]; then
-            for dir in ${{ inputs.cppcheck_includes }}; do
-              INCLUDE_ARGS="$INCLUDE_ARGS -I $dir"
+          INCLUDE_ARGS=()
+          if [ -n "${INPUT_CPPCHECK_INCLUDES}" ]; then
+            for dir in ${INPUT_CPPCHECK_INCLUDES}; do
+              INCLUDE_ARGS+=(-I "$dir")
             done
           fi
 
-          if [ -n "${{ inputs.cppcheck_include_file }}" ] && [ -f "${{ inputs.cppcheck_include_file }}" ]; then
+          if [ -n "${INPUT_CPPCHECK_INCLUDE_FILE}" ] && [ -f "${INPUT_CPPCHECK_INCLUDE_FILE}" ]; then
             while IFS= read -r dir || [ -n "$dir" ]; do
               dir=$(echo "$dir" | xargs)
               [ -z "$dir" ] && continue
               [[ "$dir" == \#* ]] && continue
-              INCLUDE_ARGS="$INCLUDE_ARGS -I $dir"
-            done < "${{ inputs.cppcheck_include_file }}"
+              INCLUDE_ARGS+=(-I "$dir")
+            done < "${INPUT_CPPCHECK_INCLUDE_FILE}"
           fi
 
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
 
-          FILES=$(cat /tmp/changed_cpp_files.txt | tr '\n' ' ')
+          mapfile -t FILES < /tmp/changed_cpp_files.txt
 
           CPPCHECK_EXIT=0
           OUTPUT=$(docker run --rm \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
-            "${{ inputs.docker_image }}" \
-            bash -c "${SETUP_CMD}cppcheck $CPPCHECK_ARGS $INCLUDE_ARGS $FILES" 2>&1) || CPPCHECK_EXIT=$?
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            "${INPUT_DOCKER_IMAGE}" \
+            bash -c "${SETUP_CMD}cppcheck $(printf '%q ' "${CPPCHECK_ARGS[@]}" "${INCLUDE_ARGS[@]}" "${FILES[@]}")" 2>&1) || CPPCHECK_EXIT=$?
 
           ERRORS=0
           if [ -n "$OUTPUT" ]; then
@@ -608,7 +656,7 @@ jobs:
 
           echo "errors=$ERRORS" >> "$GITHUB_OUTPUT"
 
-          if [ "${{ inputs.cppcheck_strict }}" = "true" ] && [ "$CPPCHECK_EXIT" -ne 0 ]; then
+          if [ "${INPUT_CPPCHECK_STRICT}" = "true" ] && [ "$CPPCHECK_EXIT" -ne 0 ]; then
             echo "cppcheck: exited with code $CPPCHECK_EXIT (strict mode)."
             exit 1
           elif [ "$ERRORS" -gt 0 ]; then
@@ -633,9 +681,12 @@ jobs:
 
       - name: Get changed C++ files
         id: changed
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+          INPUT_FILE_EXTENSIONS: ${{ inputs.file_extensions }}
         run: |
-          EXT_PATTERN="\.($(echo "${{ inputs.file_extensions }}" | tr ' ' '|'))$"
-          FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- | grep -E "$EXT_PATTERN" || true)
+          EXT_PATTERN="\.($(echo "${INPUT_FILE_EXTENSIONS}" | tr ' ' '|'))$"
+          FILES=$(git diff --name-only --diff-filter=ACMR "origin/${INPUT_BASE_REF}" -- | grep -E "$EXT_PATTERN" || true)
           if [ -z "$FILES" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No C++ files changed."
@@ -647,8 +698,10 @@ jobs:
 
       - name: Filter excluded paths
         if: steps.changed.outputs.skip == 'false' && inputs.exclude_file != ''
+        env:
+          INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
         run: |
-          EXCLUDE_FILE="${{ inputs.exclude_file }}"
+          EXCLUDE_FILE="${INPUT_EXCLUDE_FILE}"
           FILE_LIST="/tmp/changed_cpp_files.txt"
           if [ -f "$EXCLUDE_FILE" ] && [ -f "$FILE_LIST" ]; then
             PATTERNS=()
@@ -678,11 +731,14 @@ jobs:
 
       - name: Prepare clang-format container
         if: steps.changed.outputs.skip == 'false' && inputs.docker_image != ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
         run: |
           docker run -d --name cf-container \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
-            "${{ inputs.docker_image }}" sleep infinity
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            "${INPUT_DOCKER_IMAGE}" sleep infinity
           docker exec cf-container bash -c "
             if ! command -v clang-format &>/dev/null; then
               echo 'clang-format not found, installing...'
@@ -700,10 +756,12 @@ jobs:
       - name: Run clang-format in Docker
         if: steps.changed.outputs.skip == 'false'
         id: clang-format
+        env:
+          INPUT_CLANG_FORMAT_CONFIG: ${{ inputs.clang_format_config }}
         run: |
           FORMAT_ARGS=(--dry-run --Werror)
-          if [ -n "${{ inputs.clang_format_config }}" ]; then
-            FORMAT_ARGS+=("--style=file:${{ inputs.clang_format_config }}")
+          if [ -n "${INPUT_CLANG_FORMAT_CONFIG}" ]; then
+            FORMAT_ARGS+=("--style=file:${INPUT_CLANG_FORMAT_CONFIG}")
           fi
 
           VIOLATIONS=0
@@ -747,19 +805,24 @@ jobs:
 
       - name: Check changed test files for banned frameworks
         id: check
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+          INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
+          INPUT_FILE_EXTENSIONS: ${{ inputs.file_extensions }}
+          INPUT_TEST_FILE_PATTERN: ${{ inputs.test_file_pattern }}
         run: |
-          EXT_PATTERN="\.($(echo "${{ inputs.file_extensions }}" | tr ' ' '|'))$"
-          FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- \
+          EXT_PATTERN="\.($(echo "${INPUT_FILE_EXTENSIONS}" | tr ' ' '|'))$"
+          FILES=$(git diff --name-only --diff-filter=ACMR "origin/${INPUT_BASE_REF}" -- \
             | grep -E "$EXT_PATTERN" \
-            | grep -iE "${{ inputs.test_file_pattern }}" || true)
+            | grep -iE "${INPUT_TEST_FILE_PATTERN}" || true)
 
-          if [ -n "$FILES" ] && [ -n "${{ inputs.exclude_file }}" ] && [ -f "${{ inputs.exclude_file }}" ]; then
+          if [ -n "$FILES" ] && [ -n "${INPUT_EXCLUDE_FILE}" ] && [ -f "${INPUT_EXCLUDE_FILE}" ]; then
             PATTERNS=()
             while IFS= read -r line || [ -n "$line" ]; do
               line="${line%%#*}"; line="$(echo "$line" | xargs)"
               [ -z "$line" ] && continue
               PATTERNS+=("$line")
-            done < "${{ inputs.exclude_file }}"
+            done < "${INPUT_EXCLUDE_FILE}"
             if [ ${#PATTERNS[@]} -gt 0 ]; then
               FILTERED=""
               while IFS= read -r fp; do
@@ -837,9 +900,14 @@ jobs:
 
       - name: Check file naming conventions
         id: naming
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+          INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
+          INPUT_FILE_NAMING_ALLOWED_PREFIXES: ${{ inputs.file_naming_allowed_prefixes }}
+          INPUT_FILE_NAMING_EXCEPTIONS: ${{ inputs.file_naming_exceptions }}
         run: |
-          ALLOWED_PREFIXES="${{ inputs.file_naming_allowed_prefixes }}"
-          EXCEPTIONS_FILE="${{ inputs.file_naming_exceptions }}"
+          ALLOWED_PREFIXES="${INPUT_FILE_NAMING_ALLOWED_PREFIXES}"
+          EXCEPTIONS_FILE="${INPUT_FILE_NAMING_EXCEPTIONS}"
 
           BUILTIN_EXEMPT_FILES=(
               "CMakeLists.txt" "Dockerfile" "README.md" "CLAUDE.md"
@@ -870,15 +938,15 @@ jobs:
               done < "$EXCEPTIONS_FILE"
           fi
 
-          CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- || true)
+          CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR "origin/${INPUT_BASE_REF}" -- || true)
 
-          if [ -n "$CHANGED_FILES" ] && [ -n "${{ inputs.exclude_file }}" ] && [ -f "${{ inputs.exclude_file }}" ]; then
+          if [ -n "$CHANGED_FILES" ] && [ -n "${INPUT_EXCLUDE_FILE}" ] && [ -f "${INPUT_EXCLUDE_FILE}" ]; then
               PATTERNS=()
               while IFS= read -r line || [ -n "$line" ]; do
                   line="${line%%#*}"; line="$(echo "$line" | xargs)"
                   [ -z "$line" ] && continue
                   PATTERNS+=("$line")
-              done < "${{ inputs.exclude_file }}"
+              done < "${INPUT_EXCLUDE_FILE}"
               if [ ${#PATTERNS[@]} -gt 0 ]; then
                   FILTERED=""
                   while IFS= read -r fp; do
@@ -988,19 +1056,24 @@ jobs:
 
       - name: Check changed source files for banned I/O
         id: check
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+          INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
+          INPUT_FILE_EXTENSIONS: ${{ inputs.file_extensions }}
+          INPUT_TEST_FILE_PATTERN: ${{ inputs.test_file_pattern }}
         run: |
-          EXT_PATTERN="\.($(echo "${{ inputs.file_extensions }}" | tr ' ' '|'))$"
-          FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- \
+          EXT_PATTERN="\.($(echo "${INPUT_FILE_EXTENSIONS}" | tr ' ' '|'))$"
+          FILES=$(git diff --name-only --diff-filter=ACMR "origin/${INPUT_BASE_REF}" -- \
             | grep -E "$EXT_PATTERN" \
-            | grep -viE "${{ inputs.test_file_pattern }}" || true)
+            | grep -viE "${INPUT_TEST_FILE_PATTERN}" || true)
 
-          if [ -n "$FILES" ] && [ -n "${{ inputs.exclude_file }}" ] && [ -f "${{ inputs.exclude_file }}" ]; then
+          if [ -n "$FILES" ] && [ -n "${INPUT_EXCLUDE_FILE}" ] && [ -f "${INPUT_EXCLUDE_FILE}" ]; then
             PATTERNS=()
             while IFS= read -r line || [ -n "$line" ]; do
               line="${line%%#*}"; line="$(echo "$line" | xargs)"
               [ -z "$line" ] && continue
               PATTERNS+=("$line")
-            done < "${{ inputs.exclude_file }}"
+            done < "${INPUT_EXCLUDE_FILE}"
             if [ ${#PATTERNS[@]} -gt 0 ]; then
               FILTERED=""
               while IFS= read -r fp; do
@@ -1064,19 +1137,24 @@ jobs:
 
       - name: Check changed source files for raw new/delete
         id: check
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+          INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
+          INPUT_FILE_EXTENSIONS: ${{ inputs.file_extensions }}
+          INPUT_TEST_FILE_PATTERN: ${{ inputs.test_file_pattern }}
         run: |
-          EXT_PATTERN="\.($(echo "${{ inputs.file_extensions }}" | tr ' ' '|'))$"
-          FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- \
+          EXT_PATTERN="\.($(echo "${INPUT_FILE_EXTENSIONS}" | tr ' ' '|'))$"
+          FILES=$(git diff --name-only --diff-filter=ACMR "origin/${INPUT_BASE_REF}" -- \
             | grep -E "$EXT_PATTERN" \
-            | grep -viE "${{ inputs.test_file_pattern }}" || true)
+            | grep -viE "${INPUT_TEST_FILE_PATTERN}" || true)
 
-          if [ -n "$FILES" ] && [ -n "${{ inputs.exclude_file }}" ] && [ -f "${{ inputs.exclude_file }}" ]; then
+          if [ -n "$FILES" ] && [ -n "${INPUT_EXCLUDE_FILE}" ] && [ -f "${INPUT_EXCLUDE_FILE}" ]; then
             PATTERNS=()
             while IFS= read -r line || [ -n "$line" ]; do
               line="${line%%#*}"; line="$(echo "$line" | xargs)"
               [ -z "$line" ] && continue
               PATTERNS+=("$line")
-            done < "${{ inputs.exclude_file }}"
+            done < "${INPUT_EXCLUDE_FILE}"
             if [ ${#PATTERNS[@]} -gt 0 ]; then
               FILTERED=""
               while IFS= read -r fp; do
@@ -1146,9 +1224,12 @@ jobs:
 
       - name: Get changed C++ files
         id: changed
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+          INPUT_FILE_EXTENSIONS: ${{ inputs.file_extensions }}
         run: |
-          EXT_PATTERN="\.($(echo "${{ inputs.file_extensions }}" | tr ' ' '|'))$"
-          FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- | grep -E "$EXT_PATTERN" || true)
+          EXT_PATTERN="\.($(echo "${INPUT_FILE_EXTENSIONS}" | tr ' ' '|'))$"
+          FILES=$(git diff --name-only --diff-filter=ACMR "origin/${INPUT_BASE_REF}" -- | grep -E "$EXT_PATTERN" || true)
           if [ -z "$FILES" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No C++ files changed."
@@ -1160,8 +1241,10 @@ jobs:
 
       - name: Filter excluded paths
         if: steps.changed.outputs.skip == 'false' && inputs.exclude_file != ''
+        env:
+          INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
         run: |
-          EXCLUDE_FILE="${{ inputs.exclude_file }}"
+          EXCLUDE_FILE="${INPUT_EXCLUDE_FILE}"
           FILE_LIST="/tmp/changed_cpp_files.txt"
           if [ -f "$EXCLUDE_FILE" ] && [ -f "$FILE_LIST" ]; then
             PATTERNS=()
@@ -1200,12 +1283,14 @@ jobs:
       - name: Run flawfinder
         if: steps.changed.outputs.skip == 'false'
         id: flawfinder
+        env:
+          INPUT_FLAWFINDER_MIN_LEVEL: ${{ inputs.flawfinder_min_level }}
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           read -r -a FILES < <(tr '\n' ' ' < /tmp/changed_cpp_files.txt)
 
-          flawfinder --minlevel=${{ inputs.flawfinder_min_level }} --sarif --dataonly "${FILES[@]}" > flawfinder.sarif 2>/dev/null || true
-          flawfinder --minlevel=${{ inputs.flawfinder_min_level }} --columns --context --dataonly "${FILES[@]}" > flawfinder.txt 2>&1 || true
+          flawfinder --minlevel="${INPUT_FLAWFINDER_MIN_LEVEL}" --sarif --dataonly "${FILES[@]}" > flawfinder.sarif 2>/dev/null || true
+          flawfinder --minlevel="${INPUT_FLAWFINDER_MIN_LEVEL}" --columns --context --dataonly "${FILES[@]}" > flawfinder.txt 2>&1 || true
 
           echo "::group::Flawfinder Results"
           cat flawfinder.txt
@@ -1213,7 +1298,7 @@ jobs:
 
           HITS=$(grep -cE '^.+:[0-9]+:[0-9]+:' flawfinder.txt 2>/dev/null || true)
           [ -z "$HITS" ] && HITS=0
-          echo "Flawfinder found ${HITS} potential issues (minlevel=${{ inputs.flawfinder_min_level }})"
+          echo "Flawfinder found ${HITS} potential issues (minlevel=${INPUT_FLAWFINDER_MIN_LEVEL})"
           echo "hits=$HITS" >> "$GITHUB_OUTPUT"
 
           if [ "$HITS" -gt 0 ]; then
@@ -1258,10 +1343,12 @@ jobs:
       - name: Prepare cache paths
         if: inputs.build_cache_key != ''
         id: cache-paths
+        env:
+          INPUT_BUILD_CACHE_PATHS: ${{ inputs.build_cache_paths }}
         run: |
           {
             echo "paths<<EOF"
-            echo "${{ inputs.build_cache_paths }}" | tr ' ' '\n'
+            echo "${INPUT_BUILD_CACHE_PATHS}" | tr ' ' '\n'
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -1277,32 +1364,42 @@ jobs:
 
       - name: Run sanitizer script
         if: inputs.sanitizer_script != ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_SANITIZER_SCRIPT: ${{ inputs.sanitizer_script }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
         run: |
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
           docker run --rm \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
-            "${{ inputs.docker_image }}" \
-            bash -c "${SETUP_CMD}bash ${{ inputs.sanitizer_script }}"
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            "${INPUT_DOCKER_IMAGE}" \
+            bash -c "${SETUP_CMD}bash ${INPUT_SANITIZER_SCRIPT}"
 
       - name: Build with sanitizers (default flow)
         if: inputs.sanitizer_script == ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_SANITIZER_PACKAGES: ${{ inputs.sanitizer_packages }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
         run: |
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
           PACKAGES_ARG=""
-          if [ -n "${{ inputs.sanitizer_packages }}" ]; then
-            PACKAGES_ARG="--packages-select ${{ inputs.sanitizer_packages }}"
+          if [ -n "${INPUT_SANITIZER_PACKAGES}" ]; then
+            PACKAGES_ARG="--packages-select ${INPUT_SANITIZER_PACKAGES}"
           fi
           docker run --rm \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
-            "${{ inputs.docker_image }}" \
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            "${INPUT_DOCKER_IMAGE}" \
             bash -c "
               ${SETUP_CMD}
               colcon build \
@@ -1319,26 +1416,32 @@ jobs:
 
       - name: Run tests under sanitizers (default flow)
         if: inputs.sanitizer_script == ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_SANITIZER_PACKAGES: ${{ inputs.sanitizer_packages }}
+          INPUT_SANITIZER_SUPPRESSIONS: ${{ inputs.sanitizer_suppressions }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
         run: |
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
           PACKAGES_ARG=""
-          if [ -n "${{ inputs.sanitizer_packages }}" ]; then
-            PACKAGES_ARG="--packages-select ${{ inputs.sanitizer_packages }}"
+          if [ -n "${INPUT_SANITIZER_PACKAGES}" ]; then
+            PACKAGES_ARG="--packages-select ${INPUT_SANITIZER_PACKAGES}"
           fi
           LSAN_SUPP=""
-          if [ -n "${{ inputs.sanitizer_suppressions }}" ]; then
-            LSAN_SUPP="suppressions=${{ inputs.source_mount }}/${{ inputs.sanitizer_suppressions }}"
+          if [ -n "${INPUT_SANITIZER_SUPPRESSIONS}" ]; then
+            LSAN_SUPP="suppressions=${INPUT_SOURCE_MOUNT}/${INPUT_SANITIZER_SUPPRESSIONS}"
           fi
           docker run --rm \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
             -e ASAN_OPTIONS="halt_on_error=1:new_delete_type_mismatch=0:detect_leaks=1" \
             -e UBSAN_OPTIONS="halt_on_error=1:print_stacktrace=1" \
             -e LSAN_OPTIONS="$LSAN_SUPP" \
-            "${{ inputs.docker_image }}" \
+            "${INPUT_DOCKER_IMAGE}" \
             bash -c "
               ${SETUP_CMD}
               source install/local_setup.bash 2>/dev/null || true
@@ -1368,10 +1471,12 @@ jobs:
       - name: Prepare cache paths
         if: inputs.build_cache_key != ''
         id: cache-paths
+        env:
+          INPUT_BUILD_CACHE_PATHS: ${{ inputs.build_cache_paths }}
         run: |
           {
             echo "paths<<EOF"
-            echo "${{ inputs.build_cache_paths }}" | tr ' ' '\n'
+            echo "${INPUT_BUILD_CACHE_PATHS}" | tr ' ' '\n'
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -1387,34 +1492,44 @@ jobs:
 
       - name: Run TSAN script
         if: inputs.tsan_script != ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
+          INPUT_TSAN_SCRIPT: ${{ inputs.tsan_script }}
         run: |
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
           docker run --rm \
             --security-opt seccomp=unconfined \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
-            "${{ inputs.docker_image }}" \
-            bash -c "${SETUP_CMD}bash ${{ inputs.tsan_script }}"
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            "${INPUT_DOCKER_IMAGE}" \
+            bash -c "${SETUP_CMD}bash ${INPUT_TSAN_SCRIPT}"
 
       - name: Build with TSAN (default flow)
         if: inputs.tsan_script == ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
+          INPUT_TSAN_PACKAGES: ${{ inputs.tsan_packages }}
         run: |
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
           PACKAGES_ARG=""
-          if [ -n "${{ inputs.tsan_packages }}" ]; then
-            PACKAGES_ARG="--packages-select ${{ inputs.tsan_packages }}"
+          if [ -n "${INPUT_TSAN_PACKAGES}" ]; then
+            PACKAGES_ARG="--packages-select ${INPUT_TSAN_PACKAGES}"
           fi
           docker run --rm \
             --security-opt seccomp=unconfined \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
-            "${{ inputs.docker_image }}" \
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            "${INPUT_DOCKER_IMAGE}" \
             bash -c "
               ${SETUP_CMD}
               colcon build \
@@ -1431,25 +1546,31 @@ jobs:
 
       - name: Run tests under TSAN (default flow)
         if: inputs.tsan_script == ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
+          INPUT_TSAN_PACKAGES: ${{ inputs.tsan_packages }}
+          INPUT_TSAN_SUPPRESSIONS: ${{ inputs.tsan_suppressions }}
         run: |
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
           PACKAGES_ARG=""
-          if [ -n "${{ inputs.tsan_packages }}" ]; then
-            PACKAGES_ARG="--packages-select ${{ inputs.tsan_packages }}"
+          if [ -n "${INPUT_TSAN_PACKAGES}" ]; then
+            PACKAGES_ARG="--packages-select ${INPUT_TSAN_PACKAGES}"
           fi
           TSAN_SUPP=""
-          if [ -n "${{ inputs.tsan_suppressions }}" ]; then
-            TSAN_SUPP="suppressions=${{ inputs.source_mount }}/${{ inputs.tsan_suppressions }}"
+          if [ -n "${INPUT_TSAN_SUPPRESSIONS}" ]; then
+            TSAN_SUPP="suppressions=${INPUT_SOURCE_MOUNT}/${INPUT_TSAN_SUPPRESSIONS}"
           fi
           docker run --rm \
             --security-opt seccomp=unconfined \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
             -e TSAN_OPTIONS="halt_on_error=1:second_deadlock_stack=1:$TSAN_SUPP" \
-            "${{ inputs.docker_image }}" \
+            "${INPUT_DOCKER_IMAGE}" \
             bash -c "
               ${SETUP_CMD}
               source install/local_setup.bash 2>/dev/null || true
@@ -1478,9 +1599,12 @@ jobs:
 
       - name: Get changed C++ files
         id: changed
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+          INPUT_FILE_EXTENSIONS: ${{ inputs.file_extensions }}
         run: |
-          EXT_PATTERN="\.($(echo "${{ inputs.file_extensions }}" | tr ' ' '|'))$"
-          FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ inputs.base_ref || github.base_ref || 'main' }} -- | grep -E "$EXT_PATTERN" || true)
+          EXT_PATTERN="\.($(echo "${INPUT_FILE_EXTENSIONS}" | tr ' ' '|'))$"
+          FILES=$(git diff --name-only --diff-filter=ACMR "origin/${INPUT_BASE_REF}" -- | grep -E "$EXT_PATTERN" || true)
           if [ -z "$FILES" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No C++ files changed."
@@ -1492,8 +1616,10 @@ jobs:
 
       - name: Filter excluded paths
         if: steps.changed.outputs.skip == 'false' && inputs.exclude_file != ''
+        env:
+          INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
         run: |
-          EXCLUDE_FILE="${{ inputs.exclude_file }}"
+          EXCLUDE_FILE="${INPUT_EXCLUDE_FILE}"
           FILE_LIST="/tmp/changed_cpp_files.txt"
           if [ -f "$EXCLUDE_FILE" ] && [ -f "$FILE_LIST" ]; then
             PATTERNS=()
@@ -1524,10 +1650,12 @@ jobs:
       - name: Prepare cache paths
         if: steps.changed.outputs.skip == 'false' && inputs.build_cache_key != ''
         id: cache-paths
+        env:
+          INPUT_BUILD_CACHE_PATHS: ${{ inputs.build_cache_paths }}
         run: |
           {
             echo "paths<<EOF"
-            echo "${{ inputs.build_cache_paths }}" | tr ' ' '\n'
+            echo "${INPUT_BUILD_CACHE_PATHS}" | tr ' ' '\n'
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -1542,38 +1670,50 @@ jobs:
 
       - name: Run IWYU script
         if: steps.changed.outputs.skip == 'false' && inputs.iwyu_script != ''
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_IWYU_SCRIPT: ${{ inputs.iwyu_script }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
         run: |
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
           docker run --rm \
-            -e GITHUB_BASE_REF=${{ inputs.base_ref || github.base_ref || 'main' }} \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
-            "${{ inputs.docker_image }}" \
-            bash -c "${SETUP_CMD}bash ${{ inputs.iwyu_script }}"
+            -e GITHUB_BASE_REF="${INPUT_BASE_REF}" \
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            "${INPUT_DOCKER_IMAGE}" \
+            bash -c "${SETUP_CMD}bash ${INPUT_IWYU_SCRIPT}"
 
       - name: Run IWYU default flow
         if: steps.changed.outputs.skip == 'false' && inputs.iwyu_script == ''
         id: iwyu
+        env:
+          INPUT_COMPILE_COMMANDS_PATH: ${{ inputs.compile_commands_path }}
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_IWYU_MAPPING_FILE: ${{ inputs.iwyu_mapping_file }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
         run: |
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
 
           MAPPING_ARG=""
-          if [ -n "${{ inputs.iwyu_mapping_file }}" ]; then
-            MAPPING_ARG="-Xiwyu --mapping_file=${{ inputs.source_mount }}/${{ inputs.iwyu_mapping_file }}"
+          if [ -n "${INPUT_IWYU_MAPPING_FILE}" ]; then
+            MAPPING_ARG="-Xiwyu --mapping_file=${INPUT_SOURCE_MOUNT}/${INPUT_IWYU_MAPPING_FILE}"
           fi
 
           cp /tmp/changed_cpp_files.txt changed_files.txt
 
           docker run --rm \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
-            "${{ inputs.docker_image }}" \
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            "${INPUT_DOCKER_IMAGE}" \
             bash -c "
               ${SETUP_CMD}
               if ! command -v include-what-you-use &>/dev/null; then
@@ -1588,7 +1728,7 @@ jobs:
                 [ -z \"\$file\" ] && continue
                 [ -f \"\$file\" ] || continue
                 echo \"  IWYU: \$file\"
-                include-what-you-use -p ${{ inputs.compile_commands_path }} $MAPPING_ARG \"\$file\" 2>&1 || true
+                include-what-you-use -p ${INPUT_COMPILE_COMMANDS_PATH} $MAPPING_ARG \"\$file\" 2>&1 || true
               done
             " | tee /tmp/iwyu_output.txt || true
 
@@ -1619,10 +1759,12 @@ jobs:
       - name: Prepare cache paths
         if: inputs.build_cache_key != ''
         id: cache-paths
+        env:
+          INPUT_BUILD_CACHE_PATHS: ${{ inputs.build_cache_paths }}
         run: |
           {
             echo "paths<<EOF"
-            echo "${{ inputs.build_cache_paths }}" | tr ' ' '\n'
+            echo "${INPUT_BUILD_CACHE_PATHS}" | tr ' ' '\n'
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -1636,35 +1778,48 @@ jobs:
 
       - name: Run coverage script
         if: inputs.coverage_script != ''
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+          INPUT_COVERAGE_DIFF_THRESHOLD: ${{ inputs.coverage_diff_threshold }}
+          INPUT_COVERAGE_SCRIPT: ${{ inputs.coverage_script }}
+          INPUT_COVERAGE_THRESHOLD: ${{ inputs.coverage_threshold }}
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
         run: |
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
           docker run --rm \
-            -e COVERAGE_THRESHOLD=${{ inputs.coverage_threshold }} \
-            -e COVERAGE_DIFF_THRESHOLD=${{ inputs.coverage_diff_threshold }} \
-            -e GITHUB_BASE_REF=${{ inputs.base_ref || github.base_ref || 'main' }} \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
-            "${{ inputs.docker_image }}" \
-            bash -c "${SETUP_CMD}bash ${{ inputs.coverage_script }}"
+            -e COVERAGE_THRESHOLD="${INPUT_COVERAGE_THRESHOLD}" \
+            -e COVERAGE_DIFF_THRESHOLD="${INPUT_COVERAGE_DIFF_THRESHOLD}" \
+            -e GITHUB_BASE_REF="${INPUT_BASE_REF}" \
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            "${INPUT_DOCKER_IMAGE}" \
+            bash -c "${SETUP_CMD}bash ${INPUT_COVERAGE_SCRIPT}"
 
       - name: Build with coverage (default flow)
         if: inputs.coverage_script == ''
+        env:
+          INPUT_COVERAGE_PACKAGES: ${{ inputs.coverage_packages }}
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
         run: |
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
           PACKAGES_ARG=""
-          if [ -n "${{ inputs.coverage_packages }}" ]; then
-            PACKAGES_ARG="--packages-select ${{ inputs.coverage_packages }}"
+          if [ -n "${INPUT_COVERAGE_PACKAGES}" ]; then
+            PACKAGES_ARG="--packages-select ${INPUT_COVERAGE_PACKAGES}"
           fi
           docker run --rm \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
-            "${{ inputs.docker_image }}" \
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            "${INPUT_DOCKER_IMAGE}" \
             bash -c "
               ${SETUP_CMD}
               apt-get update -qq && apt-get install -y -qq lcov 2>/dev/null || true
@@ -1682,19 +1837,24 @@ jobs:
 
       - name: Run tests and collect coverage (default flow)
         if: inputs.coverage_script == ''
+        env:
+          INPUT_COVERAGE_PACKAGES: ${{ inputs.coverage_packages }}
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
         run: |
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
           PACKAGES_ARG=""
-          if [ -n "${{ inputs.coverage_packages }}" ]; then
-            PACKAGES_ARG="--packages-select ${{ inputs.coverage_packages }}"
+          if [ -n "${INPUT_COVERAGE_PACKAGES}" ]; then
+            PACKAGES_ARG="--packages-select ${INPUT_COVERAGE_PACKAGES}"
           fi
           docker run --rm \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
-            "${{ inputs.docker_image }}" \
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            "${INPUT_DOCKER_IMAGE}" \
             bash -c "
               ${SETUP_CMD}
               source install/local_setup.bash 2>/dev/null || true
@@ -1714,6 +1874,8 @@ jobs:
 
       - name: Check coverage threshold (default flow)
         if: inputs.coverage_script == '' && inputs.coverage_threshold != '0'
+        env:
+          INPUT_COVERAGE_THRESHOLD: ${{ inputs.coverage_threshold }}
         run: |
           if [ ! -f coverage-summary.txt ]; then
             echo "No coverage summary found"
@@ -1721,19 +1883,22 @@ jobs:
           fi
           OVERALL=$(grep -oP '[\d.]+%' coverage-summary.txt | head -1 | tr -d '%')
           echo "Overall line coverage: ${OVERALL}%"
-          if [ -n "$OVERALL" ] && [ "$(echo "$OVERALL < ${{ inputs.coverage_threshold }}" | bc -l)" -eq 1 ]; then
-            echo "FAIL: Coverage ${OVERALL}% is below threshold ${{ inputs.coverage_threshold }}%"
+          if [ -n "$OVERALL" ] && [ "$(echo "$OVERALL < ${INPUT_COVERAGE_THRESHOLD}" | bc -l)" -eq 1 ]; then
+            echo "FAIL: Coverage ${OVERALL}% is below threshold ${INPUT_COVERAGE_THRESHOLD}%"
             exit 1
           fi
-          echo "PASS: Coverage ${OVERALL}% meets threshold ${{ inputs.coverage_threshold }}%"
+          echo "PASS: Coverage ${OVERALL}% meets threshold ${INPUT_COVERAGE_THRESHOLD}%"
 
       - name: Run diff-cover (default flow)
         if: inputs.coverage_script == '' && inputs.coverage_diff_threshold != '0'
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+          INPUT_COVERAGE_DIFF_THRESHOLD: ${{ inputs.coverage_diff_threshold }}
         run: |
           pip install diff-cover --quiet
           diff-cover coverage.info \
-            --compare-branch="origin/${{ inputs.base_ref || github.base_ref || 'main' }}" \
-            --fail-under=${{ inputs.coverage_diff_threshold }} \
+            --compare-branch="origin/${INPUT_BASE_REF}" \
+            --fail-under="${INPUT_COVERAGE_DIFF_THRESHOLD}" \
             --markdown-report diff-cover.md \
             2>&1 | tee diff-cover-output.txt
 
@@ -1767,10 +1932,12 @@ jobs:
       - name: Prepare cache paths
         if: inputs.build_cache_key != ''
         id: cache-paths
+        env:
+          INPUT_BUILD_CACHE_PATHS: ${{ inputs.build_cache_paths }}
         run: |
           {
             echo "paths<<EOF"
-            echo "${{ inputs.build_cache_paths }}" | tr ' ' '\n'
+            echo "${INPUT_BUILD_CACHE_PATHS}" | tr ' ' '\n'
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -1786,53 +1953,68 @@ jobs:
 
       - name: Run hardening script
         if: inputs.hardening_script != ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_HARDENING_SCRIPT: ${{ inputs.hardening_script }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
         run: |
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
           docker run --rm \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
-            "${{ inputs.docker_image }}" \
-            bash -c "${SETUP_CMD}bash ${{ inputs.hardening_script }}"
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            "${INPUT_DOCKER_IMAGE}" \
+            bash -c "${SETUP_CMD}bash ${INPUT_HARDENING_SCRIPT}"
 
       - name: Build with hardening (default flow)
         if: inputs.hardening_script == ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
         run: |
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
           docker run --rm \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
-            "${{ inputs.docker_image }}" \
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            "${INPUT_DOCKER_IMAGE}" \
             bash -c "
               ${SETUP_CMD}
               cmake --preset release-hardened && cmake --build --preset release-hardened
             "
 
       - name: Verify hardening properties
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_HARDENING_BINARY_PATHS: ${{ inputs.hardening_binary_paths }}
+          INPUT_HARDENING_SKIP_CHECKS: ${{ inputs.hardening_skip_checks }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
         run: |
           SETUP_CMD=""
-          if [ -n "${{ inputs.source_setup }}" ]; then
-            SETUP_CMD="${{ inputs.source_setup }} && "
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
           fi
 
           SKIP_ARGS=""
-          if [ -n "${{ inputs.hardening_skip_checks }}" ]; then
-            for check in ${{ inputs.hardening_skip_checks }}; do
+          if [ -n "${INPUT_HARDENING_SKIP_CHECKS}" ]; then
+            for check in ${INPUT_HARDENING_SKIP_CHECKS}; do
               SKIP_ARGS="$SKIP_ARGS --skip $check"
             done
           fi
 
-          BINARY_PATHS="${{ inputs.hardening_binary_paths }}"
+          BINARY_PATHS="${INPUT_HARDENING_BINARY_PATHS}"
 
           docker run --rm \
-            -v "${{ github.workspace }}:${{ inputs.source_mount }}" \
-            -w "${{ inputs.source_mount }}" \
-            "${{ inputs.docker_image }}" \
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            "${INPUT_DOCKER_IMAGE}" \
             bash -c "${SETUP_CMD}"'
               FAILURES=0
               WARNINGS=0
