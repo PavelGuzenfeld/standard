@@ -33,7 +33,7 @@ on:
         description: 'diff-cover version (pin to avoid breaking changes)'
       ruff_select:
         type: string
-        default: 'E,W,F,I'
+        default: 'E,W,F,I,N'
         description: 'Ruff rule selection (comma-separated)'
       enable_tests:
         type: boolean
@@ -90,10 +90,13 @@ jobs:
         id: lint
         run: |
           VIOLATIONS="${{ inputs.python_linter }}"
+          OPTIONS=""
           if [ "$VIOLATIONS" = "ruff" ]; then
             VIOLATIONS="ruff.check"
+            OPTIONS="--select=${{ inputs.ruff_select }}"
           fi
           diff-quality --violations="$VIOLATIONS" \
+            --options="$OPTIONS" \
             --compare-branch=origin/${{ inputs.base_ref || github.base_ref || 'main' }} \
             --fail-under=${{ inputs.fail_under }}
         continue-on-error: true

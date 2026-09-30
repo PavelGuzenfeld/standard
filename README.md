@@ -249,7 +249,7 @@ jobs:
 | `python_linter` | `ruff` | Linter: `ruff` or `flake8` |
 | `source_dirs` | `src` | Source directories |
 | `test_dirs` | `tests` | Test directories |
-| `ruff_select` | `E,W,F,I` | Ruff rule selection |
+| `ruff_select` | `E,W,F,I,N` | Ruff rule selection |
 | `enable_tests` | `true` | Run pytest and collect coverage (disable for projects with external test deps like ROS2) |
 | `base_ref` | `''` | Base branch for diff comparison (falls back to github.base_ref, then main) |
 | `fail_under` | `100` | Minimum diff-quality score (0-100) |
@@ -394,6 +394,7 @@ jobs:
 | [`cmake-warnings.cmake`](configs/cmake-warnings.cmake) | Warning flags: -Wall -Wextra -Wpedantic -Werror + extras |
 | [`test-checklist.md`](configs/test-checklist.md) | Mandatory test edge case checklist (11 categories) |
 | [`repo-structure-ros2.txt`](configs/repo-structure-ros2.txt) | ROS2 package structure validation template |
+| `repo-structure-{python,cmake-cpp,typescript,godot}.txt` | Structure templates for other project types |
 | [`AGENTS.md`](configs/AGENTS.md) | AI agent instructions template for consuming projects |
 | [`SECURITY.md`](configs/SECURITY.md) | Security policy template for consuming projects |
 | [`dependabot.yml`](configs/dependabot.yml) | Dependabot config template for consuming projects |
@@ -412,6 +413,7 @@ Run the same logic as CI, only on files changed vs a base branch:
 | `diff-file-naming.sh` | snake_case naming on changed files |
 | `diff-iwyu.sh` | Include-What-You-Use on changed files |
 | `diff-ts-naming.sh` | typescript-eslint naming-convention on changed .ts/.tsx (needs `eslint-naming.config.mjs`, eslint, typescript-eslint) |
+| `diff-test-mirror.sh` | added source modules have a mirrored test |
 
 ```bash
 ./scripts/diff-clang-tidy.sh origin/main build "cpp hpp h"

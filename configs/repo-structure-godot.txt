@@ -1,0 +1,5 @@
+dir?scenes/
+dir?scripts/
+file:project.godot
+file?README.md
+file?LICENSE
