@@ -75,7 +75,7 @@ The full site is at <https://pavelguzenfeld.com/standard/>. The same pages live 
 | [`version-check.yml`](.github/workflows/version-check.yml) | SemVer in package.xml, CMakeLists.txt, pyproject.toml |
 | [`auto-release.yml`](.github/workflows/auto-release.yml) | Conventional-commit version bump, git tag, GitHub Release, SLSA provenance |
 | [`trend-dashboard.yml`](.github/workflows/trend-dashboard.yml) | Weekly pass-rate report, optional Slack and Discussions posting |
-| [`version-sync.yml`](.github/workflows/version-sync.yml) | Sync version files (CMakeLists.txt, README FetchContent, pyproject.toml, package.xml, package.json) to a release tag |
+| [`version-sync.yml`](.github/workflows/version-sync.yml) | Sync opt-in version files (CMakeLists.txt, pyproject.toml, package.xml, package.json, `GIT_TAG` in a caller's README) to a release tag; this repo enables only pyproject.toml |
 | [`cis-compliance.yml`](.github/workflows/cis-compliance.yml) | CIS supply-chain scan of one repo |
 | [`cis-org-compliance.yml`](.github/workflows/cis-org-compliance.yml) | CIS supply-chain scan across an org |
 | [`compliance.yml`](.github/workflows/compliance.yml) | Scan an org for standard-ci drift, optionally open update PRs |
