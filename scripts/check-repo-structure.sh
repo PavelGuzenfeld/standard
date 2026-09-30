@@ -1,22 +1,4 @@
 #!/usr/bin/env bash
-# check-repo-structure.sh — Validate repository structure against a config file.
-# Outputs GitHub Actions annotations (::error, ::warning) for missing items.
-#
-# Usage:
-#   check-repo-structure.sh <config_file> [root_dir]
-#
-# Arguments:
-#   config_file   Path to structure config file
-#   root_dir      Root directory to check (default: current directory)
-#
-# Config format:
-#   dir:path/     Required directory (error if missing)
-#   dir?path/     Optional directory (warning if missing)
-#   file:path     Required file (error if missing)
-#   file?path     Optional file (warning if missing)
-#
-# Lines starting with # and blank lines are ignored.
-
 set -euo pipefail
 
 CONFIG_FILE="${1:?Usage: check-repo-structure.sh <config_file> [root_dir]}"
@@ -34,19 +16,15 @@ ERRORS=0
 WARNINGS=0
 
 while IFS= read -r line || [ -n "$line" ]; do
-    # Strip whitespace
     line=$(echo "$line" | xargs)
 
-    # Skip blank lines and comments
     [ -z "$line" ] && continue
     [[ "$line" == \#* ]] && continue
 
-    # Strip inline comments
     line="${line%%#*}"
     line=$(echo "$line" | xargs)
     [ -z "$line" ] && continue
 
-    # Parse entry type and path
     case "$line" in
         dir:*)
             path="${line#dir:}"

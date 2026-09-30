@@ -12,7 +12,6 @@ def _yaml_value(value):
     if isinstance(value, str):
         if not value:
             return "''"
-        # Quote strings that could be misinterpreted
         if value in ("true", "false", "yes", "no", "null") or ":" in value:
             return f"'{value}'"
         return value
@@ -45,7 +44,6 @@ def generate_workflow(workflow_name, inputs, sha, tag_name):
         f"    uses: {REPO}/{wf['ref_path']}@{sha}  # {tag_name}",
     ]
 
-    # Collect non-default inputs
     all_inputs = {}
     all_inputs.update(wf["required_inputs"])
     all_inputs.update(wf["optional_inputs"])
@@ -54,19 +52,16 @@ def generate_workflow(workflow_name, inputs, sha, tag_name):
     for key, meta in all_inputs.items():
         if key in inputs:
             value = inputs[key]
-            # Skip if it matches the default
             if value == meta["default"]:
                 continue
             with_lines.append(f"      {key}: {_yaml_value(value)}")
         elif key in wf["required_inputs"]:
-            # Required but not provided — emit a TODO
             with_lines.append(f"      {key}: ''  # TODO: set this value")
 
     if with_lines:
         lines.append("    with:")
         lines.extend(with_lines)
 
-    # Permissions
     perms = dict(wf["permissions"])
     for trigger_input, extra in wf.get("extra_permissions_if", {}).items():
         if inputs.get(trigger_input):

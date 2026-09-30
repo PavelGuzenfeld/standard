@@ -76,7 +76,7 @@ class TestGenerateProperties:
 class TestGenerateAllFiles:
     def test_generates_7_files(self):
         files = generate_all_files(FAKE_SHA, FAKE_TAG)
-        assert len(files) == 7  # 3 yml + 3 json + 1 svg
+        assert len(files) == 7
 
     def test_all_paths_under_workflow_templates(self):
         files = generate_all_files(FAKE_SHA, FAKE_TAG)

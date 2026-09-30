@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 set -euo pipefail
 
 BASE_BRANCH="${1:?Usage: diff-ts-naming.sh <base_branch> [extensions]}"

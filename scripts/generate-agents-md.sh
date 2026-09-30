@@ -1,19 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# generate-agents-md.sh — Generate a tailored AGENTS.md for your project
-#
-# Usage: generate-agents-md.sh [--output PATH] [--non-interactive]
-#
-# Auto-detects project type from CWD and asks what quality checks are enabled.
-# Produces an AGENTS.md with only the relevant sections.
-
 OUTPUT="./AGENTS.md"
 NON_INTERACTIVE=false
 
-# Join array elements with a separator
 join_by() { local sep="$1"; shift; local first="$1"; shift; printf '%s' "$first" "${@/#/$sep}"; }
-
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -30,15 +21,11 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# --- Auto-detection -----------------------------------------------------------
-
 detect_cpp=false
 detect_python=false
 
 [[ -f CMakeLists.txt || -f package.xml ]] && detect_cpp=true
 [[ -f pyproject.toml || -f setup.py || -f requirements.txt ]] && detect_python=true
-
-# --- Prompt helpers -----------------------------------------------------------
 
 ask() {
     local prompt="$1" default="$2" var="$3"
@@ -72,8 +59,6 @@ ask_choice() {
     eval "$var='$answer'"
 }
 
-# --- Interactive questions ----------------------------------------------------
-
 echo "=== AGENTS.md Generator ==="
 echo ""
 echo "Auto-detected:"
@@ -82,7 +67,6 @@ $detect_python && echo "  Python (found pyproject.toml / setup.py / requirements
 $detect_cpp || $detect_python || echo "  (nothing detected — will ask)"
 echo ""
 
-# Language selection
 cpp_default=n; $detect_cpp && cpp_default=y
 py_default=n; $detect_python && py_default=y
 
@@ -94,7 +78,6 @@ if [[ "$enable_cpp" == "n" && "$enable_python" == "n" ]]; then
     exit 1
 fi
 
-# C++ opt-in checks
 enable_clang_format=n
 enable_file_naming=n
 enable_ban_cout=n
@@ -125,7 +108,6 @@ if [[ "$enable_cpp" == "y" ]]; then
     ask "  Include-What-You-Use (IWYU)?" "n" enable_iwyu
 fi
 
-# Python options
 python_linter="ruff"
 enable_semgrep=n
 enable_pip_audit=n
@@ -140,7 +122,6 @@ if [[ "$enable_python" == "y" ]]; then
     ask "  CodeQL deep analysis?" "n" enable_codeql
 fi
 
-# Infra lint
 enable_shellcheck=n
 enable_hadolint=n
 enable_cmake_lint=n
@@ -153,10 +134,7 @@ if [[ "$enable_cpp" == "y" ]]; then
     ask "  cmake-lint (CMake files)?" "n" enable_cmake_lint
 fi
 
-# --- Generate AGENTS.md ------------------------------------------------------
-
 {
-# --- Header ---
 cat << 'HEADER'
 # Agent Instructions — Quality Standard
 
@@ -166,7 +144,6 @@ This project uses [diff-aware quality workflows](https://github.com/PavelGuzenfe
 Only changed files are checked — but all new and modified code must pass.
 HEADER
 
-# --- Always Enforced (C++) ---
 if [[ "$enable_cpp" == "y" ]]; then
     cat << 'ALWAYS'
 
@@ -177,7 +154,6 @@ if [[ "$enable_cpp" == "y" ]]; then
 ALWAYS
 fi
 
-# --- Opt-in list ---
 optin_items=()
 [[ "$enable_clang_format" == "y" ]]     && optin_items+=('- **clang-format** — C++23, 120-column, 4-space indent, Allman braces')
 [[ "$enable_file_naming" == "y" ]]      && optin_items+=('- **File naming** — snake_case for all files and directories')
@@ -189,7 +165,6 @@ optin_items=()
 [[ "$enable_tsan" == "y" ]]             && optin_items+=('- **TSAN** — ThreadSanitizer tests')
 [[ "$enable_coverage" == "y" ]]         && optin_items+=('- **Coverage** — gcov/lcov test coverage reporting')
 [[ "$enable_iwyu" == "y" ]]             && optin_items+=('- **IWYU** — Include-What-You-Use analysis (non-blocking)')
-# Identifier naming is always included when C++ is on
 [[ "$enable_cpp" == "y" ]]              && optin_items+=('- **Identifier naming** — snake_case functions/variables, PascalCase types, trailing `_` for private members')
 
 if [[ ${#optin_items[@]} -gt 0 ]]; then
@@ -201,7 +176,6 @@ if [[ ${#optin_items[@]} -gt 0 ]]; then
     done
 fi
 
-# --- Python header section ---
 if [[ "$enable_python" == "y" ]]; then
     echo ""
     echo "### Python"
@@ -218,12 +192,10 @@ if [[ "$enable_python" == "y" ]]; then
     fi
 fi
 
-# --- C++ Conventions ---
 if [[ "$enable_cpp" == "y" ]]; then
     echo ""
     echo "## C++ Conventions"
 
-    # File and Directory Naming
     if [[ "$enable_file_naming" == "y" ]]; then
         cat << 'FILENAMING'
 
@@ -242,7 +214,6 @@ dotfiles (`.clang-tidy`, `.gitignore`), `__init__.py`, `requirements*.txt`
 FILENAMING
     fi
 
-    # Identifier Naming (always for C++)
     cat << 'IDENTNAMING'
 
 ### Identifier Naming
@@ -257,7 +228,6 @@ FILENAMING
 | Namespaces | `snake_case` | `nav_utils` |
 IDENTNAMING
 
-    # Include Convention (always for C++)
     cat << 'INCLUDES'
 
 ### Include Convention
@@ -271,7 +241,6 @@ IDENTNAMING
 Minimize includes. Forward-declare where possible.
 INCLUDES
 
-    # Banned Patterns table
     any_ban=false
     [[ "$enable_ban_cout" == "y" || "$enable_ban_new" == "y" || "$enable_enforce_doctest" == "y" ]] && any_ban=true
 
@@ -295,7 +264,6 @@ INCLUDES
         echo "These bans apply to production code only. Test files (matching \`test\` in the path) may have different rules depending on project configuration."
     fi
 
-    # Testing Requirements (always for C++)
     cat << 'TESTING'
 
 ## Testing Requirements
@@ -313,7 +281,6 @@ Every non-trivial module should cover these edge cases:
 7. **Performance baselines** — nanobench for critical paths
 TESTING
 
-    # Dynamically numbered test categories
     n=8
     if [[ "$enable_sanitizers" == "y" ]]; then
         echo "${n}. **ASan + UBSan** — build and test with address/undefined sanitizers"
@@ -329,7 +296,6 @@ TESTING
     fi
     echo "${n}. **Fuzz harness** — libFuzzer for parsers, serializers, and input handlers"
 
-    # Sanitizer Build Presets
     if [[ "$enable_sanitizers" == "y" || "$enable_tsan" == "y" ]]; then
         echo ""
         echo "### Sanitizer Build Presets"
@@ -341,7 +307,6 @@ TESTING
         echo '```'
     fi
 
-    # Code Formatting (only if clang-format enabled)
     if [[ "$enable_clang_format" == "y" ]]; then
         cat << 'FORMATTING'
 
@@ -357,7 +322,6 @@ TESTING
 FORMATTING
     fi
 
-    # clang-tidy section (always for C++)
     echo ""
     echo "### clang-tidy Checks"
     echo ""
@@ -374,7 +338,6 @@ FORMATTING
     echo '```'
 fi
 
-# --- Python Conventions ---
 if [[ "$enable_python" == "y" ]]; then
     echo ""
     echo "## Python Conventions"
@@ -398,7 +361,6 @@ if [[ "$enable_python" == "y" ]]; then
     echo "- **Style**: PEP 8, type hints encouraged"
 fi
 
-# --- Local Verification ---
 echo ""
 echo "## Local Verification"
 echo ""
@@ -423,7 +385,6 @@ fi
 
 echo '```'
 
-# --- Customization ---
 has_customization=false
 [[ "$enable_file_naming" == "y" || "$enable_cpp" == "y" ]] && has_customization=true
 
@@ -490,7 +451,6 @@ Checks: >-
 CPPCHECK_SUPP
 fi
 
-# --- CI Workflows ---
 echo ""
 echo "## CI Workflows"
 echo ""
@@ -538,7 +498,6 @@ if [[ "$enable_python" == "y" ]]; then
     fi
 fi
 
-# Infra lint workflow
 infra_names=()
 [[ "$enable_shellcheck" == "y" ]] && infra_names+=("ShellCheck")
 [[ "$enable_hadolint" == "y" ]]   && infra_names+=("Hadolint")
@@ -552,7 +511,6 @@ if [[ ${#infra_names[@]} -gt 0 ]]; then
     echo "- **Enabled**: $(join_by ", " "${infra_names[@]}")"
 fi
 
-# Optional workflows
 echo ""
 echo "### Optional Workflows"
 echo ""
@@ -568,7 +526,6 @@ echo 'Confirm `.github/workflows/` contains the quality workflow for your langua
 echo ""
 echo "Full setup instructions: see \`INTEGRATION.md\`."
 
-# --- SDLC Process ---
 cat << 'SDLC'
 
 ## SDLC Process
@@ -584,8 +541,6 @@ Full documentation: see `SDLC.md`.
 SDLC
 
 } > "$OUTPUT"
-
-# --- Summary ------------------------------------------------------------------
 
 echo ""
 echo "=== Generated: $OUTPUT ==="

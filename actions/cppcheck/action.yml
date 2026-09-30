@@ -104,7 +104,6 @@ runs:
 
         FINDINGS=$(grep -cE '^.+:[0-9]+:.*(error|warning|style|performance|portability):' "${OUTPUT_FILE}" || echo 0)
 
-        # Emit annotations
         grep -E '^.+:[0-9]+:.*(error|warning|style|performance|portability):' "${OUTPUT_FILE}" | head -"${MAX_ANN}" | while IFS= read -r line; do
           ann_file=$(echo "$line" | cut -d: -f1)
           ann_line=$(echo "$line" | cut -d: -f2)

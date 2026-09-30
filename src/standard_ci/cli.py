@@ -23,7 +23,6 @@ def cmd_init(args):
     """Scaffold workflow files and .standard.yml."""
     project_dir = args.output_dir or "."
 
-    # Resolve SHA
     print(f"Resolving {'tag ' + args.pin if args.pin else 'latest tag'}...")
     try:
         sha, tag_name = resolve_tag_sha(args.pin)
@@ -32,19 +31,16 @@ def cmd_init(args):
         sys.exit(1)
     print(f"  {tag_name} -> {sha[:12]}")
 
-    # Detect languages
     langs = detect_languages(project_dir)
     if langs:
         print(f"Detected: {', '.join(sorted(langs))}")
     else:
         print("No language markers detected (CMakeLists.txt, pyproject.toml, etc.)")
 
-    # Determine which workflows to enable
     preset = ALL_PRESETS.get(args.preset, ALL_PRESETS["recommended"])
     workflow_names = list(COMMON_WORKFLOWS)
     for lang in sorted(langs):
         workflow_names.extend(LANGUAGE_WORKFLOWS.get(lang, []))
-    # Deduplicate while preserving order
     seen = set()
     unique = []
     for name in workflow_names:
@@ -54,7 +50,6 @@ def cmd_init(args):
     workflow_names = unique
 
     if not args.non_interactive and not langs:
-        # Ask which languages to enable
         if ask_yn("Enable C++ workflows?", default=False):
             langs.add("cpp")
         if ask_yn("Enable Python workflows?", default=False):
@@ -70,7 +65,6 @@ def cmd_init(args):
                 unique.append(name)
         workflow_names = unique
 
-    # Collect inputs per workflow
     all_configs = {}
     for wf_name in workflow_names:
         if wf_name not in ALL_WORKFLOWS:
@@ -79,14 +73,12 @@ def cmd_init(args):
         inputs = dict(preset.get(wf_name, {}))
 
         if not args.non_interactive:
-            # Ask for required inputs
             from standard_ci.prompt import ask_value
 
             for key, meta in wf["required_inputs"].items():
                 if key not in inputs or not inputs[key]:
                     inputs[key] = ask_value(f"  {meta['prompt']}:", meta["default"])
 
-            # Ask about boolean opt-ins
             for key, meta in wf["optional_inputs"].items():
                 if meta["type"] == "boolean" and meta.get("group") == "checks":
                     current = inputs.get(key, meta["default"])
@@ -94,7 +86,6 @@ def cmd_init(args):
 
         all_configs[wf_name] = inputs
 
-    # Generate workflow files
     workflows_dir = os.path.join(project_dir, ".github", "workflows")
     os.makedirs(workflows_dir, exist_ok=True)
 
@@ -108,7 +99,6 @@ def cmd_init(args):
         generated.append(filename)
         print(f"  Generated: .github/workflows/{filename}")
 
-    # Write .standard.yml
     config_data = {
         "version": __version__,
         "preset": args.preset,
@@ -116,7 +106,6 @@ def cmd_init(args):
         "sha": sha,
         "workflows": list(all_configs.keys()),
     }
-    # Store per-workflow inputs (only non-defaults)
     for wf_name, inputs in all_configs.items():
         if inputs:
             config_data[wf_name] = inputs
@@ -160,7 +149,6 @@ def cmd_update(args):
         print(f"  SHA: {old_sha[:12]} -> {new_sha[:12]}")
         return
 
-    # Update workflow files
     workflows_dir = os.path.join(project_dir, ".github", "workflows")
     enabled = config.get("workflows", [])
     updated = 0
@@ -184,7 +172,6 @@ def cmd_update(args):
             updated += 1
             print(f"  Updated: .github/workflows/{wf['filename']}")
 
-    # Update .standard.yml
     config["sha"] = new_sha
     config["tag"] = new_tag
     write_config(config_path, config)
@@ -384,7 +371,6 @@ def main(argv=None):
 
     sub = parser.add_subparsers(dest="command")
 
-    # init
     p_init = sub.add_parser("init", help="Scaffold workflow files")
     p_init.add_argument(
         "--preset",
@@ -400,13 +386,11 @@ def main(argv=None):
     p_init.add_argument("--pin", metavar="TAG", help="Pin to specific tag (default: latest)")
     p_init.add_argument("--output-dir", metavar="DIR", help="Project directory (default: .)")
 
-    # update
     p_update = sub.add_parser("update", help="Update SHA pins to latest release")
     p_update.add_argument("--dry-run", action="store_true", help="Show what would change")
     p_update.add_argument("--pin", metavar="TAG", help="Pin to specific tag (default: latest)")
     p_update.add_argument("--output-dir", metavar="DIR", help="Project directory (default: .)")
 
-    # install-starters
     p_starters = sub.add_parser(
         "install-starters",
         help="Install starter workflow templates into an org's .github repo",
@@ -425,11 +409,9 @@ def main(argv=None):
         help="Create the .github repo if it doesn't exist",
     )
 
-    # check
     p_check = sub.add_parser("check", help="Validate setup matches .standard.yml")
     p_check.add_argument("--output-dir", metavar="DIR", help="Project directory (default: .)")
 
-    # scan
     p_scan = sub.add_parser("scan", help="Scan org repos for compliance")
     p_scan.add_argument("--org", required=True, help="GitHub org or user to scan")
     p_scan.add_argument("--token", help="GitHub token (default: GITHUB_TOKEN env)")
@@ -439,7 +421,6 @@ def main(argv=None):
         help="Exit non-zero if any repo is non-compliant",
     )
 
-    # dashboard
     p_dash = sub.add_parser("dashboard", help="Generate compliance dashboard")
     p_dash.add_argument("--org", required=True, help="GitHub org or user")
     p_dash.add_argument("--token", help="GitHub token (default: GITHUB_TOKEN env)")
@@ -452,7 +433,6 @@ def main(argv=None):
         help="Use pre-computed scan results JSON instead of scanning",
     )
 
-    # auto-update
     p_auto = sub.add_parser(
         "auto-update", help="Open update PRs in drifted consumer repos",
     )

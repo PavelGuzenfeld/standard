@@ -1,17 +1,13 @@
 """Preset configurations: minimal, recommended, full."""
 
-# Each preset maps workflow names to their input overrides.
-# Only non-default values are listed — everything else uses the workflow default.
 
 MINIMAL = {
     "cpp-quality": {
-        # Just clang-tidy + cppcheck (always on) — no opt-ins
     },
     "python-quality": {
         # ruff + pytest (defaults)
     },
     "infra-lint": {
-        # Nothing enabled — minimal means no infra lint
     },
     "sast-python": {
         "enable_semgrep": True,

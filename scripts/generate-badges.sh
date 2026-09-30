@@ -1,13 +1,4 @@
 #!/usr/bin/env bash
-# generate-badges.sh — Output README badge markdown for enabled quality checks.
-#
-# Usage:
-#   generate-badges.sh [--scan-workflows] [--interactive] [--format markdown|html]
-#
-# Modes:
-#   --scan-workflows  (default) Parse .github/workflows/*.yml to detect enabled inputs
-#   --interactive     Ask which checks are enabled (same questions as generate-agents-md.sh)
-
 set -euo pipefail
 
 MODE="scan"
@@ -39,8 +30,6 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# --- Badge helpers ------------------------------------------------------------
-
 badge_md() {
     local label="$1" color="$2"
     local encoded_label
@@ -64,8 +53,6 @@ emit_badge() {
     fi
 }
 
-# --- Scan mode ----------------------------------------------------------------
-
 scan_workflows() {
     local workflow_dir=".github/workflows"
     if [ ! -d "$workflow_dir" ]; then
@@ -74,11 +61,9 @@ scan_workflows() {
         exit 1
     fi
 
-    # Detect enabled features by scanning workflow files
     local cpp_enabled=false
     local python_enabled=false
 
-    # C++ badges
     local clang_tidy=false
     local cppcheck=false
     local clang_format=false
@@ -92,13 +77,11 @@ scan_workflows() {
     local coverage=false
     local iwyu=false
 
-    # Python badges
     local python_lint=false
     local semgrep=false
     local pip_audit=false
     local codeql=false
 
-    # Infra badges
     local shellcheck=false
     local hadolint=false
     local cmake_lint=false
@@ -108,13 +91,11 @@ scan_workflows() {
         local content
         content=$(cat "$yml")
 
-        # Detect C++ quality workflow usage
         if echo "$content" | grep -qE 'cpp-quality\.yml'; then
             cpp_enabled=true
             clang_tidy=true
             cppcheck=true
 
-            # Check for opt-in inputs set to true
             echo "$content" | grep -qE 'enable_clang_format:\s*true' && clang_format=true
             echo "$content" | grep -qE 'enable_file_naming:\s*true' && file_naming=true
             echo "$content" | grep -qE 'ban_cout:\s*true' && ban_cout=true
@@ -127,19 +108,15 @@ scan_workflows() {
             echo "$content" | grep -qE 'enable_iwyu:\s*true' && iwyu=true
         fi
 
-        # Detect Python quality workflow
         if echo "$content" | grep -qE 'python-quality\.yml'; then
             python_enabled=true
             python_lint=true
         fi
 
-        # Detect Python SAST workflow
         if echo "$content" | grep -qE 'sast-python\.yml'; then
             echo "$content" | grep -qE 'enable_semgrep:\s*true' && semgrep=true
             echo "$content" | grep -qE 'enable_pip_audit:\s*true' && pip_audit=true
             echo "$content" | grep -qE 'enable_codeql:\s*true' && codeql=true
-            # Defaults: semgrep and pip_audit are true by default in sast-python.yml
-            # If the workflow is used and the inputs are not explicitly set to false, assume defaults
             if ! echo "$content" | grep -qE 'enable_semgrep:'; then
                 semgrep=true
             fi
@@ -148,7 +125,6 @@ scan_workflows() {
             fi
         fi
 
-        # Detect infra lint workflow
         if echo "$content" | grep -qE 'infra-lint\.yml'; then
             echo "$content" | grep -qE 'enable_shellcheck:\s*true' && shellcheck=true
             echo "$content" | grep -qE 'enable_hadolint:\s*true' && hadolint=true
@@ -156,7 +132,6 @@ scan_workflows() {
         fi
     done
 
-    # --- Output badges ---
     local any_output=false
 
     if $cpp_enabled; then
@@ -227,8 +202,6 @@ scan_workflows() {
     fi
 }
 
-# --- Interactive mode ---------------------------------------------------------
-
 ask() {
     local prompt="$1" default="$2" var="$3"
     if $NON_INTERACTIVE; then
@@ -253,7 +226,6 @@ interactive_mode() {
     echo "=== Badge Generator (Interactive) ===" >&2
     echo "" >&2
 
-    # C++ checks
     ask "clang-tidy?" "y" b_clang_tidy
     ask "cppcheck?" "y" b_cppcheck
     ask "clang-format?" "n" b_clang_format
@@ -267,20 +239,17 @@ interactive_mode() {
     ask "Coverage?" "n" b_coverage
     ask "IWYU?" "n" b_iwyu
 
-    # Python
     ask "Python lint?" "n" b_python
     ask "Semgrep?" "n" b_semgrep
     ask "pip-audit?" "n" b_pip_audit
     ask "CodeQL?" "n" b_codeql
 
-    # Infra
     ask "ShellCheck?" "n" b_shellcheck
     ask "Hadolint?" "n" b_hadolint
     ask "cmake-lint?" "n" b_cmake_lint
 
     echo "" >&2
 
-    # C++ Analysis
     if [[ "$b_clang_tidy" == "y" || "$b_cppcheck" == "y" || "$b_flawfinder" == "y" || "$b_iwyu" == "y" ]]; then
         echo "### C++ Analysis"
         echo ""
@@ -291,7 +260,6 @@ interactive_mode() {
         echo ""
     fi
 
-    # C++ Style
     if [[ "$b_clang_format" == "y" || "$b_file_naming" == "y" || "$b_ban_cout" == "y" || "$b_ban_new" == "y" || "$b_enforce_doctest" == "y" ]]; then
         echo "### C++ Style"
         echo ""
@@ -303,7 +271,6 @@ interactive_mode() {
         echo ""
     fi
 
-    # Python
     if [[ "$b_python" == "y" ]]; then
         echo "### Python"
         echo ""
@@ -311,7 +278,6 @@ interactive_mode() {
         echo ""
     fi
 
-    # Security
     if [[ "$b_semgrep" == "y" || "$b_pip_audit" == "y" || "$b_codeql" == "y" ]]; then
         echo "### Security"
         echo ""
@@ -321,7 +287,6 @@ interactive_mode() {
         echo ""
     fi
 
-    # Testing
     if [[ "$b_sanitizers" == "y" || "$b_tsan" == "y" || "$b_coverage" == "y" ]]; then
         echo "### Testing"
         echo ""
@@ -331,7 +296,6 @@ interactive_mode() {
         echo ""
     fi
 
-    # Infra
     if [[ "$b_shellcheck" == "y" || "$b_hadolint" == "y" || "$b_cmake_lint" == "y" ]]; then
         echo "### Infrastructure"
         echo ""
@@ -341,8 +305,6 @@ interactive_mode() {
         echo ""
     fi
 }
-
-# --- Dispatch -----------------------------------------------------------------
 
 case "$MODE" in
     scan)        scan_workflows ;;

@@ -15,12 +15,10 @@ def resolve_tag_sha(tag=None):
     If tag is None, resolves the latest tag.
     Returns (sha, tag_name) or raises RuntimeError.
     """
-    # Try GitHub API first (no git required)
     try:
         return _resolve_via_api(tag)
     except Exception:
         pass
-    # Fallback to git ls-remote
     return _resolve_via_git(tag)
 
 
@@ -64,7 +62,6 @@ def _resolve_via_git(tag):
         raise RuntimeError("No tags found via git ls-remote")
 
     if tag is None:
-        # Sort by version-like tag names (v1.2.3) to find latest
         def _version_key(entry):
             import re
             nums = re.findall(r"\d+", entry[1])

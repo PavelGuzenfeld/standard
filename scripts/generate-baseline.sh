@@ -1,32 +1,13 @@
 #!/usr/bin/env bash
-# generate-baseline.sh — Generate suppression/baseline files for incremental adoption.
-#
-# Usage:
-#   generate-baseline.sh <tool> [options]
-#
-# Supported tools:
-#   cppcheck      → generates cppcheck.suppress
-#   file-naming   → generates naming-exceptions.txt
-#   clang-format  → generates .clang-format-todo
-#   flawfinder    → generates .flawfinder-baseline
-#
-# Run quality tools on all source files and capture existing findings
-# so that only new code must pass cleanly.
-
 set -euo pipefail
-
-# --- Defaults -----------------------------------------------------------------
 
 TOOL=""
 EXTENSIONS="cpp hpp h cc cxx"
 EXCLUDE_FILE=""
 OUTPUT=""
 
-# cppcheck-specific
 CPPCHECK_INCLUDES=""
 CPPCHECK_STD="c++23"
-
-# --- Usage --------------------------------------------------------------------
 
 usage() {
     echo "Usage: $0 <tool> [options]"
@@ -55,8 +36,6 @@ usage() {
     echo "  $0 flawfinder"
 }
 
-# --- Parse arguments ----------------------------------------------------------
-
 if [[ $# -eq 0 ]]; then
     usage
     exit 1
@@ -77,16 +56,12 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# --- Helpers ------------------------------------------------------------------
-
 EXT_PATTERN="\.($(echo "$EXTENSIONS" | tr ' ' '|'))$"
 
-# Collect all source files matching extensions
 collect_cpp_files() {
     local files
     files=$(find . -type f | grep -E "$EXT_PATTERN" | sed 's|^\./||' | sort)
 
-    # Apply exclusion filter
     if [ -n "$EXCLUDE_FILE" ] && [ -f "$EXCLUDE_FILE" ]; then
         local patterns=()
         while IFS= read -r line || [ -n "$line" ]; do
@@ -113,8 +88,6 @@ collect_cpp_files() {
     echo "$files"
 }
 
-# --- Tool: cppcheck -----------------------------------------------------------
-
 baseline_cppcheck() {
     local output="${OUTPUT:-cppcheck.suppress}"
 
@@ -131,7 +104,6 @@ baseline_cppcheck() {
     file_count=$(echo "$files" | wc -l)
     echo "Found $file_count source file(s)."
 
-    # Build cppcheck arguments
     local cppcheck_args=(
         --enable=warning,style,performance,portability
         --template='{file}:{line}:{id}:{message}'
@@ -148,11 +120,9 @@ baseline_cppcheck() {
 
     mapfile -t file_array <<< "$files"
 
-    # Run cppcheck and collect findings
     local raw_output
     raw_output=$(cppcheck "${cppcheck_args[@]}" "${file_array[@]}" 2>&1 || true)
 
-    # Extract unique suppression IDs
     local suppressions
     suppressions=$(echo "$raw_output" | grep -E '^.+:[0-9]+:.+:' | awk -F: '{print $3}' | sort -u || true)
 
@@ -161,7 +131,6 @@ baseline_cppcheck() {
         exit 0
     fi
 
-    # Generate suppression file
     {
         echo "# cppcheck.suppress — Generated baseline"
         echo "# These are existing findings grandfathered in for incremental adoption."
@@ -170,7 +139,6 @@ baseline_cppcheck() {
         echo "# Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
         echo ""
 
-        # Global suppressions (just IDs)
         while IFS= read -r id; do
             [ -z "$id" ] && continue
             echo "$id"
@@ -191,8 +159,6 @@ baseline_cppcheck() {
     echo "  New code must pass cleanly."
 }
 
-# --- Tool: file-naming --------------------------------------------------------
-
 baseline_file_naming() {
     local output="${OUTPUT:-naming-exceptions.txt}"
 
@@ -201,7 +167,6 @@ baseline_file_naming() {
     SNAKE_CASE='^[a-z][a-z0-9_]*$'
     ALLOWED_PREFIXES="_"
 
-    # Built-in exemptions (same as diff-file-naming.sh)
     BUILTIN_EXEMPT_FILES=(
         "CMakeLists.txt" "Dockerfile" "README.md" "CLAUDE.md"
         "CHANGELOG.md" "CONTRIBUTING.md" "LICENSE" "Makefile"
@@ -246,7 +211,6 @@ baseline_file_naming() {
         return 1
     }
 
-    # Collect all tracked files
     local all_files
     all_files=$(git ls-files 2>/dev/null || find . -type f | sed 's|^\./||')
 
@@ -262,7 +226,6 @@ baseline_file_naming() {
             local segment="${segments[$i]}"
             local is_last=$(( i == seg_count - 1 ))
 
-            # Skip dotdirs and children
             if echo "$segment" | grep -qE '^\.' ; then
                 break
             fi
@@ -277,7 +240,6 @@ baseline_file_naming() {
             fi
 
             if ! is_snake_case "$name_without_ext"; then
-                # Collect the violating segment as an exception pattern
                 violations+=("$name_without_ext")
                 break
             fi
@@ -289,7 +251,6 @@ baseline_file_naming() {
         exit 0
     fi
 
-    # Deduplicate and generate exceptions file
     local unique_violations
     unique_violations=$(printf '%s\n' "${violations[@]}" | sort -u)
 
@@ -302,7 +263,6 @@ baseline_file_naming() {
         echo ""
         while IFS= read -r name; do
             [ -z "$name" ] && continue
-            # Escape regex special chars and anchor the match
             local escaped
             escaped=$(echo "$name" | sed 's/[.[\*^$()+?{|]/\\&/g')
             echo "^${escaped}$"
@@ -316,8 +276,6 @@ baseline_file_naming() {
     echo "  $count naming exception(s)"
     echo "  New files must follow snake_case."
 }
-
-# --- Tool: clang-format -------------------------------------------------------
 
 baseline_clang_format() {
     local output="${OUTPUT:-.clang-format-todo}"
@@ -370,8 +328,6 @@ baseline_clang_format() {
     echo "  New code must pass clang-format."
 }
 
-# --- Tool: flawfinder ---------------------------------------------------------
-
 baseline_flawfinder() {
     local output="${OUTPUT:-.flawfinder-baseline}"
 
@@ -419,8 +375,6 @@ baseline_flawfinder() {
     echo "  $hits existing finding(s)"
     echo "  New code must pass flawfinder cleanly."
 }
-
-# --- Dispatch -----------------------------------------------------------------
 
 case "$TOOL" in
     cppcheck)      baseline_cppcheck ;;

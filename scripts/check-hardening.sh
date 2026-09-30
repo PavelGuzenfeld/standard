@@ -1,25 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# check-hardening.sh — Verify ELF binary hardening properties using readelf.
-#
-# Usage: check-hardening.sh <path_or_glob>... [--skip check_name]...
-#
-# Checks per binary:
-#   1. PIE        — ELF type is DYN (shared libs skip this — always DYN)
-#   2. RELRO      — GNU_RELRO segment present
-#   3. BIND_NOW   — BIND_NOW in dynamic section (Full RELRO)
-#   4. CANARY     — __stack_chk_fail symbol present
-#   5. FORTIFY    — __*_chk symbol present (warning only — tiny binaries may lack these)
-#   6. NX         — GNU_STACK without execute flag
-#   7. CET        — .note.gnu.property with IBT/SHSTK (Control-flow Enforcement Technology)
-#
-# Options:
-#   --skip <check>   Skip a check (pie, relro, bindnow, canary, fortify, nx, cet)
-#                    May be repeated.
-#
-# Exit code: 0 = all pass, 1 = violations found
-
 usage() {
     echo "Usage: $0 <path_or_glob>... [--skip check_name]..."
     echo ""
@@ -43,7 +24,6 @@ usage() {
     exit 1
 }
 
-# Parse arguments
 SKIP_CHECKS=()
 PATHS=()
 
@@ -78,13 +58,11 @@ is_skipped() {
     return 1
 }
 
-# Expand globs and collect ELF binaries
 BINARIES=()
 for pattern in "${PATHS[@]}"; do
     # shellcheck disable=SC2086
     for file in $pattern; do
         [[ -f "$file" ]] || continue
-        # Check if it's an ELF file
         if file "$file" 2>/dev/null | grep -q "ELF"; then
             BINARIES+=("$file")
         fi
@@ -106,13 +84,11 @@ for binary in "${BINARIES[@]}"; do
     echo "--- $binary ---"
     BIN_FAIL=0
 
-    # Determine if this is a shared library
     IS_SHARED=false
     if file "$binary" 2>/dev/null | grep -q "shared object"; then
         IS_SHARED=true
     fi
 
-    # 1. PIE check — ELF type must be DYN
     if ! is_skipped "pie"; then
         if $IS_SHARED; then
             echo "  PIE: SKIP (shared library — always DYN)"
@@ -127,7 +103,6 @@ for binary in "${BINARIES[@]}"; do
         fi
     fi
 
-    # 2. RELRO check — GNU_RELRO segment present
     if ! is_skipped "relro"; then
         if readelf -l "$binary" 2>/dev/null | grep -q "GNU_RELRO"; then
             echo "  RELRO: PASS (GNU_RELRO segment present)"
@@ -137,7 +112,6 @@ for binary in "${BINARIES[@]}"; do
         fi
     fi
 
-    # 3. BIND_NOW check — Full RELRO
     if ! is_skipped "bindnow"; then
         if readelf -d "$binary" 2>/dev/null | grep -qE '\(BIND_NOW\)'; then
             echo "  BIND_NOW: PASS (Full RELRO)"
@@ -147,7 +121,6 @@ for binary in "${BINARIES[@]}"; do
         fi
     fi
 
-    # 4. Stack canary check — __stack_chk_fail symbol
     if ! is_skipped "canary"; then
         if readelf -s "$binary" 2>/dev/null | grep -q "__stack_chk_fail"; then
             echo "  CANARY: PASS (__stack_chk_fail present)"
@@ -157,7 +130,6 @@ for binary in "${BINARIES[@]}"; do
         fi
     fi
 
-    # 5. FORTIFY check — __*_chk symbols (warning only)
     if ! is_skipped "fortify"; then
         if readelf -s "$binary" 2>/dev/null | grep -qE "__\w+_chk"; then
             echo "  FORTIFY: PASS (__*_chk symbols present)"
@@ -167,7 +139,6 @@ for binary in "${BINARIES[@]}"; do
         fi
     fi
 
-    # 6. NX check — GNU_STACK without execute flag
     if ! is_skipped "nx"; then
         STACK_LINE=$(readelf -l "$binary" 2>/dev/null | grep "GNU_STACK" || true)
         if [[ -z "$STACK_LINE" ]]; then
@@ -181,7 +152,6 @@ for binary in "${BINARIES[@]}"; do
         fi
     fi
 
-    # 7. CET check — .note.gnu.property with IBT/SHSTK (x86-64 only)
     if ! is_skipped "cet"; then
         NOTE_PROPS=$(readelf -n "$binary" 2>/dev/null | grep -i "x86 feature:" || true)
         if [[ -z "$NOTE_PROPS" ]]; then

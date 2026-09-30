@@ -67,7 +67,6 @@ TEMPLATES = [
     },
 ]
 
-# Job YAML snippets keyed by job id
 _JOB_SNIPPETS = {
     "cpp_quality": """\
   cpp_quality:
@@ -217,7 +216,6 @@ def install_starters(org, sha, tag, dry_run=False, create_repo=False):
             messages.append(f"  {path}")
         return messages
 
-    # Check if repo exists (requires gh CLI)
     _, rc = _run_gh(["repo", "view", repo_name], check_rc=False)
     repo_exists = rc == 0
 
@@ -236,28 +234,23 @@ def install_starters(org, sha, tag, dry_run=False, create_repo=False):
         ])
         messages.append(f"Created repo: {repo_name}")
 
-    # Clone, write files, commit, push
     with tempfile.TemporaryDirectory() as tmpdir:
         clone_dir = os.path.join(tmpdir, "dot-github")
 
-        # Clone (or init if empty)
         subprocess.run(
             ["git", "clone", f"git@github.com:{repo_name}.git", clone_dir],
             capture_output=True, text=True, timeout=30,
         )
 
-        # Ensure workflow-templates dir
         templates_dir = os.path.join(clone_dir, "workflow-templates")
         os.makedirs(templates_dir, exist_ok=True)
 
-        # Write all files
         for rel_path, content in files.items():
             filepath = os.path.join(clone_dir, rel_path)
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             with open(filepath, "w") as f:
                 f.write(content)
 
-        # Check if there are changes
         result = subprocess.run(
             ["git", "status", "--porcelain"],
             capture_output=True, text=True, cwd=clone_dir,
@@ -266,7 +259,6 @@ def install_starters(org, sha, tag, dry_run=False, create_repo=False):
             messages.append("No changes — starter workflows already up to date.")
             return messages
 
-        # Commit and push
         subprocess.run(
             ["git", "add", "-A"], cwd=clone_dir,
             capture_output=True, text=True,
