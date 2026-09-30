@@ -35,7 +35,7 @@ Only changed files are checked — but all new and modified code must pass.
 
 ### File and Directory Naming
 
-All files and directories must be `snake_case`. Pattern: lowercase letters, digits, underscores.
+All files and directories are `snake_case`: lowercase letters, digits, underscores.
 
 Valid: `flight_controller.cpp`, `nav_utils/`, `terrain_map.hpp`
 Invalid: `FlightController.cpp`, `NavUtils/`, `terrainMap.hpp`
@@ -60,13 +60,7 @@ dotfiles (`.clang-tidy`, `.gitignore`), `__init__.py`, `requirements*.txt`
 
 ### Include Convention
 
-```cpp
-#pragma once                          // not #ifndef guards
-#include <system_headers>             // standard library first
-#include "project/package_header.hpp" // project headers second
-```
-
-Minimize includes. Forward-declare where possible.
+Use `#pragma once`, not `#ifndef` guards. Include standard library headers first, then project headers (`"project/package_header.hpp"`). Minimize includes and forward-declare where possible.
 
 ### Banned Patterns
 
@@ -77,7 +71,7 @@ Minimize includes. Forward-declare where possible.
 | `#include <gtest/gtest.h>` | Non-standard for this project | `#include <doctest/doctest.h>` |
 | `#include <benchmark/benchmark.h>` | Non-standard for this project | `#include <nanobench.h>` |
 
-These bans apply to production code only. Test files (matching `test` in the path) may have different rules depending on project configuration.
+The bans apply to production code only. Test files (`test` in the path) may follow different rules.
 
 ## Testing Requirements
 
@@ -106,45 +100,15 @@ cmake --preset release-asan     # ASan + UBSan at -O2
 cmake --preset release-hardened # Production hardening (FORTIFY, PIE, RELRO)
 ```
 
-## Code Formatting
-
-### clang-format Settings
-
-- Standard: Latest
-- Column limit: 120
-- Indent: 4 spaces
-- Braces: Allman (opening brace on new line)
-- No bin-packing of arguments
-
-### clang-tidy Checks
-
-Active check groups: `clang-analyzer-*`, `cppcoreguidelines-*`, `modernize-*`, `bugprone-*`, `performance-*`, `readability-*`
-
-Run locally before pushing:
-
-```bash
-# Check only files changed vs main
-./scripts/diff-clang-tidy.sh origin/main build "cpp hpp h"
-./scripts/diff-cppcheck.sh origin/main
-./scripts/diff-clang-format.sh origin/main "cpp hpp h"
-./scripts/diff-file-naming.sh origin/main
-```
-
 ## Python Conventions
 
-- **Linter**: ruff (preferred) or flake8
-- **Formatter**: ruff format or black
-- **Test framework**: pytest
-- **Coverage**: diff-cover (only changed lines must be covered)
-- **SAST**: Semgrep for security, pip-audit for CVEs
-- **Style**: PEP 8, type hints encouraged
+Lint with ruff (preferred) or flake8, format with ruff format or black, test with pytest, cover changed lines with diff-cover, run Semgrep and pip-audit, follow PEP 8, and use type hints.
 
 ## Local Verification
 
-**All C++ checks and tests must run inside the project's Docker dev container — never on the host machine.** The Docker image must contain every dependency needed to reproduce CI locally: compilers, clang-tidy, cppcheck, clang-format, cmake, project libraries, and headers. Never install these on the host. Every CI check must be reproducible by running the same script inside the container.
+All C++ checks and tests run inside the project's Docker dev container, never on the host. The image holds every dependency needed to reproduce CI: compilers, clang-tidy, cppcheck, clang-format, cmake, project libraries and headers.
 
 ```bash
-# Enter your dev container first, then run:
 ./scripts/diff-clang-tidy.sh origin/main build "cpp hpp h"
 ./scripts/diff-cppcheck.sh origin/main
 ./scripts/diff-clang-format.sh origin/main "cpp hpp h"
@@ -152,49 +116,17 @@ Run locally before pushing:
 ./scripts/diff-iwyu.sh origin/main build
 ./scripts/diff-test-mirror.sh origin/main
 
-# Python
 ruff check src/ tests/
 pytest --cov=src tests/
 ```
 
-### Setup Scripts
-
-Generator scripts to bootstrap quality tooling in your repo:
-
-```bash
-# Generate .github/workflows/ YAML files
-./scripts/generate-workflow.sh
-
-# Install git pre-commit hooks
-./scripts/install-hooks.sh
-
-# Generate suppression/baseline files for incremental adoption
-./scripts/generate-baseline.sh cppcheck    # or file-naming, clang-format, flawfinder
-
-# Generate README badge markdown
-./scripts/generate-badges.sh
-```
+Setup generators (`generate-workflow.sh`, `install-hooks.sh`, `generate-baseline.sh`, `generate-badges.sh`) are listed in the [standard README](https://github.com/PavelGuzenfeld/standard#scripts).
 
 ## Customization
 
 ### Adding File Naming Exceptions
 
-Create or edit `naming-exceptions.txt` (one regex per line):
-
-```
-# Vendor directories
-vendor
-third_party
-
-# Generated code
-.*_generated
-
-# O3DE Gem directories
-Gems
-Code
-```
-
-Pass it to the workflow:
+Create or edit `naming-exceptions.txt`, one regex per line (for example `vendor`, `third_party`, `.*_generated`), and pass it to the workflow:
 
 ```yaml
 with:
@@ -206,18 +138,15 @@ with:
 Add to `cppcheck.suppress`:
 
 ```
-// Suppress specific check for a file
 unusedFunction:src/legacy_module.cpp
-
-// Suppress globally
 shadowVariable
 ```
 
+The first line suppresses one check in one file. The second suppresses it globally.
+
 ### Overriding clang-tidy Checks
 
-Edit `.clang-tidy` in your repo root. The CI uses your config when present.
-
-To disable a specific check:
+Edit `.clang-tidy` in your repo root. CI uses it when present. To disable a check:
 
 ```yaml
 Checks: >-
@@ -240,17 +169,13 @@ Every project integrating this standard must have a quality workflow in `.github
 
 ### Optional Workflows
 
-- `ci-codeql.yml` — GitHub CodeQL analysis
+- `ci-codeql.yml` — CodeQL analysis
 - `ci-infer.yml` — Facebook Infer static analysis (C++)
 - `ci-fuzz.yml` — libFuzzer continuous fuzzing with corpus caching
 - `ci-multi-compiler.yml` — GCC + Clang multi-compiler builds
 - `infra-lint.yml` — ShellCheck, Hadolint, cmake-lint, dangerous-workflow audit, binary-artifact scan
 - `sbom.yml` — Syft container SBOM, Grype vulnerability scanning, license check
 - `auto-release.yml` — Conventional-commit version bumps, GitHub Releases, SLSA provenance
-
-### Verification
-
-Confirm `.github/workflows/` contains the quality workflow for your language(s).
 
 Full setup instructions: see `INTEGRATION.md`.
 
@@ -265,14 +190,3 @@ Full setup instructions: see `INTEGRATION.md`.
 - **No AI attribution** — never add "Generated with Claude Code", "Co-Authored-By", or similar AI-generated footers to commit messages, PR descriptions, or any content
 - **Conventional commits** — use `feat:`, `fix:`, `feat!:`, `BREAKING CHANGE:` prefixes (drives auto-release versioning)
 - **Versioning** — first release is always `v0.0.1`, see `docs/VERSIONING.md`
-
-## SDLC Process
-
-The standard supports a 4-phase Software Development Lifecycle:
-
-- **Phase 1: Developer workstation** — pre-commit hooks, local diff-aware scripts, sanitizer CMake presets, editor integration
-- **Phase 2: PR quality gate** — diff-aware linting, naming checks, banned pattern detection via CI workflows
-- **Phase 3: SAST** — Semgrep (Python), CodeQL (C++/Python), Infer (C++), pip-audit (Python)
-- **Phase 4: Hardening** — sanitizer builds in CI, fuzzing harnesses, multi-compiler testing
-
-Full documentation: see `SDLC.md`.

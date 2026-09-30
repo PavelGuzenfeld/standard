@@ -1,32 +1,6 @@
-# standard repo — Industry Comparison (Feb 2026)
+# Comparison with Other Tools (Feb 2026)
 
-## What `standard` Is
-Reusable GitHub Actions workflows for diff-aware C++ and Python quality gates.
-Repo: `PavelGuzenfeld/standard`, MIT license, `~/workspace/standard/`
-
-## Unique Niche
-No single tool in the industry combines all of: diff-aware C++ deep checks (clang-tidy with compilation database), Python quality gates, infra lint, secrets detection, SBOM/supply chain, hardening verification, and auto-release with SLSA provenance in one opt-in reusable workflow system. The fundamental industry gap: serious C++ analysis requires a compilation database + build environment, which no aggregator platform (MegaLinter, Super-Linter, trunk, pre-commit.ci) provides.
-
-## Feature Coverage
-
-### What `standard` provides :
-- **C++ quality**: clang-tidy, cppcheck, clang-format, flawfinder, ASan/UBSan, TSan, gcov/lcov coverage, IWYU, binary hardening verification
-- **Python quality**: ruff/flake8, pytest, diff-cover
-- **Python SAST**: Semgrep, pip-audit, CodeQL
-- **Infra lint**: ShellCheck, Hadolint, cmake-lint, dangerous-workflow audit, binary-artifact scan, Gitleaks secrets detection
-- **SBOM/supply chain**: Syft, Grype, license compliance, SLSA provenance, Dependabot config
-- **Version check**: SemVer validation in package.xml, CMakeLists.txt, pyproject.toml
-- **Auto-release**: conventional commits → semver tag → GitHub Release → SLSA provenance
-- **Extras**: banned patterns (cout/printf, new/delete, gtest), snake_case file naming, drop-in configs, generator scripts, PR scoreboard comments
-- **Templates**: CodeQL (ci-codeql.yml), Infer (ci-infer.yml), libFuzzer (ci-fuzz.yml), multi-compiler (ci-multi-compiler.yml), CMakePresets-sanitizers.json, cmake-warnings.cmake
-
-### Architecture advantage:
-- `workflow_call` — update once, all consumer repos benefit (no copy-paste divergence)
-- Diff-aware across ALL check types (only changed files checked)
-- Docker-image-aware — runs inside caller's image with their exact toolchain + compile_commands.json
-- Compilation-database-aware clang-tidy — the key differentiator no aggregator matches
-
----
+No aggregator runs serious C++ analysis in one opt-in reusable workflow, because that needs a compilation database and the project's build environment. MegaLinter, Super-Linter, trunk and pre-commit.ci run tools without build context, so they cannot use clang-tidy's semantic analysis. `standard` runs inside the caller's Docker image with their `compile_commands.json`. What it provides is in the [README](../README.md#reusable-workflows).
 
 ## Competitors Compared
 
@@ -40,8 +14,6 @@ No single tool in the industry combines all of: diff-aware C++ deep checks (clan
 | **Reviewdog** | Universal adapter for any linter output, PR annotations | Not a framework — must wire each tool separately |
 | **pre-commit.ci** | Zero-config from .pre-commit-config.yaml, auto-fix commits, weekly hook updates | **No Docker hooks** (blocks most C++ tools), no security/SBOM, GitHub only, cannot use compilation databases |
 
-**Key insight**: All aggregators treat C++ like a scripting language. They run tools without build context, so they cannot use clang-tidy's semantic analysis (which requires compile_commands.json from CMake). This is the fundamental gap standard fills.
-
 ### C++ Project Templates
 
 | Tool | Strengths vs standard | Weaknesses vs standard |
@@ -51,8 +23,6 @@ No single tool in the industry combines all of: diff-aware C++ deep checks (clan
 | **aminya/setup-cpp** | Widest C++ tool installer (LLVM 21, GCC 15.2), cross-platform | Setup only — installs tools, no analysis logic |
 | **ModernCppStarter** | 5.3k stars, clean library/exe separation, CPM.cmake | No hardening, no fuzzing, no CodeQL, low activity (Jan 2025) |
 | **filipdutescu/modern-cpp-template** | 1.9k stars | **Unmaintained since Oct 2021** |
-
-Note: cmake_template's former unique advantages (hardening, fuzzing, CMakePresets) are now fully matched by standard's configs (CMakePresets-sanitizers.json, ci-fuzz.yml, cmake-warnings.cmake, hardening verification job).
 
 ### Google / OpenSSF
 
@@ -66,7 +36,7 @@ Note: cmake_template's former unique advantages (hardening, fuzzing, CMakePreset
 | **SLSA GitHub Generator** v1.10 | Build provenance (achieves Build L3) | **Yes** (reusable workflows) | Supply chain only. Go/Node/Maven/Container builders |
 | **Allstar** | Continuous policy enforcement GitHub App | N/A (GitHub App) | Enforces Scorecard-like policies |
 
-**Gap**: Google invented the foundational tools (sanitizers, fuzzing, SLSA) but never assembled them into a unified CI framework. standard integrates ASan/TSan as opt-in jobs, SLSA provenance in auto-release, and aligns with Scorecard via SECURITY.md + Dependabot + dangerous-workflow audit.
+**Gap**: Google built the underlying tools (sanitizers, fuzzing, SLSA) but no unified CI framework. `standard` wires ASan/TSan as opt-in jobs and SLSA into auto-release, and aligns with Scorecard through SECURITY.md, Dependabot and the dangerous-workflow audit.
 
 ### Microsoft / GitHub
 
@@ -80,7 +50,7 @@ Note: cmake_template's former unique advantages (hardening, fuzzing, CMakePreset
 | **microsoft/sbom-tool** | Generic SPDX 2.2/3.0 generation | **Cannot detect C++ dependencies** (no Conan/CMake/vcpkg awareness) |
 | **Security DevOps Action** | Bundles BinSkim + Checkov + Trivy + Bandit + ESLint | Only BinSkim relevant for C++. No source analysis |
 
-**Gap**: Microsoft provides strong individual pieces (CodeQL, BinSkim) but **no orchestration layer**. No reusable C++ quality workflow exists. The msvc-code-analysis-action is dead.
+**Gap**: strong pieces (CodeQL, BinSkim), no orchestration layer, no reusable C++ quality workflow.
 
 ### JFrog
 
@@ -109,29 +79,6 @@ Note: cmake_template's former unique advantages (hardening, fuzzing, CMakePreset
 | **Renovate** | Conan (conanfile.txt/py/lock), CPM.cmake | 90+ package managers, multi-platform, monorepo grouping, regex managers for custom patterns |
 | **Dependabot** | vcpkg only (Aug 2025) | **No Conan support** (feature request closed). GitHub only. Simpler config |
 
----
-
-## What `standard` Could Adopt
-
-| Feature | Source | Priority | Notes |
-|---------|--------|----------|-------|
-| ClusterFuzzLite as reusable workflow | Google | Medium | ci-fuzz.yml template exists but not workflow_call |
-| Copy-paste detection (jscpd) | MegaLinter | Low | Code smell, not bugs. High noise |
-| BinSkim (richer binary checks) | Microsoft | Low | standard's readelf-based hardening job covers the essentials; BinSkim adds stack-clash-protection + SafeStack |
-| Renovate support in generate-workflow.sh | Renovate | Low | Better C++ dep update support than Dependabot (Conan) |
-| ~~Trend dashboard~~ | Internal | **Done** | `trend-dashboard.yml` — weekly aggregate scan results, Slack/Discussions posting |
-
-### Already Done (previously listed as TODO):
-- ~~OpenSSF Scorecard~~ → scorecard.yml + README badge
-- ~~Hardening flags~~ → CMakePresets-sanitizers.json + hardening verification job
-- ~~SLSA provenance~~ → auto-release.yml with enable_provenance
-- ~~Secrets detection~~ → enable_gitleaks in infra-lint.yml
-- ~~CodeQL C++ weekly~~ → configs/ci-codeql.yml template
-- ~~Infer C++ analysis~~ → configs/ci-infer.yml template
-- ~~Allstar policy templates~~ → configs/.allstar/ (branch protection, security policy, binary artifacts, dangerous workflows, outside collaborators, actions)
-
----
-
 ## Industry Coverage Matrix
 
 What each platform covers for C++ projects:
@@ -158,13 +105,10 @@ What each platform covers for C++ projects:
 
 *cmake_template: copy-per-project, not reusable. Diverges after fork.
 
----
+## Consumer: strong-types
 
-## strong-types as Consumer Proof
-
-`strong-types` is the first real consumer of `standard` with full fuzz testing:
+`strong-types` uses `ci-fuzz.yml` end to end:
 - 2 fuzz harnesses: `fuzz_safe_math.cpp` (oracle-based), `fuzz_quantity_point.cpp` (magnitude-aware)
 - Dedicated `fuzz.yml` workflow: Clang 18 + libFuzzer + ASan/UBSan, 30s/harness
 - CMake: `BUILD_FUZZING` + `FUZZ_USE_LIBCXX` options
 - 5+ commits fixing fuzz-discovered edge cases (UB, extreme magnitudes, missing includes)
-- Proves the ci-fuzz.yml template works end-to-end

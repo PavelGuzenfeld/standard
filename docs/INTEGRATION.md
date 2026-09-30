@@ -1,120 +1,61 @@
 # Integration Guide
 
-How to add these quality workflows to your project.
+Quick-start workflow files are in the [README](../README.md#quick-start). Every input and default is in [Workflow Inputs](../README.md#workflow-inputs).
 
-## Quick Start: C++
-
-Add to `.github/workflows/quality.yml`:
-
-```yaml
-name: Quality
-on:
-  pull_request:
-    branches: [main]
-
-jobs:
-  cpp:
-    uses: PavelGuzenfeld/standard/.github/workflows/cpp-quality.yml@main
-    with:
-      docker_image: ghcr.io/your-org/your-dev-image:latest
-    permissions:
-      contents: read
-      pull-requests: write
-```
-
-That's it. clang-tidy and cppcheck run on every PR, checking only changed files.
-
-## Quick Start: Python
-
-```yaml
-name: Quality
-on:
-  pull_request:
-    branches: [main]
-
-jobs:
-  python:
-    uses: PavelGuzenfeld/standard/.github/workflows/python-quality.yml@main
-    permissions:
-      contents: read
-      pull-requests: write
-
-  sast:
-    uses: PavelGuzenfeld/standard/.github/workflows/sast-python.yml@main
-    permissions:
-      contents: read
-      pull-requests: write
-      security-events: write
-```
-
----
-
-## Automated Setup
-
-Use the generator scripts to bootstrap quality tooling in your repo:
+## Generators
 
 ```bash
-# 1. Generate .github/workflows/ YAML files
 ./scripts/generate-workflow.sh
-
-# 2. Generate a tailored AGENTS.md for AI coding agents
 ./scripts/generate-agents-md.sh
-
-# 3. Install git pre-commit hooks
 ./scripts/install-hooks.sh
-
-# 4. Generate suppression/baseline files for incremental adoption
 ./scripts/generate-baseline.sh
-
-# 5. Generate README badge markdown
 ./scripts/generate-badges.sh
 ```
 
-These scripts are idempotent — safe to re-run as you enable more checks.
+They write workflow files, an `AGENTS.md`, git hooks, baseline files and badge markdown. They are idempotent, so re-run them as you enable more checks. The steps below are the manual route.
 
-For manual step-by-step setup, continue below.
+## C++ Setup
 
----
+### 1. Docker image
 
-## Full C++ Setup
+All C++ checks and tests run inside your Docker dev container, in CI and locally. The image is the single source of truth. Every CI check must be reproducible by running the same script in the container.
 
-### 1. Docker Image Requirements
+The image needs:
 
-> **Important:** All C++ quality checks and tests must run inside your Docker dev container — both in CI and locally. Never install tools or dependencies on the host machine. The Docker image is the single source of truth; every CI check must be reproducible locally by running the same script inside the container.
+- clang-tidy (14+ recommended)
+- cppcheck (2.10+ recommended)
+- clang-format, if `enable_clang_format: true`
+- cmake and a build toolchain
+- project dependencies (libraries, headers, ROS2 packages)
+- `compile_commands.json` at `compile_commands_path`
 
-The workflow runs tools inside your Docker image. It must have all dependencies needed for both CI and local development:
+The repo is mounted at `source_mount` (default `/workspace/src`). A non-root user in the image needs read access to that mount.
 
-- **clang-tidy** (version 14+ recommended)
-- **cppcheck** (version 2.10+ recommended)
-- **clang-format** (if `enable_clang_format: true`)
-- **cmake** and build toolchain (compilers, linker)
-- **Project dependencies** (libraries, headers, ROS2 packages, etc.)
-- **compile_commands.json** pre-generated at the path specified by `compile_commands_path`
+### 2. Copy configs
 
-The repo source gets volume-mounted into the container at `source_mount` (default: `/workspace/src`).
-
-### 2. Copy Configs
-
-Copy the configs you need from [`configs/`](../configs/) into your repo root:
+Copy what you need from [`configs/`](../configs/) into the repo root:
 
 ```bash
-# Required
 cp configs/.clang-tidy .clang-tidy
-
-# Recommended
 cp configs/.clang-format .clang-format
 cp configs/cppcheck.suppress cppcheck.suppress
-
-# Optional
 cp configs/.clang-tidy-naming .clang-tidy-naming
 cp configs/naming-exceptions.txt naming-exceptions.txt
 ```
 
-Customize as needed. The workflow uses your repo's configs when provided, otherwise falls back to the tool defaults.
+`.clang-tidy` is required. The rest are optional. The workflow uses your config when a config input points at it, and the tool defaults otherwise. Config inputs take paths relative to the repo root:
 
-### 3. Enable Checks One by One
+```yaml
+with:
+  clang_tidy_config: .clang-tidy
+  cppcheck_suppress: tools/cppcheck.suppress
+  clang_format_config: .clang-format
+  file_naming_exceptions: tools/naming-exceptions.txt
+```
 
-Start with the defaults (clang-tidy + cppcheck) and enable more checks as your codebase is ready:
+### 3. Enable checks one at a time
+
+Start with the defaults (clang-tidy, cppcheck) and add checks as the codebase is ready:
 
 ```yaml
 jobs:
@@ -122,138 +63,54 @@ jobs:
     uses: PavelGuzenfeld/standard/.github/workflows/cpp-quality.yml@main
     with:
       docker_image: ghcr.io/your-org/your-image:latest
-
-      # Step 1: Add cppcheck include paths (fixes "file not found" warnings)
       cppcheck_include_file: cppcheck.include
-
-      # Step 2: Add cppcheck suppressions
       cppcheck_suppress: cppcheck.suppress
-
-      # Step 3: Enable formatting check
       enable_clang_format: true
-
-      # Step 4: Enforce snake_case file naming
       enable_file_naming: true
-
-      # Step 5: Ban cout/printf (use structured logging)
       ban_cout: true
-
-      # Step 6: Ban raw new/delete (use smart pointers)
       ban_new: true
-
-      # Step 7: Enforce doctest over gtest
       enforce_doctest: true
-
-      # Step 8: Enable flawfinder CWE scan
       enable_flawfinder: true
-
-      # Step 9: Upload SARIF to GitHub Security tab
       enable_sarif: true
-
-      # Step 10: Enable hardening verification (PIE, RELRO, NX, canary)
       enable_hardening: true
-
     permissions:
       contents: read
       pull-requests: write
-      security-events: write  # Required for SARIF upload
-```
-
-### 4. Add SAST (C++)
-
-#### CodeQL
-
-Copy the template and add to your workflows:
-
-```yaml
-# .github/workflows/codeql.yml
-name: CodeQL
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  schedule:
-    - cron: '0 6 * * 1'  # Weekly Monday 6 AM
-
-jobs:
-  analyze:
-    runs-on: ubuntu-latest
-    permissions:
       security-events: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: github/codeql-action/init@v3
-        with:
-          languages: cpp
-          queries: security-extended
-      - name: Build
-        run: cmake -B build && cmake --build build
-      - uses: github/codeql-action/analyze@v3
 ```
 
-See [`configs/ci-codeql.yml`](../configs/ci-codeql.yml) for the full template with matrix over languages.
+`security-events: write` is needed for SARIF upload. The sanitizer, TSan, coverage and IWYU jobs each take an `enable_*` flag and a script input, listed in the README.
 
-#### Infer
+### 4. SAST
 
-```yaml
-# .github/workflows/infer.yml
-name: Infer
-on:
-  push:
-    branches: [main]
+CodeQL and Infer are templates: copy [`configs/ci-codeql.yml`](../configs/ci-codeql.yml) or [`configs/ci-infer.yml`](../configs/ci-infer.yml) to `.github/workflows/`. CodeQL runs on push, PR and weekly. Infer runs on push to main.
 
-jobs:
-  analyze:
-    runs-on: ubuntu-latest
-    container:
-      image: fbinfer/infer:latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: |
-          infer capture -- cmake -B build
-          infer analyze --pulse --bufferoverrun --racerd
-```
-
-See [`configs/ci-infer.yml`](../configs/ci-infer.yml) for the full template.
-
-### 5. Add Agent Instructions
-
-If your team uses AI coding agents (Claude Code, Copilot, Cursor, Codex, etc.), copy the agent instructions template:
+### 5. Agent instructions
 
 ```bash
 cp configs/AGENTS.md AGENTS.md
 ```
 
-Edit the "Opt-in" section to match which checks your project has enabled. This tells agents what conventions to follow so generated code passes CI on the first push.
+Edit the "Opt-in" section to match the checks you enabled.
 
-### 6. Enable Copilot Code Review
-
-Set up [GitHub Copilot code review](https://docs.github.com/en/copilot/tutorials/use-custom-instructions) so Copilot enforces the standard when reviewing PRs:
+### 6. Copilot code review
 
 ```bash
-# Copy repo-wide review instructions
 cp configs/.github/copilot-instructions.md .github/copilot-instructions.md
-
-# Copy language-specific review rules
 mkdir -p .github/instructions
 cp configs/.github/instructions/cpp.instructions.md .github/instructions/
 cp configs/.github/instructions/python.instructions.md .github/instructions/
 ```
 
-These files use path-specific `applyTo` frontmatter so C++ rules only apply to C++ files and Python rules only apply to Python files. Remove whichever language file is not relevant to your project.
+The files use `applyTo` frontmatter, so each language file applies only to its own files. Drop the one you do not need. Turn on the reviewer under Settings > Copilot > Code review, or request `@copilot` on a PR. See [GitHub's custom instructions guide](https://docs.github.com/en/copilot/tutorials/use-custom-instructions).
 
-To enable Copilot as an automatic PR reviewer, go to **Settings > Copilot > Code review** in your repository and enable it. You can also request a review from `@copilot` on any PR.
-
-### 7. Add Pre-commit Hooks
-
-**Option A — Use the installer script** (recommended):
+### 7. Pre-commit hooks
 
 ```bash
 ./scripts/install-hooks.sh
 ```
 
-**Option B — Manual setup:**
+Or by hand:
 
 ```bash
 cp configs/.pre-commit-config.yaml .pre-commit-config.yaml
@@ -261,53 +118,36 @@ pip install pre-commit
 pre-commit install
 ```
 
-### 8. Add CMake Presets & Warning Flags
+### 8. CMake presets and warnings
 
 ```bash
 cp configs/CMakePresets-sanitizers.json CMakePresets.json
 cp configs/cmake-warnings.cmake cmake/cmake-warnings.cmake
 ```
 
-In your `CMakeLists.txt`:
-
 ```cmake
 include(cmake/cmake-warnings.cmake)
 target_link_libraries(my_target PRIVATE warnings)
 ```
 
-Build with sanitizers:
+Presets and flags are described in [SDLC](SDLC.md#cmake-presets-for-sanitizer-builds).
 
-```bash
-cmake --preset debug-asan && cmake --build --preset debug-asan
-ctest --test-dir build-asan --output-on-failure
-```
-
-### 9. Add Fuzz Testing
-
-Copy the fuzz CI template:
+### 9. Fuzzing
 
 ```bash
 cp configs/ci-fuzz.yml .github/workflows/fuzz.yml
 ```
 
-Edit the `matrix.target` array with your fuzz target names:
-
-```yaml
-matrix:
-  target: [parse_input, decode_frame]  # your fuzz targets
-```
-
-Create fuzz harnesses in `fuzz_targets/`:
+Set `matrix.target` to your fuzz target names, for example `[parse_input, decode_frame]`. Put harnesses in `fuzz_targets/`:
 
 ```cpp
-// fuzz_targets/parse_input.cpp
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     my_parser(data, size);
     return 0;
 }
 ```
 
-In your `CMakeLists.txt`, gate fuzz targets with an option:
+Gate the targets in `CMakeLists.txt`:
 
 ```cmake
 option(ENABLE_FUZZING "Build fuzz targets" OFF)
@@ -317,151 +157,86 @@ if(ENABLE_FUZZING)
 endif()
 ```
 
-The template runs libFuzzer with ASan/UBSan, caches the corpus between runs, and uploads crash artifacts on failure. It triggers on PRs and weekly.
+The template runs libFuzzer with ASan/UBSan, caches the corpus, uploads crash artifacts, and triggers on PRs and weekly.
 
----
-
-## Full Python Setup
-
-### 1. Add Quality Workflow
+## Python Setup
 
 ```yaml
 jobs:
   python:
     uses: PavelGuzenfeld/standard/.github/workflows/python-quality.yml@main
     with:
-      python_version: '3.12'
-      python_linter: ruff          # or flake8 for ROS2/ament compat
-      source_dirs: src
-      test_dirs: tests
-      fail_under: 80               # minimum diff-quality score
+      python_linter: ruff
+      fail_under: 80
     permissions:
       contents: read
       pull-requests: write
-```
 
-### 2. Add SAST Workflow
-
-```yaml
-jobs:
   sast:
     uses: PavelGuzenfeld/standard/.github/workflows/sast-python.yml@main
     with:
-      enable_semgrep: true
-      semgrep_rules: 'p/python p/owasp-top-ten'
-      enable_pip_audit: true
-      enable_codeql: true           # free for public repos
+      enable_codeql: true
     permissions:
       contents: read
       pull-requests: write
       security-events: write
 ```
 
-### 3. Configure pyproject.toml for Ruff
+Use `python_linter: flake8` for ROS2/ament. `fail_under` defaults to 100, meaning zero violations on changed lines. `ruff_select` overrides `select` and `ignore` in `pyproject.toml`. Extra Semgrep rule sets go in `semgrep_rules`, for example `'p/python p/owasp-top-ten p/django'`.
 
 ```toml
 [tool.ruff]
 target-version = "py38"
 line-length = 88
-
 ```
-
-The workflow's `ruff_select` input (default `E,W,F,I,N`) overrides `select` and `ignore` in `pyproject.toml`.
-
----
 
 ## Customization
 
-### Overriding Configs
+### cppcheck include file
 
-All config inputs accept paths relative to the repo root:
-
-```yaml
-with:
-  clang_tidy_config: .clang-tidy           # your custom config
-  cppcheck_suppress: tools/cppcheck.suppress
-  clang_format_config: .clang-format
-  file_naming_exceptions: tools/naming-exceptions.txt
-```
-
-If a config input is empty, the tool uses its built-in defaults.
-
-### cppcheck Include File
-
-Create a `cppcheck.include` file with one include directory per line:
+`cppcheck.include` lists one include directory per line. Blank lines are ignored.
 
 ```
-# ROS2 includes
 /opt/ros/humble/include
 /opt/ros/humble/include/rclcpp
-
-# Project includes
 src/my_package/include
 ```
 
-Lines starting with `#` are comments. Blank lines are ignored.
+### Exclusion file
 
-### Exclusion File
-
-Create a `.standards-exclude` file listing paths to skip (vendored code, submodules, build artifacts):
+`.standards-exclude` lists path prefixes to skip, one per line, for vendored code, submodules and build output. All checks respect it.
 
 ```
-# Vendored third-party
 vendor/httplib.h
-
-# External submodules (have own CI)
 external_sdk/
-protocol_icd/
-
-# Build artifacts
 build/
 install/
 ```
-
-One path prefix per line, `#` comments. All checks (clang-tidy, cppcheck, clang-format, banned patterns, file naming) respect this file:
 
 ```yaml
 with:
   exclude_file: .standards-exclude
 ```
 
-### Custom File Naming Exceptions
+### File naming exceptions
 
-Create a file with one regex per line, matched against path segments:
+One regex per line, matched against path segments.
 
 ```
-# Vendor directories (allow any casing)
 vendor
 third_party
-
-# Generated code
 .*_generated
-
-# O3DE Gem directories
 Gems
 Code
 ```
 
-### C++ Package Naming (`include/<package_name>/`)
+### Package naming
 
-C++ packages must follow the `include/<package_name>/` convention where `<package_name>` is snake_case.
-The file naming check (`enable_file_naming: true`) enforces this automatically — all path segments are validated.
+C++ packages follow `include/<package_name>/` with a snake_case name. `enable_file_naming: true` checks every path segment. `include/nav_utils/` passes. `include/NavUtils/` and `include/flightController/` fail.
 
-Valid: `include/nav_utils/`, `include/flight_controller/`
-Invalid: `include/NavUtils/`, `include/flightController/`
+### ROS2 and colcon
 
-### Custom Semgrep Rules
-
-Pass additional rule sets:
-
-```yaml
-with:
-  semgrep_rules: 'p/python p/owasp-top-ten p/django p/flask'
-```
-
-### ROS2 / Colcon Projects
-
-For simple ROS2 projects that already have `compile_commands.json` in the Docker image:
+If the image already has `compile_commands.json`:
 
 ```yaml
 with:
@@ -472,7 +247,7 @@ with:
   runner: '"self-hosted"'
 ```
 
-For projects that need to build `compile_commands.json` as part of CI (e.g., colcon workspaces), use the pre-analysis script + build cache:
+If CI must build it, use a pre-analysis script and a build cache:
 
 ```yaml
 with:
@@ -484,17 +259,14 @@ with:
   runner: '"self-hosted"'
 ```
 
-Example `.github/scripts/pre-analysis.sh`:
+`.github/scripts/pre-analysis.sh`:
+
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
-
-# Build workspace to generate compile_commands.json
 colcon build \
   --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   --event-handlers console_cohesion+
-
-# Merge per-package compile databases into single file
 python3 -c "
 import json, glob
 merged, seen = [], set()
@@ -505,119 +277,31 @@ for f in sorted(glob.glob('build/*/compile_commands.json')):
             seen.add(key)
             merged.append(entry)
 json.dump(merged, open('build/compile_commands.json', 'w'), indent=2)
-print(f'Merged {len(merged)} entries')
 "
 ```
 
-The `build_cache_key` input enables `actions/cache` to cache build artifacts between runs. On cache hit, only changed packages need rebuilding.
+On a cache hit only changed packages rebuild.
 
-### Self-Hosted Runners
+### Self-hosted runners
 
-Set `runner` to a JSON string or array on any workflow:
-
-```yaml
-with:
-  runner: '"self-hosted"'
-```
-
----
+`runner` takes a JSON string or array on every workflow: `runner: '"self-hosted"'`.
 
 ## Troubleshooting
 
-### "No C++ files changed"
+| Symptom | Fix |
+|---------|-----|
+| "No C++ files changed" | Default extensions are `cpp hpp h cc cxx`. Set `file_extensions: 'cpp hpp h cc cxx c'` to add more. |
+| clang-tidy: "compile_commands.json not found" | `compile_commands_path` is a directory inside the container, relative to `source_mount`. For `/workspace/src/build/my_pkg/compile_commands.json` use `build/my_pkg`. |
+| cppcheck: "file not found" for system headers | Set `cppcheck_includes` or `cppcheck_include_file`. |
+| PR comments missing | Add `pull-requests: write`. SARIF upload also needs `security-events: write`. |
+| diff-quality too strict | Lower `fail_under` (default 100). 80 allows a 20% violation rate on changed lines. |
+| Hardening: "No ELF binaries found" | Set `hardening_binary_paths` (default `build-hardened/bin/*`), for example `'build-hardened/bin/* build-hardened/lib/*.so'`. A custom `hardening_script` must write binaries to those paths. |
 
-The workflow skips checks if no files with matching extensions changed in the PR. Default extensions: `cpp hpp h cc cxx`. Override with:
+## Auto-Release
 
-```yaml
-with:
-  file_extensions: 'cpp hpp h cc cxx c'
-```
+`auto-release.yml` bumps the version on every push to `main` from conventional commit prefixes. It creates an annotated git tag and a GitHub Release with generated notes, and optionally a SLSA provenance attestation. No commit is made to `main`, so there is no loop. The git tag is the version of record.
 
-### clang-tidy: "compile_commands.json not found"
-
-The `compile_commands_path` input must point to the directory containing `compile_commands.json` inside the Docker container (not the host). If your build output is at `/workspace/src/build/my_pkg/compile_commands.json`, set:
-
-```yaml
-with:
-  compile_commands_path: build/my_pkg
-```
-
-### cppcheck: "file not found" for system headers
-
-Provide include paths via `cppcheck_includes` or `cppcheck_include_file`:
-
-```yaml
-with:
-  cppcheck_include_file: cppcheck.include
-```
-
-### Docker permission errors
-
-The workflow mounts the repo at `source_mount` (default: `/workspace/src`). If your Docker image runs as a non-root user, ensure that user has read access to the mount point.
-
-### PR comments not appearing
-
-The workflow needs `pull-requests: write` permission:
-
-```yaml
-permissions:
-  contents: read
-  pull-requests: write
-```
-
-For SAST workflows that upload SARIF, also add:
-
-```yaml
-permissions:
-  security-events: write
-```
-
-### diff-quality score too strict
-
-Lower the threshold (default is 100, meaning zero violations allowed):
-
-```yaml
-with:
-  fail_under: 80  # allow up to 20% violation rate on changed lines
-```
-
-### Hardening: "No ELF binaries found"
-
-The hardening job looks for ELF binaries at `hardening_binary_paths` (default: `build-hardened/bin/*`). If your build outputs binaries to a different location, override the path:
-
-```yaml
-with:
-  enable_hardening: true
-  hardening_binary_paths: 'build-hardened/bin/* build-hardened/lib/*.so'
-```
-
-If using a custom build script, ensure it produces ELF binaries at the expected paths:
-
-```yaml
-with:
-  enable_hardening: true
-  hardening_script: .github/scripts/hardened-build.sh
-  hardening_binary_paths: 'build/bin/*'
-```
-
-### flake8 instead of ruff
-
-For ROS2/ament compatibility:
-
-```yaml
-with:
-  python_linter: flake8
-```
-
----
-
-## Auto-Release Setup
-
-The `auto-release.yml` reusable workflow auto-versions your project on every push to `main` using conventional commit prefixes. It creates an annotated git tag, a GitHub Release with auto-generated notes, and optionally a SLSA provenance attestation.
-
-### 1. Add the workflow
-
-Create `.github/workflows/release.yml`:
+`.github/workflows/release.yml`:
 
 ```yaml
 name: Release
@@ -633,106 +317,45 @@ permissions:
 jobs:
   release:
     uses: PavelGuzenfeld/standard/.github/workflows/auto-release.yml@main
+    with:
+      enable_provenance: true
 ```
 
-### 2. Use conventional commit prefixes
+`enable_provenance` defaults to `false`. When true it attests each release with `actions/attest-build-provenance`. `default_bump` (default `patch`) applies when no prefix matches. Optional secrets `app_id` and `app_private_key` (GitHub App credentials): when both are set, release events trigger downstream workflows.
 
-The workflow scans commits since the last `v*` tag and picks the highest bump:
+The workflow finds the latest tag with `git tag -l 'v*' --sort=-v:refname`, scans commits since it, and takes the highest bump. With no `v*` tag the first release is `v0.0.1`.
 
 | Prefix | Example | Bump |
 |--------|---------|------|
-| `feat!:` or `BREAKING CHANGE:` | `feat!: redesign API` | **major** |
-| `feat:` or `feat(scope):` | `feat(auth): add OAuth` | **minor** |
-| Everything else | `fix: null pointer`, `docs: update README` | **patch** (default) |
+| `feat!:` or `BREAKING CHANGE:` | `feat!: redesign API` | major |
+| `feat:` or `feat(scope):` | `feat(auth): add OAuth` | minor |
+| Anything else | `fix: null pointer` | patch |
 
-If no `v*` tag exists, the first release starts from `v0.0.1`.
+## Security Hygiene
 
-### 3. Inputs
-
-| Input | Default | Description |
-|-------|---------|-------------|
-| `default_bump` | `patch` | Default bump when no conventional commit prefix is detected |
-| `enable_provenance` | `false` | Enable SLSA provenance attestation for releases (opt-in) |
-
-Optional secrets `app_id` and `app_private_key` (GitHub App credentials): when both are set, release events trigger downstream workflows.
-
-### How it works
-
-1. Finds the latest semver tag (`git tag -l 'v*' --sort=-v:refname`)
-2. Scans commit messages since that tag for conventional prefixes
-3. Calculates the next version (major/minor/patch)
-4. Creates an annotated git tag and pushes it
-5. Creates a GitHub Release with auto-generated notes
-
-No commits are made to `main` (avoids infinite loops). The version of record is the git tag.
-
----
-
-## Security Hygiene Setup
-
-These steps improve your OpenSSF Scorecard and supply chain security posture.
-
-### 1. Add a Security Policy
-
-Copy the template and fill in your contact details:
+These steps raise your OpenSSF Scorecard score.
 
 ```bash
 cp configs/SECURITY.md SECURITY.md
-```
-
-Edit the `TODO` placeholders with your security contact email and response timelines.
-
-### 2. Enable Dependabot
-
-Copy the template and uncomment ecosystems relevant to your project:
-
-```bash
 mkdir -p .github
 cp configs/dependabot.yml .github/dependabot.yml
 ```
 
-The template includes `github-actions` monitoring by default. Uncomment `pip`, `npm`, `cargo`, or `docker` sections as needed.
+Fill the `TODO` placeholders in `SECURITY.md` with a contact and response times. The Dependabot template watches `github-actions`. Uncomment `pip`, `npm`, `cargo` or `docker` as needed.
 
-### 3. Enable Dangerous-Workflow Audit
-
-Add to your infra-lint workflow call:
+Add these to your infra-lint workflow call:
 
 ```yaml
 with:
   enable_dangerous_workflows: true
-```
-
-This detects `pull_request_target` misuse and injection vectors (`${{ github.event.pull_request.title }}` in `run:` steps) in changed workflow files.
-
-For local use, run the standalone script:
-
-```bash
-./scripts/check-dangerous-workflows.sh .github/workflows/
-```
-
-### 4. Enable Binary Artifact Detection
-
-Add to your infra-lint workflow call:
-
-```yaml
-with:
   enable_binary_artifacts: true
-```
-
-This flags committed binary files (`.exe`, `.dll`, `.so`, `.jar`, `.pyc`, `.whl`, etc.) in PRs.
-
-### 5. Enable Gitleaks Secrets Detection
-
-Add to your infra-lint workflow call:
-
-```yaml
-with:
   enable_gitleaks: true
+  gitleaks_config: .gitleaks.toml
 ```
 
-This scans PR commits for leaked secrets (API keys, tokens, passwords, private keys) using [Gitleaks](https://github.com/gitleaks/gitleaks). Only commits in the PR range are scanned (diff-aware).
-
-To customize detection rules or add allowlists, create a `.gitleaks.toml` in your repo root:
+- Dangerous workflows: flags `pull_request_target` misuse and injection such as `${{ github.event.pull_request.title }}` in `run:` steps. Locally: `./scripts/check-dangerous-workflows.sh .github/workflows/`.
+- Binary artifacts: flags committed `.exe`, `.dll`, `.so`, `.jar`, `.pyc`, `.whl` and similar.
+- Gitleaks: scans only the commits in the PR range. Add allowlists in `.gitleaks.toml`:
 
 ```toml
 [allowlist]
@@ -742,123 +365,55 @@ To customize detection rules or add allowlists, create a `.gitleaks.toml` in you
   ]
 ```
 
-Then pass it to the workflow:
+### Allstar
 
-```yaml
-with:
-  enable_gitleaks: true
-  gitleaks_config: .gitleaks.toml
-```
+[Allstar](https://github.com/ossf/allstar) enforces GitHub platform settings (branch protection, collaborator access) from config files. This repo's workflows check code. The two complement each other. Install the [Allstar app](https://github.com/apps/allstar-app) first.
 
-### 6. Enable SLSA Provenance
-
-Add to your release workflow call:
-
-```yaml
-jobs:
-  release:
-    uses: PavelGuzenfeld/standard/.github/workflows/auto-release.yml@main
-    with:
-      enable_provenance: true
-    permissions:
-      contents: write
-      id-token: write
-      attestations: write
-```
-
-This creates a SLSA provenance attestation for each release using `actions/attest-build-provenance`.
-
-### 7. Enable Allstar Policy Enforcement
-
-[Allstar](https://github.com/ossf/allstar) is an OpenSSF GitHub App that continuously monitors repos and enforces security policies via config files — no manual UI settings needed.
-
-**Prerequisites:** Install the [Allstar GitHub App](https://github.com/apps/allstar-app) on your organization or repository.
-
-**Per-repo opt-in** (no org-wide setup required):
+Per repo:
 
 ```bash
 mkdir -p .allstar
 cp configs/.allstar/*.yaml .allstar/
 ```
 
-This enables:
+| Policy | Enforces |
+|--------|----------|
+| `branch_protection.yaml` | PR approvals, no force push, dismiss stale reviews |
+| `security.yaml` | `SECURITY.md` exists |
+| `binary_artifacts.yaml` | No committed binaries |
+| `dangerous_workflow.yaml` | No `pull_request_target` injection |
+| `outside.yaml` | No admin access for outside collaborators |
+| `actions.yaml` | Required or denied GitHub Actions |
 
-| Policy | What it enforces |
-|--------|-----------------|
-| `branch_protection.yaml` | PR approvals, block force push, dismiss stale reviews |
-| `security.yaml` | Require SECURITY.md |
-| `binary_artifacts.yaml` | Detect committed binaries (.exe, .so, .jar, .pyc) |
-| `dangerous_workflow.yaml` | Detect pull_request_target injection |
-| `outside.yaml` | Block outside collaborators from admin access |
-| `actions.yaml` | Require or deny specific GitHub Actions |
+Org-wide: create a repo named `.allstar` in the org and copy `configs/.allstar/*.yaml` into it. In `allstar.yaml`, comment out `optIn` and set:
 
-**Org-wide enforcement** (recommended for teams):
+```yaml
+optConfig:
+  optOutStrategy: true
+  optOutArchivedRepos: true
+  optOutForkedRepos: true
+```
 
-1. Create a repository named `.allstar` in your GitHub org
-2. Copy the templates into it:
-   ```bash
-   cp configs/.allstar/*.yaml .
-   ```
-3. Edit `allstar.yaml` — uncomment the org-wide section and comment out `optIn`:
-   ```yaml
-   optConfig:
-     optOutStrategy: true
-     optOutArchivedRepos: true
-     optOutForkedRepos: true
-   ```
-4. Edit `branch_protection.yaml` — set `action: fix` to auto-configure branch protection settings instead of just opening issues.
+In `branch_protection.yaml`, set `action: fix` to configure branch protection instead of only opening issues.
 
-**Relationship to standard's CI checks:** Allstar and standard's reusable workflows are complementary. Allstar enforces GitHub *platform settings* (branch protection, collaborator access) continuously. Standard's workflows enforce *code quality* (formatting, linting, security analysis) on each PR.
+## Trend Dashboard
 
----
+`trend-dashboard.yml` queries the GitHub Actions API for the last `lookback_days` days of runs of the standard workflows it finds in the repo. It buckets job results by week and writes a table of pass rates with trend arrows to the workflow summary. Inputs are in the [README](../README.md#workflow-inputs).
 
-## Trend Dashboard Setup
-
-The `trend-dashboard.yml` reusable workflow generates a weekly quality trend report by querying GitHub Actions API for historical workflow run results.
-
-### 1. Add the workflow
-
-Create `.github/workflows/trends.yml`:
+`.github/workflows/trends.yml`:
 
 ```yaml
 name: Trend Dashboard
 on:
   schedule:
-    - cron: '0 9 * * 1'  # Weekly Monday 9am UTC
+    - cron: '0 9 * * 1'
   workflow_dispatch:
 
 jobs:
   trends:
     uses: PavelGuzenfeld/standard/.github/workflows/trend-dashboard.yml@main
-    permissions:
-      actions: read
-      contents: read
-```
-
-### 2. Optional: Slack notifications
-
-Add a Slack webhook URL to receive weekly reports in a Slack channel:
-
-```yaml
-jobs:
-  trends:
-    uses: PavelGuzenfeld/standard/.github/workflows/trend-dashboard.yml@main
     with:
       slack_webhook_url: ${{ secrets.SLACK_TRENDS_WEBHOOK }}
-    permissions:
-      actions: read
-      contents: read
-```
-
-### 3. Optional: GitHub Discussions
-
-Post the trend report as a GitHub Discussion:
-
-```yaml
-jobs:
-  trends:
-    uses: PavelGuzenfeld/standard/.github/workflows/trend-dashboard.yml@main
-    with:
       post_to_discussions: true
     permissions:
       actions: read
@@ -866,28 +421,4 @@ jobs:
       discussions: write
 ```
 
-### 4. Inputs
-
-| Input | Default | Description |
-|-------|---------|-------------|
-| `lookback_days` | `28` | Number of days of history to analyze |
-| `slack_webhook_url` | `''` | Slack webhook URL for posting trend report (empty = skip) |
-| `post_to_discussions` | `false` | Post trend report as a GitHub Discussion (opt-in) |
-| `runner` | `ubuntu-latest` | Runner labels as JSON |
-
-### How it works
-
-1. Discovers which standard workflows exist in the repo (cpp-quality, infra-lint, python-quality, sast-python, sbom, version-check)
-2. Queries workflow runs from the last N days via GitHub Actions API
-3. Queries per-job results for each run to get individual check outcomes
-4. Buckets results into weekly bins and calculates pass rates
-5. Generates a markdown trend table with per-check pass rates and trend arrows (↑ ↓ →)
-6. Posts the report to the workflow summary, and optionally to Slack and/or Discussions
-
----
-
-## Workflow Inputs Reference
-
-For the complete list of all inputs with defaults and descriptions, see the main [README](../README.md).
-
-
+Drop `slack_webhook_url` to skip Slack. Drop `post_to_discussions` and `discussions: write` to skip Discussions.

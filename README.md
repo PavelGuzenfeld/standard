@@ -4,44 +4,15 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/PavelGuzenfeld/standard/badge)](https://scorecard.dev/viewer/?uri=github.com/PavelGuzenfeld/standard)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12012/badge)](https://www.bestpractices.dev/projects/12012)
 
-Reusable GitHub Actions for C++ and Python quality gates. Diff-aware linting, SAST, sanitizers, fuzzing — only check what changed.
+Reusable GitHub Actions for C++ and Python quality gates. Only files changed in the PR are checked, so legacy code never blocks a merge.
 
-## What It Does
-
-- **Diff-aware** — only files changed in the PR are checked; legacy code never blocks merges
-- **C++ quality** — clang-tidy, cppcheck, clang-format, flawfinder inside your Docker image
-- **Infrastructure lint** — ShellCheck, Hadolint, cmake-lint, dangerous-workflow audit, binary-artifact scan, Gitleaks secrets detection (no Docker image needed)
-- **Runtime analysis** — ASan/UBSan, TSan, gcov/lcov coverage, IWYU (all opt-in)
-- **Python quality** — ruff/flake8 + pytest + diff-cover on changed lines
-- **Security scanning** — Semgrep, CodeQL, Infer, pip-audit
-- **SBOM & supply chain** — Syft container scan, source dependency scan, Grype vulnerability scanning
-- **Banned patterns** — cout/printf, raw new/delete, gtest (all opt-in)
-- **Naming enforcement** — snake_case files and `include/<package_name>/` directories, identifier naming via clang-tidy
-- **Hardening templates** — sanitizer presets, multi-compiler CI, fuzzing, production flags
-- **PR feedback** — inline annotations + auto-updating summary comments
-- **Auto-release** — conventional-commit version bumps, git tags, GitHub Releases, and SLSA provenance on push to main
-
-## Quality Scoreboard
-
-Every PR gets an auto-updating emoji scoreboard comment from each workflow:
-
-| Category | Checks | Workflow |
-|----------|--------|----------|
-| **C++ Quality** | clang-tidy, cppcheck, clang-format, flawfinder, ASan/UBSan, TSan, coverage, IWYU, hardening, file naming, banned patterns | `cpp-quality.yml` |
-| **Python Quality** | ruff/flake8 lint, pytest, diff-cover | `python-quality.yml` |
-| **Python SAST** | Semgrep, pip-audit, CodeQL | `sast-python.yml` |
-| **Infrastructure** | ShellCheck, Hadolint, cmake-lint, dangerous-workflow audit, binary-artifact scan, Gitleaks secrets | `infra-lint.yml` |
-| **Supply Chain** | Container SBOM, source SBOM, Grype vulnerabilities, license compliance | `sbom.yml` |
-| **Versioning** | SemVer in package.xml, CMakeLists.txt, pyproject.toml | `version-check.yml` |
-| **Release** | Auto-tag + GitHub Release on push to main | `auto-release.yml` |
-| **Trends** | Weekly quality trend report (pass rates, most-failing checks) | `trend-dashboard.yml` |
+C++ tools run inside your Docker image, so they see your toolchain, headers and `compile_commands.json`. Each workflow posts one summary comment on the PR and updates it on every push.
 
 ## Quick Start
 
-### C++
+C++:
 
 ```yaml
-# .github/workflows/quality.yml
 name: Quality
 on:
   pull_request:
@@ -57,7 +28,9 @@ jobs:
       pull-requests: write
 ```
 
-### Python
+clang-tidy and cppcheck run by default. Everything else is opt-in.
+
+Python:
 
 ```yaml
 jobs:
@@ -75,38 +48,42 @@ jobs:
       security-events: write
 ```
 
+To generate these files instead, see the [Consumer Quickstart](docs/CONSUMER-QUICKSTART.md).
+
 ## Documentation
 
-| Document | Description |
-|----------|------------|
-| **[SDLC Process](docs/SDLC.md)** | Full lifecycle: pre-commit, PR gates, SAST, testing, hardening |
-| **[Integration Guide](docs/INTEGRATION.md)** | Step-by-step setup for C++ and Python projects |
-| **[Versioning Rules](docs/VERSIONING.md)** | SemVer policy: initial versions, bump rules, git tags |
-| **[Roadmap](docs/ROADMAP.md)** | Conventions, coding standards, and planned features |
-| **[Industry Comparison](docs/COMPARISON.md)** | Feature-by-feature comparison with Google, Microsoft, JFrog, MegaLinter, and others |
-| **[Consumer Quickstart](docs/CONSUMER-QUICKSTART.md)** | `standard-ci` presets and the workflow files `init` writes |
-| **[Compliance](docs/COMPLIANCE.md)** | CIS compliance scans and org-wide drift updates |
+| Document | Content |
+|----------|---------|
+| [Integration Guide](docs/INTEGRATION.md) | Setup for C++ and Python projects |
+| [SDLC](docs/SDLC.md) | Pre-commit, PR gates, SAST, testing, hardening |
+| [Versioning](docs/VERSIONING.md) | SemVer rules and git tags |
+| [Consumer Quickstart](docs/CONSUMER-QUICKSTART.md) | `standard-ci` presets |
+| [Compliance](docs/COMPLIANCE.md) | Org-wide drift updates and CIS scans |
+| [Roadmap](docs/ROADMAP.md) | Coding conventions and open items |
+| [Comparison](docs/COMPARISON.md) | Other tools |
 
 ## Reusable Workflows
 
-| Workflow | Language | What it checks |
-|----------|----------|---------------|
-| [`cpp-quality.yml`](.github/workflows/cpp-quality.yml) | C++ | clang-tidy, cppcheck, clang-format, flawfinder, sanitizers, TSAN, coverage, IWYU, hardening, file naming, banned patterns |
-| [`infra-lint.yml`](.github/workflows/infra-lint.yml) | Multi | ShellCheck (shell scripts), Hadolint (Dockerfiles), cmake-lint (CMake files), dangerous-workflow audit, binary-artifact scan, Gitleaks secrets detection |
-| [`python-quality.yml`](.github/workflows/python-quality.yml) | Python | ruff/flake8 (diff-aware), pytest, diff-cover |
-| [`sast-python.yml`](.github/workflows/sast-python.yml) | Python | Semgrep, pip-audit, CodeQL |
-| [`sbom.yml`](.github/workflows/sbom.yml) | Multi | Syft container SBOM, source dependency scan, Grype vulnerability scanning, license check |
-| [`version-check.yml`](.github/workflows/version-check.yml) | Multi | SemVer validation in package.xml, CMakeLists.txt, pyproject.toml |
-| [`auto-release.yml`](.github/workflows/auto-release.yml) | Multi | Reusable auto-release: conventional-commit version bumps, git tags, GitHub Releases, SLSA provenance |
-| [`trend-dashboard.yml`](.github/workflows/trend-dashboard.yml) | Multi | Weekly quality trend report: pass rates per check, trend arrows, Slack/Discussions posting |
-| [`version-sync.yml`](.github/workflows/version-sync.yml) | Multi | Sync version files (CMakeLists.txt, README FetchContent, pyproject.toml, package.xml, package.json) to a release tag |
-| [`cis-compliance.yml`](.github/workflows/cis-compliance.yml) | Multi | CIS supply-chain compliance scan of one repo |
-| [`cis-org-compliance.yml`](.github/workflows/cis-org-compliance.yml) | Multi | CIS supply-chain compliance scan across an org |
-| [`compliance.yml`](.github/workflows/compliance.yml) | Multi | Scan an org for standard-ci drift, optionally open update PRs |
-| [`install-test.yml`](.github/workflows/install-test.yml) | C++ | Install the package and check `find_package` from a consumer |
-| [`pre-commit.yml`](.github/workflows/pre-commit.yml) | Multi | Run pre-commit hooks in CI |
-| [`scheduled-health.yml`](.github/workflows/scheduled-health.yml) | Multi | Open an issue when a scheduled upstream workflow fails |
-| [`release.yml`](.github/workflows/release.yml) | — | Triggers auto-release and version-sync on push to main (standard repo) |
+| Workflow | Checks |
+|----------|--------|
+| [`cpp-quality.yml`](.github/workflows/cpp-quality.yml) | clang-tidy, cppcheck, clang-format, flawfinder, ASan/UBSan, TSan, coverage, IWYU, hardening, file naming, banned patterns |
+| [`infra-lint.yml`](.github/workflows/infra-lint.yml) | ShellCheck, Hadolint, cmake-lint, dangerous-workflow audit, binary-artifact scan, Gitleaks |
+| [`python-quality.yml`](.github/workflows/python-quality.yml) | ruff/flake8, pytest, diff-cover |
+| [`sast-python.yml`](.github/workflows/sast-python.yml) | Semgrep, pip-audit, CodeQL |
+| [`sbom.yml`](.github/workflows/sbom.yml) | Syft container SBOM, source dependency scan, Grype, license check |
+| [`version-check.yml`](.github/workflows/version-check.yml) | SemVer in package.xml, CMakeLists.txt, pyproject.toml |
+| [`auto-release.yml`](.github/workflows/auto-release.yml) | Conventional-commit version bump, git tag, GitHub Release, SLSA provenance |
+| [`trend-dashboard.yml`](.github/workflows/trend-dashboard.yml) | Weekly pass-rate report, optional Slack and Discussions posting |
+| [`version-sync.yml`](.github/workflows/version-sync.yml) | Sync version files (CMakeLists.txt, README FetchContent, pyproject.toml, package.xml, package.json) to a release tag |
+| [`cis-compliance.yml`](.github/workflows/cis-compliance.yml) | CIS supply-chain scan of one repo |
+| [`cis-org-compliance.yml`](.github/workflows/cis-org-compliance.yml) | CIS supply-chain scan across an org |
+| [`compliance.yml`](.github/workflows/compliance.yml) | Scan an org for standard-ci drift, optionally open update PRs |
+| [`install-test.yml`](.github/workflows/install-test.yml) | Install the package and check `find_package` from a consumer |
+| [`pre-commit.yml`](.github/workflows/pre-commit.yml) | Run pre-commit hooks in CI |
+| [`scheduled-health.yml`](.github/workflows/scheduled-health.yml) | Open an issue when a scheduled upstream workflow fails |
+| [`release.yml`](.github/workflows/release.yml) | This repo only: triggers auto-release and version-sync on push to main |
+
+Composite actions for single steps live in `actions/`: `diff-files`, `clang-tidy`, `cppcheck`, `clang-format`, `ruff-check`, `shellcheck`, `gitleaks`, `gdlint`, `ts-naming`, `layering`. Use one as `PavelGuzenfeld/standard/actions/<name>@<sha>`.
 
 ## Workflow Inputs
 
@@ -332,55 +309,6 @@ jobs:
 
 </details>
 
-## Full-Featured C++ Example
-
-```yaml
-jobs:
-  cpp:
-    uses: PavelGuzenfeld/standard/.github/workflows/cpp-quality.yml@main
-    with:
-      docker_image: ghcr.io/your-org/your-dev-image:latest
-      compile_commands_path: build
-      source_mount: /workspace/src
-      source_setup: 'source /opt/ros/humble/setup.bash'
-      pre_analysis_script: .github/scripts/pre-analysis.sh
-      cppcheck_suppress: cppcheck.suppress
-      cppcheck_std: c++23
-      cppcheck_strict: true
-      enable_clang_format: true
-      enable_flawfinder: true
-      enable_sanitizers: true
-      sanitizer_script: .github/scripts/sanitizer-tests.sh
-      enable_tsan: true
-      tsan_script: .github/scripts/tsan-tests.sh
-      enable_coverage: true
-      coverage_script: .github/scripts/coverage-tests.sh
-      enable_hardening: true
-      enable_iwyu: true
-      iwyu_script: .github/scripts/iwyu-analysis.sh
-      enforce_doctest: true
-      ban_cout: true
-      ban_new: true
-      enable_file_naming: true
-      enable_sarif: true
-      runner: '["self-hosted","X64","Linux"]'
-    permissions:
-      contents: read
-      pull-requests: write
-      security-events: write
-
-  sbom:
-    uses: PavelGuzenfeld/standard/.github/workflows/sbom.yml@main
-    with:
-      docker_image: ghcr.io/your-org/your-dev-image:latest
-      source_sbom_script: .github/scripts/generate_source_sbom.py
-      grype_fail_on: ''
-      license_policy_file: .license-policy.yml
-    permissions:
-      contents: read
-      pull-requests: write
-      packages: read
-```
 
 ## Configs
 
@@ -388,39 +316,37 @@ jobs:
 |--------|---------|
 | [`.clang-tidy`](configs/.clang-tidy) | clang-analyzer, cppcoreguidelines, modernize, bugprone, performance, readability |
 | [`.clang-format`](configs/.clang-format) | Standard Latest, 120-col, 4-space indent, Allman braces |
-| [`.clang-tidy-naming`](configs/.clang-tidy-naming) | Identifier naming: snake_case functions, PascalCase types, trailing `_` private |
+| [`.clang-tidy-naming`](configs/.clang-tidy-naming) | snake_case functions, PascalCase types, trailing `_` private |
 | [`eslint-naming.config.mjs`](configs/eslint-naming.config.mjs) | TypeScript naming: snake_case, PascalCase types and .tsx components, no `I` prefix, trailing `_` private |
-| [`cppcheck.suppress`](configs/cppcheck.suppress) | Generic suppressions with commented vendor examples |
-| [`naming-exceptions.txt`](configs/naming-exceptions.txt) | File naming exception template (one regex per line) |
-| [`.pre-commit-config.yaml`](configs/.pre-commit-config.yaml) | Pre-commit hooks: clang-format, clang-tidy, cppcheck |
-| [`CMakePresets-sanitizers.json`](configs/CMakePresets-sanitizers.json) | CMake presets: ASan, TSan, release-hardened |
-| [`ci-multi-compiler.yml`](configs/ci-multi-compiler.yml) | Multi-compiler CI: GCC-13 + Clang-21, ccache |
-| [`ci-fuzz.yml`](configs/ci-fuzz.yml) | libFuzzer CI with corpus caching |
-| [`ci-codeql.yml`](configs/ci-codeql.yml) | CodeQL SAST: CodeQL SAST for C++ and Python |
-| [`ci-infer.yml`](configs/ci-infer.yml) | Infer: Pulse, InferBO, RacerD thread safety |
-| [`cmake-warnings.cmake`](configs/cmake-warnings.cmake) | Warning flags: -Wall -Wextra -Wpedantic -Werror + extras |
-| [`test-checklist.md`](configs/test-checklist.md) | Mandatory test edge case checklist |
-| [`repo-structure-ros2.txt`](configs/repo-structure-ros2.txt) | ROS2 package structure validation template |
+| [`cppcheck.suppress`](configs/cppcheck.suppress) | Generic suppressions with vendor examples |
+| [`naming-exceptions.txt`](configs/naming-exceptions.txt) | File naming exceptions, one regex per line |
+| [`.pre-commit-config.yaml`](configs/.pre-commit-config.yaml) | clang-format, clang-tidy, cppcheck hooks |
+| [`CMakePresets-sanitizers.json`](configs/CMakePresets-sanitizers.json) | ASan, TSan, release-hardened presets |
+| [`ci-multi-compiler.yml`](configs/ci-multi-compiler.yml) | GCC-13 and Clang-21 matrix, ccache |
+| [`ci-fuzz.yml`](configs/ci-fuzz.yml) | libFuzzer with corpus caching |
+| [`ci-codeql.yml`](configs/ci-codeql.yml) | CodeQL for C++ and Python |
+| [`ci-infer.yml`](configs/ci-infer.yml) | Infer: Pulse, InferBO, RacerD |
+| [`cmake-warnings.cmake`](configs/cmake-warnings.cmake) | `-Wall -Wextra -Wpedantic -Werror` plus extras |
+| [`test-checklist.md`](configs/test-checklist.md) | Test edge case checklist |
+| [`repo-structure-ros2.txt`](configs/repo-structure-ros2.txt) | ROS2 package structure template |
 | `repo-structure-{python,cmake-cpp,typescript,godot}.txt` | Structure templates for other project types |
-| [`AGENTS.md`](configs/AGENTS.md) | AI agent instructions template for consuming projects |
-| [`SECURITY.md`](configs/SECURITY.md) | Security policy template for consuming projects |
-| [`dependabot.yml`](configs/dependabot.yml) | Dependabot config template for consuming projects |
+| [`AGENTS.md`](configs/AGENTS.md) | Agent instructions template for consuming projects |
+| [`SECURITY.md`](configs/SECURITY.md) | Security policy template |
+| [`dependabot.yml`](configs/dependabot.yml) | Dependabot template |
 | [`gdlintrc`](configs/gdlintrc) | GDScript naming rules for gdlint |
 
 ## Scripts
 
-### Diff-Aware Checks
-
-Run the same logic as CI, only on files changed vs a base branch:
+Diff-aware checks run the CI logic on files changed against a base branch:
 
 | Script | Purpose |
 |--------|---------|
-| `diff-clang-tidy.sh` | clang-tidy on changed files |
-| `diff-cppcheck.sh` | cppcheck on changed files |
-| `diff-clang-format.sh` | clang-format on changed files |
-| `diff-file-naming.sh` | snake_case naming on changed files |
-| `diff-iwyu.sh` | Include-What-You-Use on changed files |
-| `diff-gdlint.sh` | GDScript naming (gdlint) on changed files |
+| `diff-clang-tidy.sh` | clang-tidy |
+| `diff-cppcheck.sh` | cppcheck |
+| `diff-clang-format.sh` | clang-format |
+| `diff-file-naming.sh` | snake_case naming |
+| `diff-iwyu.sh` | Include-What-You-Use |
+| `diff-gdlint.sh` | GDScript naming (gdlint) |
 | `diff-ts-naming.sh` | typescript-eslint naming-convention on changed .ts/.tsx (needs `eslint-naming.config.mjs`, eslint, typescript-eslint) |
 | `diff-test-mirror.sh` | added source modules have a mirrored test |
 
@@ -432,67 +358,30 @@ Run the same logic as CI, only on files changed vs a base branch:
 ./scripts/diff-iwyu.sh origin/main build
 ```
 
-### Setup Generators
-
-Generate project scaffolding from the standard:
+Generators and utilities:
 
 | Script | Purpose |
 |--------|---------|
-| `generate-workflow.sh` | Generate `.github/workflows/` YAML files |
-| `generate-agents-md.sh` | Generate tailored `AGENTS.md` for your repo |
-| `generate-baseline.sh` | Generate suppression/baseline files for incremental adoption |
-| `generate-badges.sh` | Generate README badge markdown |
+| `generate-workflow.sh` | Write `.github/workflows/` YAML |
+| `generate-agents-md.sh` | Write a tailored `AGENTS.md` |
+| `generate-baseline.sh` | Write suppression and baseline files for incremental adoption |
+| `generate-badges.sh` | Print README badge markdown |
 | `install-hooks.sh` | Install git pre-commit hooks |
-
-```bash
-./scripts/generate-workflow.sh
-./scripts/generate-agents-md.sh
-./scripts/generate-baseline.sh
-./scripts/generate-badges.sh
-./scripts/install-hooks.sh
-```
-
-### Utilities
-
-| Script | Purpose |
-|--------|---------|
-| `check-repo-structure.sh` | Validate repo directory structure against a template |
+| `check-repo-structure.sh` | Validate directory structure against a template |
 | `check-dangerous-workflows.sh` | Audit workflow files for injection patterns |
-| `check-hardening.sh` | Verify ELF binary hardening (PIE, RELRO, NX, canary) |
+| `check-hardening.sh` | Verify ELF hardening (PIE, RELRO, NX, canary) |
 | `filter-excludes.sh` | Filter file lists against exclusion patterns |
 | `check-layering.sh` | Run the repo's layering contract (`.importlinter`, `.dependency-cruiser.cjs`, or `.layers` for C++ and GDScript); skips if none |
-
-`.layers` lists directories lowest layer first, one per line. A lower layer may not `#include` or `preload`/`load` a higher one, and cycles fail. Use it as `PavelGuzenfeld/standard/actions/layering@main`.
-
-TypeScript naming runs as `PavelGuzenfeld/standard/actions/ts-naming@main`: typescript-eslint on changed `.ts`/`.tsx` with `eslint-naming.config.mjs`.
 
 ```bash
 ./scripts/check-repo-structure.sh configs/repo-structure-ros2.txt .
 ./scripts/check-hardening.sh build-hardened/bin/*
 ```
 
-## Project Structure
+`.layers` lists directories lowest layer first, one per line. A lower layer may not `#include` or `preload`/`load` a higher one, and cycles fail. Use it as `PavelGuzenfeld/standard/actions/layering@main`.
 
-```
-.github/workflows/   Reusable workflows (workflow_call) and this repo's own CI
-actions/             Composite actions
-scripts/             Diff-aware checks, generators, and utilities
-configs/             Drop-in configs, CI templates, and agent instructions
-src/standard_ci/     standard-ci CLI package
-src/calculator.py    Python demo module
-tests/               Bash pattern and script tests, pytest suites
-docs/                SDLC, integration, versioning, roadmap, comparison, compliance, quickstart
-AGENTS.md            AI agent instructions for contributing to this repo
-```
-
-## How It Works
-
-All workflows detect changed files using `git diff --name-only --diff-filter=ACMR` against the PR base branch. Only those files are linted/analyzed, so pre-existing issues in untouched code never block PRs.
-
-Each workflow posts a summary comment on the PR with a hidden HTML marker. On subsequent pushes, the same comment is updated instead of creating duplicates.
-
-C++ tools run inside the caller's Docker image, so they see the exact toolchain, headers, and `compile_commands.json` the project uses.
+TypeScript naming runs as `PavelGuzenfeld/standard/actions/ts-naming@main`: typescript-eslint on changed `.ts`/`.tsx` with `eslint-naming.config.mjs`.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE).
+MIT License - see [LICENSE](LICENSE). Repo layout and contributor rules are in [AGENTS.md](AGENTS.md).
