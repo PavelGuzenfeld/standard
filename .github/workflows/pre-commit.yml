@@ -55,9 +55,9 @@ jobs:
           pre-commit run --config "${{ inputs.config_file }}" --show-diff-on-failure --from-ref "origin/${{ github.base_ref }}" --to-ref HEAD 2>&1 | tee /tmp/pre-commit-output.txt || true
           git diff > /tmp/pre-commit-fixes.diff
           if [ -s /tmp/pre-commit-fixes.diff ]; then
-            echo "has_fixes=true" >> $GITHUB_OUTPUT
+            echo "has_fixes=true" >> "$GITHUB_OUTPUT"
           else
-            echo "has_fixes=false" >> $GITHUB_OUTPUT
+            echo "has_fixes=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Suggest fixes via reviewdog

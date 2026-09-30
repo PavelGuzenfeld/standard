@@ -87,24 +87,19 @@ jobs:
           while IFS= read -r f || [ -n "$f" ]; do
             [ -z "$f" ] && continue
             VER=""
-            TYPE=""
 
             case "$f" in
               *package.json)
                 VER=$(grep -oP '"version"\s*:\s*"\K[^"]+' "$f" 2>/dev/null || true)
-                TYPE="package.json"
                 ;;
               *package.xml)
                 VER=$(grep -oP '(?<=<version>)[^<]+' "$f" 2>/dev/null || true)
-                TYPE="package.xml"
                 ;;
               *CMakeLists.txt)
                 VER=$(grep -oP 'project\s*\([^)]*VERSION\s+\K[0-9][^\s)]*' "$f" 2>/dev/null || true)
-                TYPE="CMakeLists.txt"
                 ;;
               *pyproject.toml)
                 VER=$(grep -oP '^version\s*=\s*"\K[^"]+' "$f" 2>/dev/null || true)
-                TYPE="pyproject.toml"
                 ;;
             esac
 
@@ -120,8 +115,10 @@ jobs:
             fi
           done < /tmp/changed_version_files.txt
 
-          echo "checked=$CHECKED" >> "$GITHUB_OUTPUT"
-          echo "errors=$ERRORS" >> "$GITHUB_OUTPUT"
+          {
+            echo "checked=$CHECKED"
+            echo "errors=$ERRORS"
+          } >> "$GITHUB_OUTPUT"
 
           {
             echo "report<<EOF"

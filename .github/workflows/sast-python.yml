@@ -65,11 +65,11 @@ jobs:
 
       - name: Run Semgrep
         run: |
-          ARGS=""
+          ARGS=()
           for rule in ${{ inputs.semgrep_rules }}; do
-            ARGS="$ARGS --config $rule"
+            ARGS+=(--config "$rule")
           done
-          semgrep scan $ARGS --sarif --output=semgrep.sarif --error
+          semgrep scan "${ARGS[@]}" --sarif --output=semgrep.sarif --error
         continue-on-error: true
         id: semgrep-scan
 

@@ -71,7 +71,7 @@ jobs:
         id: app-check
         env:
           HAS_APP: ${{ secrets.app_id != '' && secrets.app_private_key != '' }}
-        run: echo "available=$HAS_APP" >> $GITHUB_OUTPUT
+        run: echo "available=$HAS_APP" >> "$GITHUB_OUTPUT"
 
       - name: Generate App token
         id: app-token
@@ -97,7 +97,7 @@ jobs:
           standard-ci dashboard --org "${{ inputs.org }}" \
             --scan-results "${{ runner.temp }}/scan-results.json" \
             > "${{ runner.temp }}/dashboard.md"
-          cat "${{ runner.temp }}/dashboard.md" >> $GITHUB_STEP_SUMMARY
+          cat "${{ runner.temp }}/dashboard.md" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
