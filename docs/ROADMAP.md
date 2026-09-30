@@ -361,6 +361,7 @@ standard-ci check
 | `actions/shellcheck` | Shell script linting | No |
 | `actions/gitleaks` | Secrets detection | No |
 | `actions/gdlint` | GDScript naming via gdlint | No |
+| `actions/ts-naming` | TypeScript naming via typescript-eslint | No |
 
 Usage: `uses: PavelGuzenfeld/standard/actions/clang-tidy@<sha>` as a step in any job.
 

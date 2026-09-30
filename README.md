@@ -457,6 +457,8 @@ Generate project scaffolding from the standard:
 
 `.layers` lists directories lowest layer first, one per line. A lower layer may not `#include` or `preload`/`load` a higher one, and cycles fail. Use it as `PavelGuzenfeld/standard/actions/layering@main`.
 
+TypeScript naming runs as `PavelGuzenfeld/standard/actions/ts-naming@main`: typescript-eslint on changed `.ts`/`.tsx` with `eslint-naming.config.mjs`.
+
 ```bash
 ./scripts/check-repo-structure.sh configs/repo-structure-ros2.txt .
 ./scripts/check-hardening.sh build-hardened/bin/*
