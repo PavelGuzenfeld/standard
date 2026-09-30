@@ -6,6 +6,12 @@ CHECK="$HERE/../scripts/check-layering.sh"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
+REQUIRED_TOOLS=(jq tsort realpath ast-grep lint-imports npx)
+for tool in "${REQUIRED_TOOLS[@]}"; do
+    command -v "$tool" > /dev/null || { echo "missing tool: $tool"; exit 1; }
+done
+[ "$(node -p 'process.versions.node.split(".")[0]')" -ge 22 ] || { echo "missing tool: node >= 22"; exit 1; }
+
 PASS=0
 FAIL=0
 
