@@ -22,7 +22,7 @@ inputs:
     default: ''
   ruff_select:
     description: 'Comma-separated ruff rule selectors (e.g. E,F,W,I)'
-    default: ''
+    default: 'E,W,F,I,N'
   ruff_ignore:
     description: 'Comma-separated ruff rules to ignore'
     default: ''
@@ -81,6 +81,7 @@ runs:
 
         # Run diff-quality
         if diff-quality --violations=ruff.check \
+          --options="${RUFF_ARGS}" \
           --compare-branch="origin/${BASE}" \
           --fail-under=${{ inputs.fail_under }}; then
           echo "passed=true" >> $GITHUB_OUTPUT
