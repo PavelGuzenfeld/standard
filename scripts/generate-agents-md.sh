@@ -4,7 +4,6 @@ set -euo pipefail
 OUTPUT="./AGENTS.md"
 NON_INTERACTIVE=false
 
-join_by() { local sep="$1"; shift; local first="$1"; shift; printf '%s' "$first" "${@/#/$sep}"; }
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -134,364 +133,146 @@ if [[ "$enable_cpp" == "y" ]]; then
     ask "  cmake-lint (CMake files)?" "n" enable_cmake_lint
 fi
 
-{
-cat << 'HEADER'
-# Agent Instructions — Quality Standard
-
-## Quality Standard
-
-This project uses [diff-aware quality workflows](https://github.com/PavelGuzenfeld/standard) for CI.
-Only changed files are checked — but all new and modified code must pass.
-HEADER
-
-if [[ "$enable_cpp" == "y" ]]; then
-    cat << 'ALWAYS'
-
-### Always Enforced
-
-- **clang-tidy** — clang-analyzer, cppcoreguidelines, modernize, bugprone, performance, readability
-- **cppcheck** — bug and style checking with project-specific suppressions
-ALWAYS
-fi
-
-optin_items=()
-[[ "$enable_clang_format" == "y" ]]     && optin_items+=('- **clang-format** — C++23, 120-column, 4-space indent, Allman braces')
-[[ "$enable_file_naming" == "y" ]]      && optin_items+=('- **File naming** — snake_case for all files and directories')
-[[ "$enable_ban_cout" == "y" ]]         && optin_items+=("- **Banned: cout/printf** — use structured logging instead")
-[[ "$enable_ban_new" == "y" ]]          && optin_items+=('- **Banned: raw new/delete** — use smart pointers (`std::make_unique`, `std::make_shared`)')
-[[ "$enable_enforce_doctest" == "y" ]]  && optin_items+=('- **Banned: gtest/gbenchmark** — use doctest and nanobench')
-[[ "$enable_flawfinder" == "y" ]]       && optin_items+=('- **Flawfinder** — CWE lexical security scanning')
-[[ "$enable_sanitizers" == "y" ]]       && optin_items+=('- **ASAN/UBSAN** — address and undefined behavior sanitizer tests')
-[[ "$enable_tsan" == "y" ]]             && optin_items+=('- **TSAN** — ThreadSanitizer tests')
-[[ "$enable_coverage" == "y" ]]         && optin_items+=('- **Coverage** — gcov/lcov test coverage reporting')
-[[ "$enable_iwyu" == "y" ]]             && optin_items+=('- **IWYU** — Include-What-You-Use analysis (non-blocking)')
-[[ "$enable_cpp" == "y" ]]              && optin_items+=('- **Identifier naming** — snake_case functions/variables, PascalCase types, trailing `_` for private members')
-
-if [[ ${#optin_items[@]} -gt 0 ]]; then
-    echo ""
-    echo "### Opt-in (enabled in this project)"
-    echo ""
-    for item in "${optin_items[@]}"; do
-        echo "$item"
-    done
-fi
-
-if [[ "$enable_python" == "y" ]]; then
-    echo ""
-    echo "### Python (if applicable)"
-    echo ""
-    echo "- **Linting** — ${python_linter} on changed lines, zero violations required"
-    echo "- **Coverage** — pytest + diff-cover, minimum score on changed lines"
-    sast_items=()
-    [[ "$enable_semgrep" == "y" ]]   && sast_items+=("Semgrep (OWASP Top 10)")
-    [[ "$enable_pip_audit" == "y" ]] && sast_items+=("pip-audit (CVE scanning)")
-    [[ "$enable_codeql" == "y" ]]    && sast_items+=("CodeQL (deep analysis)")
-    if [[ ${#sast_items[@]} -gt 0 ]]; then
-        local_sast=$(join_by ", " "${sast_items[@]}")
-        echo "- **SAST** — ${local_sast}"
-    fi
-fi
-
-if [[ "$enable_cpp" == "y" ]]; then
-    echo ""
-    echo "## C++ Conventions"
-
-    if [[ "$enable_file_naming" == "y" ]]; then
-        cat << 'FILENAMING'
-
-### File and Directory Naming
-
-All files and directories must be `snake_case`. Pattern: lowercase letters, digits, underscores.
-
-Valid: `flight_controller.cpp`, `nav_utils/`, `terrain_map.hpp`
-Invalid: `FlightController.cpp`, `NavUtils/`, `terrainMap.hpp`
-
-**Built-in exemptions** (no config needed):
-`CMakeLists.txt`, `Dockerfile`, `README.md`, `LICENSE`, `CHANGELOG.md`, `AGENTS.md`,
-dotfiles (`.clang-tidy`, `.gitignore`), `__init__.py`, `requirements*.txt`
-
-**Package directories**: `include/<package_name>/` must also be snake_case.
-FILENAMING
-    fi
-
-    cat << 'IDENTNAMING'
-
-### Identifier Naming
-
-| Element | Convention | Example |
-|---------|-----------|---------|
-| Functions / methods | `snake_case` | `compute_heading()` |
-| Variables / parameters | `snake_case` | `max_altitude` |
-| Types / classes / structs | `PascalCase` | `FlightController` |
-| Private members | `snake_case_` (trailing underscore) | `config_`, `state_` |
-| Constants / enums | `UPPER_CASE` | `MAX_RETRIES` |
-| Namespaces | `snake_case` | `nav_utils` |
-IDENTNAMING
-
-    cat << 'INCLUDES'
-
-### Include Convention
-
-```cpp
-#pragma once                          // not #ifndef guards
-#include <system_headers>             // standard library first
-#include "project/package_header.hpp" // project headers second
-```
-
-Minimize includes. Forward-declare where possible.
-INCLUDES
-
-    any_ban=false
-    [[ "$enable_ban_cout" == "y" || "$enable_ban_new" == "y" || "$enable_enforce_doctest" == "y" ]] && any_ban=true
-
-    if $any_ban; then
-        echo ""
-        echo "### Banned Patterns"
-        echo ""
-        echo "| Pattern | Reason | Alternative |"
-        echo "|---------|--------|-------------|"
-        if [[ "$enable_ban_cout" == "y" ]]; then
-            echo "| \`std::cout\`, \`std::cerr\`, \`printf\`, \`fprintf\`, \`puts\` | No structured logging | Use your project's logger (e.g., \`${logger_replacement}\`) |"
-        fi
-        if [[ "$enable_ban_new" == "y" ]]; then
-            echo "| \`new T\`, \`delete p\` | Memory leaks | \`std::make_unique<T>()\`, \`std::make_shared<T>()\` |"
-        fi
-        if [[ "$enable_enforce_doctest" == "y" ]]; then
-            echo "| \`#include <gtest/gtest.h>\` | Non-standard for this project | \`#include <doctest/doctest.h>\` |"
-            echo "| \`#include <benchmark/benchmark.h>\` | Non-standard for this project | \`#include <nanobench.h>\` |"
-        fi
-        echo ""
-        echo "These bans apply to production code only. Test files (matching \`test\` in the path) may have different rules depending on project configuration."
-    fi
-
-    cat << 'TESTING'
-
-## Testing Requirements
-
-### Mandatory Test Categories
-
-Every non-trivial module should cover these edge cases:
-
-1. **Empty inputs** — empty containers, null optionals, zero-length spans
-2. **Boundary conditions** — off-by-one, min/max values, INT_MAX, epsilon
-3. **Single-element** — containers with one item
-4. **Invalid inputs** — out-of-range, malformed strings, type mismatches
-5. **Resource exhaustion** — allocation failure, full queues, disk full
-6. **Concurrent access** — data races, deadlocks, torn reads (if applicable)
-7. **Performance baselines** — nanobench for critical paths
-TESTING
-
-    n=8
-    if [[ "$enable_sanitizers" == "y" ]]; then
-        echo "${n}. **ASan + UBSan** — build and test with address/undefined sanitizers"
-        n=$((n + 1))
-    fi
-    if [[ "$enable_tsan" == "y" ]]; then
-        echo "${n}. **TSan** — build and test with thread sanitizer (if multi-threaded)"
-        n=$((n + 1))
-    fi
-    if [[ "$enable_sanitizers" == "y" ]]; then
-        echo "${n}. **Release + sanitizers** — verify optimized builds don't introduce UB"
-        n=$((n + 1))
-    fi
-    echo "${n}. **Fuzz harness** — libFuzzer for parsers, serializers, and input handlers"
-
-    if [[ "$enable_sanitizers" == "y" || "$enable_tsan" == "y" ]]; then
-        echo ""
-        echo "### Sanitizer Build Presets"
-        echo ""
-        echo '```bash'
-        [[ "$enable_sanitizers" == "y" ]] && echo "cmake --preset debug-asan    # ASan + UBSan"
-        [[ "$enable_tsan" == "y" ]]       && echo "cmake --preset debug-tsan    # ThreadSanitizer"
-        [[ "$enable_sanitizers" == "y" ]] && echo "cmake --preset release-asan  # ASan + UBSan at -O2"
-        echo '```'
-    fi
-fi
-
-if [[ "$enable_python" == "y" ]]; then
-    echo ""
-    echo "## Python Conventions"
-    echo ""
-    echo "- **Linter**: ${python_linter}"
-    if [[ "$python_linter" == "ruff" ]]; then
-        echo "- **Formatter**: ruff format or black"
-    else
-        echo "- **Formatter**: black"
-    fi
-    echo "- **Test framework**: pytest"
-    echo "- **Coverage**: diff-cover (only changed lines must be covered)"
-    sast_lines=()
-    [[ "$enable_semgrep" == "y" ]]   && sast_lines+=("Semgrep for security")
-    [[ "$enable_pip_audit" == "y" ]] && sast_lines+=("pip-audit for CVEs")
-    [[ "$enable_codeql" == "y" ]]    && sast_lines+=("CodeQL for deep analysis")
-    if [[ ${#sast_lines[@]} -gt 0 ]]; then
-        local_sast=$(join_by ", " "${sast_lines[@]}")
-        echo "- **SAST**: ${local_sast}"
-    fi
-    echo "- **Style**: PEP 8, type hints encouraged"
-fi
-
-echo ""
-echo "## Local Verification"
-echo ""
-echo "Run these before pushing to avoid CI failures:"
-echo ""
-echo '```bash'
-
-if [[ "$enable_cpp" == "y" ]]; then
-    echo "# C++ (inside your Docker dev container)"
-    echo './scripts/diff-clang-tidy.sh origin/main build "cpp hpp h"'
-    echo './scripts/diff-cppcheck.sh origin/main'
-    [[ "$enable_clang_format" == "y" ]] && echo './scripts/diff-clang-format.sh origin/main "cpp hpp h"'
-    [[ "$enable_file_naming" == "y" ]]  && echo './scripts/diff-file-naming.sh origin/main naming-exceptions.txt'
-fi
-
-if [[ "$enable_python" == "y" ]]; then
-    [[ "$enable_cpp" == "y" ]] && echo ""
-    echo "# Python"
-    echo "${python_linter} check src/ tests/"
-    echo "pytest --cov=src tests/"
-fi
-
-echo '```'
-
-has_customization=false
-[[ "$enable_file_naming" == "y" || "$enable_cpp" == "y" ]] && has_customization=true
-
-if $has_customization; then
-    echo ""
-    echo "## Customization"
-fi
-
-if [[ "$enable_file_naming" == "y" ]]; then
-    cat << 'NAMING_EXCEPTIONS'
-
-### Adding File Naming Exceptions
-
-Create or edit `naming-exceptions.txt` (one regex per line):
-
-```
-# Vendor directories
-vendor
-third_party
-
-# Generated code
-.*_generated
-
-# O3DE Gem directories
-Gems
-Code
-```
-
-Pass it to the workflow:
-
-```yaml
-with:
-  file_naming_exceptions: naming-exceptions.txt
-```
-NAMING_EXCEPTIONS
-fi
-
-if [[ "$enable_cpp" == "y" ]]; then
-    cat << 'CPPCHECK_SUPP'
-
-### Suppressing cppcheck Warnings
-
-Add to `cppcheck.suppress`:
-
-```
-// Suppress specific check for a file
-unusedFunction:src/legacy_module.cpp
-
-// Suppress globally
-shadowVariable
-```
-
-### Overriding clang-tidy Checks
-
-Edit `.clang-tidy` in your repo root. The CI uses your config when present.
-
-To disable a specific check:
-
-```yaml
-Checks: >-
-  ...,
-  -modernize-use-trailing-return-type
-```
-CPPCHECK_SUPP
-fi
-
-echo ""
-echo "## CI Workflows"
-echo ""
-echo 'Every project integrating this standard must have a quality workflow in `.github/workflows/`.'
-echo ""
-echo "### Required Workflows"
-
-if [[ "$enable_cpp" == "y" ]]; then
-    echo ""
-    echo '- **File**: `cpp-quality.yml` calling the reusable workflow'
-    echo '- **Required inputs**: `docker_image`, `compile_commands_path`'
-    echo "- **Always enabled**: clang-tidy, cppcheck"
-
-    cpp_optin_names=()
-    [[ "$enable_clang_format" == "y" ]]    && cpp_optin_names+=("clang-format")
-    [[ "$enable_file_naming" == "y" ]]     && cpp_optin_names+=("file naming")
-    [[ "$enable_ban_cout" == "y" ]]        && cpp_optin_names+=("cout/printf ban")
-    [[ "$enable_ban_new" == "y" ]]         && cpp_optin_names+=("new/delete ban")
-    [[ "$enable_enforce_doctest" == "y" ]] && cpp_optin_names+=("doctest enforcement")
-    [[ "$enable_flawfinder" == "y" ]]      && cpp_optin_names+=("flawfinder")
-    [[ "$enable_sanitizers" == "y" ]]      && cpp_optin_names+=("ASAN/UBSAN")
-    [[ "$enable_tsan" == "y" ]]            && cpp_optin_names+=("TSAN")
-    [[ "$enable_coverage" == "y" ]]        && cpp_optin_names+=("coverage")
-    [[ "$enable_iwyu" == "y" ]]            && cpp_optin_names+=("IWYU")
-
-    if [[ ${#cpp_optin_names[@]} -gt 0 ]]; then
-        local_list=$(join_by ", " "${cpp_optin_names[@]}")
-        echo "- **Opt-in enabled**: ${local_list}"
-    fi
-fi
-
-if [[ "$enable_python" == "y" ]]; then
-    echo ""
-    echo "- **File**: \`python-quality.yml\` calling the reusable workflow"
-    echo "- **Linter**: ${python_linter}"
-
-    py_sast_names=()
-    [[ "$enable_semgrep" == "y" ]]   && py_sast_names+=("Semgrep")
-    [[ "$enable_pip_audit" == "y" ]] && py_sast_names+=("pip-audit")
-    [[ "$enable_codeql" == "y" ]]    && py_sast_names+=("CodeQL")
-    if [[ ${#py_sast_names[@]} -gt 0 ]]; then
-        echo "- **SAST** (\`sast-python.yml\`): $(join_by ", " "${py_sast_names[@]}")"
-    fi
-fi
-
-infra_names=()
-[[ "$enable_shellcheck" == "y" ]] && infra_names+=("ShellCheck")
-[[ "$enable_hadolint" == "y" ]]   && infra_names+=("Hadolint")
-[[ "$enable_cmake_lint" == "y" ]] && infra_names+=("cmake-lint")
-
-if [[ ${#infra_names[@]} -gt 0 ]]; then
-    echo ""
-    echo "- **File**: \`infra-lint.yml\` calling the reusable workflow"
-    echo "- **Enabled**: $(join_by ", " "${infra_names[@]}")"
-fi
-
-echo ""
-echo "### Optional Workflows"
-echo ""
-echo '- `ci-codeql.yml` — GitHub CodeQL analysis'
-echo '- `ci-infer.yml` — Facebook Infer static analysis (C++)'
-echo '- `ci-fuzz.yml` — libFuzzer continuous fuzzing'
-echo '- `ci-multi-compiler.yml` — GCC + Clang multi-compiler builds'
-
-echo ""
-echo 'Confirm `.github/workflows/` contains the quality workflow for your language(s).'
-echo ""
-echo "Full setup instructions: see \`INTEGRATION.md\`."
-
-
-} > "$OUTPUT"
+TEMPLATE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/configs/AGENTS.md"
+
+enabled=""
+for flag in cpp python clang_format file_naming ban_cout ban_new enforce_doctest flawfinder \
+            sanitizers tsan coverage iwyu semgrep pip_audit codeql shellcheck hadolint cmake_lint; do
+    var="enable_$flag"
+    [[ "${!var}" == "y" ]] && enabled+=" $flag"
+done
+[[ "$enable_ban_cout" == "y" || "$enable_ban_new" == "y" || "$enable_enforce_doctest" == "y" ]] && enabled+=" any_ban"
+[[ "$enable_sanitizers" == "y" || "$enable_tsan" == "y" ]] && enabled+=" any_sanitizer"
+
+FILTER_RULES='S@^### Always Enforced$@cpp
+S@^## C\+\+ Conventions$@cpp
+S@^### File and Directory Naming$@file_naming
+S@^### Banned Patterns$@any_ban
+S@^## Testing Requirements$@cpp
+S@^### Sanitizer Build Presets$@any_sanitizer
+S@^### Python \(if applicable\)$@python
+S@^## Python Conventions$@python
+S@^### Adding File Naming Exceptions$@file_naming
+S@^### Suppressing cppcheck Warnings$@cpp
+S@^### Overriding clang-tidy Checks$@cpp
+L@^> @never
+L@^- \*\*clang-format\*\*@clang_format
+L@^- \*\*File naming\*\*@file_naming
+L@^- \*\*Banned: cout@ban_cout
+L@^- \*\*Banned: raw new@ban_new
+L@^- \*\*Banned: gtest@enforce_doctest
+L@^- \*\*Flawfinder\*\*@flawfinder
+L@^- \*\*Coverage\*\* — gcov@coverage
+L@^- \*\*IWYU\*\*@iwyu
+L@^- \*\*Hardening verification\*\*@never
+L@^- \*\*Identifier naming\*\*@cpp
+L@^\| `std::cout`@ban_cout
+L@^\| `new T`@ban_new
+L@^\| `#include <(gtest|benchmark)/@enforce_doctest
+L@^[0-9]+\. \*\*ASan@sanitizers
+L@^[0-9]+\. \*\*TSan@tsan
+L@^[0-9]+\. \*\*Release \+ sanitizers@sanitizers
+L@^cmake --preset debug-asan@sanitizers
+L@^cmake --preset debug-tsan@tsan
+L@^cmake --preset release-asan@sanitizers
+L@^cmake --preset release-hardened@never
+L@^All C\+\+ checks and tests@cpp
+L@^\./scripts/diff-(clang-tidy|cppcheck|test-mirror)@cpp
+L@^\./scripts/diff-clang-format@clang_format
+L@^\./scripts/diff-file-naming@file_naming
+L@^\./scripts/diff-iwyu@iwyu
+L@^(ruff check|pytest)@python
+L@^- \*\*C\+\+\*\*:@cpp
+L@^- \*\*Python\*\*:@python
+C@- **SAST** — @Semgrep:semgrep;pip-audit:pip_audit;CodeQL:codeql
+C@Static analysis: @Semgrep:semgrep;pip-audit:pip_audit;CodeQL:codeql
+C@  - Linting (ruff/flake8), @Semgrep:semgrep;pip-audit:pip_audit;CodeQL:codeql
+C@  - Opt-in: @clang-format:clang_format;file naming:file_naming;banned patterns:any_ban
+C@- `infra-lint.yml` — @ShellCheck:shellcheck;Hadolint:hadolint;cmake-lint:cmake_lint'
+
+filter_template() {
+    awk -v enabled="$enabled" '
+    BEGIN {
+        n = split(enabled, names, " ")
+        for (i = 1; i <= n; i++) on[names[i]] = 1
+    }
+    FNR == NR {
+        split($0, f, "@")
+        kind[++rules] = f[1]; pattern[rules] = f[2]; arg[rules] = f[3]
+        next
+    }
+    function emit(text) {
+        if (pending_blank && printed && !after_open) print ""
+        print text
+        pending_blank = 0; printed = 1; after_open = 0
+    }
+    function flush_headings(   level) {
+        for (level = 1; level <= 4; level++) {
+            if (level in heading) { emit(heading[level]); pending_blank = 1; delete heading[level] }
+        }
+    }
+    function keep_items(text, prefix, mapping,   rest, count, items, i, j, pairs, kv, keep, out) {
+        rest = substr(text, length(prefix) + 1)
+        count = split(rest, items, ", ")
+        split(mapping, pairs, ";")
+        for (i = 1; i <= count; i++) {
+            keep = 1
+            for (j in pairs) {
+                split(pairs[j], kv, ":")
+                if (index(items[i], kv[1]) == 1 && !on[kv[2]]) keep = 0
+            }
+            if (keep) out = out (out == "" ? "" : ", ") items[i]
+        }
+        return out == "" ? "" : prefix out
+    }
+    {
+        line = $0
+        is_fence = line ~ /^```/
+        if (is_fence) in_fence = !in_fence
+        if (!in_fence && !is_fence && line ~ /^#+ /) {
+            match(line, /^#+/); level = RLENGTH
+            if (skipping && level <= skip_level) skipping = 0
+            for (r = 1; r <= rules && !skipping; r++) {
+                if (kind[r] == "S" && line ~ pattern[r] && !on[arg[r]]) { skipping = 1; skip_level = level }
+            }
+            if (skipping) next
+            heading[level] = line
+            for (d = level + 1; d <= 4; d++) delete heading[d]
+            item_number = 0
+            next
+        }
+        if (skipping) next
+        if (line == "") { pending_blank = 1; drop_children = 0; next }
+        if (drop_children && line ~ /^[ \t]+-/) next
+        drop_children = 0
+        dropped = 0
+        for (r = 1; r <= rules; r++) {
+            if (kind[r] == "L" && line ~ pattern[r] && !on[arg[r]]) dropped = 1
+            if (kind[r] == "C" && index(line, pattern[r]) == 1) {
+                line = keep_items(line, pattern[r], arg[r])
+                if (line == "") dropped = 1
+            }
+        }
+        if (dropped) { drop_children = 1; next }
+        if (line ~ /^[0-9]+\. /) sub(/^[0-9]+/, ++item_number, line); else item_number = 0
+        if (is_fence && !in_fence) pending_blank = 0
+        flush_headings()
+        emit(line)
+        if (is_fence && in_fence) after_open = 1
+    }' <(printf '%s\n' "$FILTER_RULES") "$TEMPLATE"
+}
+
+escape_sed() { printf '%s' "$1" | sed 's/[\\&|]/\\&/g'; }
+
+flake8_edits=()
+[[ "$python_linter" == "ruff" ]] || flake8_edits=(-e 's/format with ruff format or black/format with black/' -e 's/^ruff check /flake8 /')
+
+filter_template | sed \
+    -e "s|ruff (or flake8)|$(escape_sed "$python_linter")|" \
+    -e "s|ruff (preferred) or flake8|$(escape_sed "$python_linter")|" \
+    -e "s|ruff/flake8|$(escape_sed "$python_linter")|" \
+    -e "s|\`RCLCPP_INFO\`|\`$(escape_sed "$logger_replacement")\`|" \
+    "${flake8_edits[@]}" > "$OUTPUT"
 
 echo ""
 echo "=== Generated: $OUTPUT ==="
