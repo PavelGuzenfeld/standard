@@ -3,26 +3,34 @@ set -euo pipefail
 
 OUTPUT_DIR=".github/workflows"
 NON_INTERACTIVE=false
+DEPENDENCY_BOT=""
 STANDARD_REPO="PavelGuzenfeld/standard"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --output-dir)      OUTPUT_DIR="$2"; shift 2 ;;
         --non-interactive) NON_INTERACTIVE=true; shift ;;
+        --dependency-bot)  DEPENDENCY_BOT="$2"; shift 2 ;;
         -h|--help)
-            echo "Usage: $0 [--output-dir PATH] [--non-interactive]"
+            echo "Usage: $0 [--output-dir PATH] [--non-interactive] [--dependency-bot dependabot|renovate|both]"
             echo ""
             echo "Generate .github/workflows/ YAML files for the standard quality workflows."
             echo ""
             echo "Options:"
             echo "  --output-dir PATH     Write YAML files to PATH (default: .github/workflows/)"
             echo "  --non-interactive     Accept all defaults from auto-detection"
-            echo "  -h, --help            Show this help message"
+            echo "  --dependency-bot BOT  Also write dependabot.yml and/or renovate.json beside the workflows directory (default: neither)"
+            echo "  -h, --help           Show this help message"
             exit 0
             ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
 done
+
+case "$DEPENDENCY_BOT" in
+    ""|dependabot|renovate|both) ;;
+    *) echo "Unknown --dependency-bot value: $DEPENDENCY_BOT"; exit 1 ;;
+esac
 
 detect_cpp=false
 detect_python=false
@@ -365,6 +373,30 @@ HEADER
     } > "$TRENDS_FILE"
 
     echo "Generated: $TRENDS_FILE"
+fi
+
+BOT_DIR="$(dirname "$OUTPUT_DIR")"
+
+if [[ "$DEPENDENCY_BOT" == "dependabot" || "$DEPENDENCY_BOT" == "both" ]]; then
+    cp "$(cd "$(dirname "$0")" && pwd)/../configs/dependabot.yml" "$BOT_DIR/dependabot.yml"
+    echo "Generated: $BOT_DIR/dependabot.yml"
+fi
+
+if [[ "$DEPENDENCY_BOT" == "renovate" || "$DEPENDENCY_BOT" == "both" ]]; then
+    cat > "$BOT_DIR/renovate.json" << 'RENOVATE'
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "enabledManagers": ["github-actions", "conan"],
+  "github-actions": {
+    "pinDigests": true
+  },
+  "conan": {
+    "enabled": true
+  }
+}
+RENOVATE
+    echo "Generated: $BOT_DIR/renovate.json"
 fi
 
 echo ""
