@@ -216,7 +216,6 @@ jobs:
             OUTPUT=$(/tmp/hadolint --no-fail --format=tty $CONFIG_ARG "$file" 2>&1 || true)
             if [ -n "$OUTPUT" ]; then
               echo "$OUTPUT"
-              # Parse hadolint tty output: "file:line DLnnnn severity: message"
               echo "$OUTPUT" | grep -E '^.+:[0-9]+ ' | while IFS= read -r line; do
                 ann_file=$(echo "$line" | cut -d: -f1)
                 rest=$(echo "$line" | cut -d: -f2-)
@@ -375,7 +374,6 @@ jobs:
             [ -z "$file" ] && continue
             [ -f "$file" ] || continue
 
-            # Pattern 1: pull_request_target with checkout of PR ref
             if grep -q 'pull_request_target' "$file"; then
               if grep -qE 'github\.event\.pull_request\.head\.(sha|ref)' "$file"; then
                 echo "::error file=${file}::Dangerous: pull_request_target with checkout of PR head ref — risk of arbitrary code execution"
@@ -383,12 +381,10 @@ jobs:
               fi
             fi
 
-            # Pattern 2: Untrusted PR input in run: steps
             LINE_NUM=0
             IN_RUN=false
             while IFS= read -r line || [ -n "$line" ]; do
               LINE_NUM=$((LINE_NUM + 1))
-              # Detect run: blocks (single or multi-line)
               if echo "$line" | grep -qE '^\s+run:\s*[|>]?\s*$' || echo "$line" | grep -qE '^\s+run:\s+\S'; then
                 IN_RUN=true
               elif $IN_RUN && echo "$line" | grep -qE '^\s+[a-zA-Z_-]+:' && ! echo "$line" | grep -qE '^\s+#'; then
