@@ -52,6 +52,8 @@ To generate these files instead, see the [Consumer Quickstart](docs/CONSUMER-QUI
 
 ## Documentation
 
+The full site is at <https://pavelguzenfeld.com/standard/>. The same pages live in `docs/`:
+
 | Document | Content |
 |----------|---------|
 | [Integration Guide](docs/INTEGRATION.md) | Setup for C++ and Python projects |
@@ -59,8 +61,7 @@ To generate these files instead, see the [Consumer Quickstart](docs/CONSUMER-QUI
 | [Versioning](docs/VERSIONING.md) | SemVer rules and git tags |
 | [Consumer Quickstart](docs/CONSUMER-QUICKSTART.md) | `standard-ci` presets |
 | [Compliance](docs/COMPLIANCE.md) | Org-wide drift updates and CIS scans |
-| [Roadmap](docs/ROADMAP.md) | Coding conventions and open items |
-| [Comparison](docs/COMPARISON.md) | Other tools |
+| [Conventions](docs/conventions.md) | Coding conventions, PR gate, scan commands |
 
 ## Reusable Workflows
 

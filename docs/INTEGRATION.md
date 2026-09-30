@@ -1,6 +1,6 @@
 # Integration Guide
 
-Quick-start workflow files are in the [README](../README.md#quick-start). Every input and default is in [Workflow Inputs](../README.md#workflow-inputs).
+Quick-start workflow files are in the [README](https://github.com/PavelGuzenfeld/standard/blob/main/README.md#quick-start). Every input and default is in [Workflow Inputs](https://github.com/PavelGuzenfeld/standard/blob/main/README.md#workflow-inputs).
 
 ## Generators
 
@@ -33,7 +33,7 @@ The repo is mounted at `source_mount` (default `/workspace/src`). A non-root use
 
 ### 2. Copy configs
 
-Copy what you need from [`configs/`](../configs/) into the repo root:
+Copy what you need from [`configs/`](https://github.com/PavelGuzenfeld/standard/tree/main/configs/) into the repo root:
 
 ```bash
 cp configs/.clang-tidy .clang-tidy
@@ -83,7 +83,7 @@ jobs:
 
 ### 4. SAST
 
-CodeQL and Infer are templates: copy [`configs/ci-codeql.yml`](../configs/ci-codeql.yml) or [`configs/ci-infer.yml`](../configs/ci-infer.yml) to `.github/workflows/`. CodeQL runs on push, PR and weekly. Infer runs on push to main.
+CodeQL and Infer are templates: copy [`configs/ci-codeql.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/configs/ci-codeql.yml) or [`configs/ci-infer.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/configs/ci-infer.yml) to `.github/workflows/`. CodeQL runs on push, PR and weekly. Infer runs on push to main.
 
 ### 5. Agent instructions
 
@@ -398,7 +398,7 @@ In `branch_protection.yaml`, set `action: fix` to configure branch protection in
 
 ## Trend Dashboard
 
-`trend-dashboard.yml` queries the GitHub Actions API for the last `lookback_days` days of runs of the standard workflows it finds in the repo. It buckets job results by week and writes a table of pass rates with trend arrows to the workflow summary. Inputs are in the [README](../README.md#workflow-inputs).
+`trend-dashboard.yml` queries the GitHub Actions API for the last `lookback_days` days of runs of the standard workflows it finds in the repo. It buckets job results by week and writes a table of pass rates with trend arrows to the workflow summary. Inputs are in the [README](https://github.com/PavelGuzenfeld/standard/blob/main/README.md#workflow-inputs).
 
 `.github/workflows/trends.yml`:
 

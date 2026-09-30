@@ -137,9 +137,9 @@ Validate tags against the regex before a release:
 
 ### Source File Version Check
 
-[`version-check.yml`](../.github/workflows/version-check.yml) validates the version in `package.xml`, `CMakeLists.txt` and `pyproject.toml` against the regex above on every PR.
+[`version-check.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/.github/workflows/version-check.yml) validates the version in `package.xml`, `CMakeLists.txt` and `pyproject.toml` against the regex above on every PR.
 
 ### Reusable Auto-Release Workflow
 
-[`auto-release.yml`](../.github/workflows/auto-release.yml) bumps versions from conventional commit prefixes and tags every push to `main`. Setup is in the [Integration Guide](INTEGRATION.md#auto-release).
+[`auto-release.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/.github/workflows/auto-release.yml) bumps versions from conventional commit prefixes and tags every push to `main`. Setup is in the [Integration Guide](INTEGRATION.md#auto-release).
 

@@ -8,7 +8,7 @@ Tools that run locally before code reaches CI.
 
 ### Pre-commit Hooks
 
-Template: [`configs/.pre-commit-config.yaml`](../configs/.pre-commit-config.yaml)
+Template: [`configs/.pre-commit-config.yaml`](https://github.com/PavelGuzenfeld/standard/blob/main/configs/.pre-commit-config.yaml)
 
 | Hook | What it does |
 |------|-------------|
@@ -24,13 +24,13 @@ Install with `pip install pre-commit && pre-commit install`, or run `./scripts/i
 
 ### Local Scripts
 
-The `diff-*.sh` scripts run the CI checks on changed files. They are listed in the [README](../README.md#scripts). Run every C++ script and test inside the project's Docker dev container, never on the host.
+The `diff-*.sh` scripts run the CI checks on changed files. They are listed in the [README](https://github.com/PavelGuzenfeld/standard/blob/main/README.md#scripts). Run every C++ script and test inside the project's Docker dev container, never on the host.
 
 `cppcheck` takes its suppressions from the environment: `CPPCHECK_SUPPRESS=cppcheck.suppress ./scripts/diff-cppcheck.sh origin/main`.
 
 ### CMake Presets for Sanitizer Builds
 
-Template: [`configs/CMakePresets-sanitizers.json`](../configs/CMakePresets-sanitizers.json)
+Template: [`configs/CMakePresets-sanitizers.json`](https://github.com/PavelGuzenfeld/standard/blob/main/configs/CMakePresets-sanitizers.json)
 
 | Preset | Description |
 |--------|------------|
@@ -48,7 +48,7 @@ ctest --test-dir build-asan --output-on-failure
 
 ### Compiler Warning Flags
 
-Template: [`configs/cmake-warnings.cmake`](../configs/cmake-warnings.cmake)
+Template: [`configs/cmake-warnings.cmake`](https://github.com/PavelGuzenfeld/standard/blob/main/configs/cmake-warnings.cmake)
 
 Flags: `-Wall -Wextra -Wpedantic -Werror -Wshadow -Wnon-virtual-dtor -Wold-style-cast -Wconversion -Wsign-conversion -Wformat=2` plus GCC-specific extras (`-Wduplicated-cond`, `-Wlogical-op`).
 
@@ -63,7 +63,7 @@ Automated checks that run on every PR. All must pass before merge.
 
 ### Diff-Aware Linting (C++)
 
-Workflow: [`cpp-quality.yml`](../.github/workflows/cpp-quality.yml)
+Workflow: [`cpp-quality.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/.github/workflows/cpp-quality.yml)
 
 Changed files are found with `git diff --name-only --diff-filter=ACMR` against the base branch. Issues in untouched code never block PRs.
 
@@ -89,7 +89,7 @@ The Workflow column shows where each check runs: in the caller's Docker image (t
 
 ### Diff-Aware Linting (Python)
 
-Workflow: [`python-quality.yml`](../.github/workflows/python-quality.yml)
+Workflow: [`python-quality.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/.github/workflows/python-quality.yml)
 
 | Check | Tool | Default |
 |-------|------|---------|
@@ -133,7 +133,7 @@ Errors and warnings also appear as inline annotations on the PR diff.
 
 ### Semgrep (Python)
 
-Workflow: [`sast-python.yml`](../.github/workflows/sast-python.yml)
+Workflow: [`sast-python.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/.github/workflows/sast-python.yml)
 
 - Taint tracking for injection vulnerabilities
 - OWASP Top 10 rule set
@@ -142,7 +142,7 @@ Workflow: [`sast-python.yml`](../.github/workflows/sast-python.yml)
 
 ### CodeQL (C++ & Python)
 
-Template: [`configs/ci-codeql.yml`](../configs/ci-codeql.yml)
+Template: [`configs/ci-codeql.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/configs/ci-codeql.yml)
 
 - Inter-procedural taint tracking and data flow analysis
 - 200+ CWEs for C++, 160+ for Python
@@ -151,7 +151,7 @@ Template: [`configs/ci-codeql.yml`](../configs/ci-codeql.yml)
 
 ### Infer (C++)
 
-Template: [`configs/ci-infer.yml`](../configs/ci-infer.yml)
+Template: [`configs/ci-infer.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/configs/ci-infer.yml)
 
 | Checker | What it finds |
 |---------|--------------|
@@ -163,14 +163,14 @@ RacerD covers thread safety, which matters for ROS2 executors and async callback
 
 ### pip-audit (Python)
 
-Workflow: [`sast-python.yml`](../.github/workflows/sast-python.yml)
+Workflow: [`sast-python.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/.github/workflows/sast-python.yml)
 
 - Checks `requirements.txt` against known CVE databases
 - Uses `pypa/gh-action-pip-audit@v1.1.0`
 
 ## Phase 3b: SBOM & Supply Chain
 
-Workflow: [`sbom.yml`](../.github/workflows/sbom.yml)
+Workflow: [`sbom.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/.github/workflows/sbom.yml)
 
 | Check | Tool | What it does |
 |-------|------|-------------|
@@ -197,13 +197,13 @@ Additional checks that strengthen supply chain security posture:
 
 ### Edge Case Checklist
 
-Template: [`configs/test-checklist.md`](../configs/test-checklist.md)
+Template: [`configs/test-checklist.md`](https://github.com/PavelGuzenfeld/standard/blob/main/configs/test-checklist.md)
 
-The [checklist template](../configs/test-checklist.md) lists 11 mandatory categories, from empty inputs and boundaries to sanitizer passes under `debug-asan`, `debug-tsan` and `release-asan`, and a libFuzzer harness for parsing code.
+The [checklist template](https://github.com/PavelGuzenfeld/standard/blob/main/configs/test-checklist.md) lists 11 mandatory categories, from empty inputs and boundaries to sanitizer passes under `debug-asan`, `debug-tsan` and `release-asan`, and a libFuzzer harness for parsing code.
 
 ### Multi-Compiler CI
 
-Template: [`configs/ci-multi-compiler.yml`](../configs/ci-multi-compiler.yml)
+Template: [`configs/ci-multi-compiler.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/configs/ci-multi-compiler.yml)
 
 - Matrix: GCC-13 + Clang-21
 - ccache for fast rebuilds
@@ -211,7 +211,7 @@ Template: [`configs/ci-multi-compiler.yml`](../configs/ci-multi-compiler.yml)
 
 ### Fuzzing
 
-Template: [`configs/ci-fuzz.yml`](../configs/ci-fuzz.yml)
+Template: [`configs/ci-fuzz.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/configs/ci-fuzz.yml)
 
 - libFuzzer with ASan + UBSan enabled
 - Corpus caching between CI runs
