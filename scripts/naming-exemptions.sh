@@ -1,3 +1,4 @@
+# shellcheck shell=bash disable=SC2034
 BUILTIN_EXEMPT_FILES=(
     "CMakeLists.txt" "Dockerfile" "README.md" "CLAUDE.md"
     "CHANGELOG.md" "CONTRIBUTING.md" "LICENSE" "Makefile"
