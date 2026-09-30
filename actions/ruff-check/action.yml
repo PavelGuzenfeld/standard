@@ -76,9 +76,6 @@ runs:
           RUFF_ARGS="$RUFF_ARGS --target-version=${{ inputs.target_python }}"
         fi
 
-        # Run ruff on source dirs to generate output
-        ruff check ${{ inputs.source_dirs }} ${RUFF_ARGS} --output-format=pylint > "${{ runner.temp }}/ruff_output.txt" 2>&1 || true
-
         # Run diff-quality
         if diff-quality --violations=ruff.check \
           --options="${RUFF_ARGS}" \
