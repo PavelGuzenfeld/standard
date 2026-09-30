@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CONFIG_FILE="${1:?Usage: check-repo-structure.sh <config_file> [root_dir]}"
+usage() {
+    echo "Usage: $0 <config_file> [root_dir]"
+}
+
+case "${1:-}" in
+    -h|--help) usage; exit 0 ;;
+esac
+[ $# -ge 1 ] || { usage; exit 1; }
+
+CONFIG_FILE="$1"
 ROOT_DIR="${2:-.}"
 
 if [ ! -f "$CONFIG_FILE" ]; then
