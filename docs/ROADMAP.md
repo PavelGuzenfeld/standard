@@ -360,6 +360,7 @@ standard-ci check
 | `actions/ruff-check` | Python linting via diff-quality | No |
 | `actions/shellcheck` | Shell script linting | No |
 | `actions/gitleaks` | Secrets detection | No |
+| `actions/gdlint` | GDScript naming via gdlint | No |
 
 Usage: `uses: PavelGuzenfeld/standard/actions/clang-tidy@<sha>` as a step in any job.
 

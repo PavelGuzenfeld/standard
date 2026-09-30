@@ -396,6 +396,7 @@ jobs:
 | [`AGENTS.md`](configs/AGENTS.md) | AI agent instructions template for consuming projects |
 | [`SECURITY.md`](configs/SECURITY.md) | Security policy template for consuming projects |
 | [`dependabot.yml`](configs/dependabot.yml) | Dependabot config template for consuming projects |
+| [`gdlintrc`](configs/gdlintrc) | GDScript naming rules for gdlint |
 
 ## Scripts
 
@@ -410,6 +411,7 @@ Run the same logic as CI, only on files changed vs a base branch:
 | `diff-clang-format.sh` | clang-format on changed files |
 | `diff-file-naming.sh` | snake_case naming on changed files |
 | `diff-iwyu.sh` | Include-What-You-Use on changed files |
+| `diff-gdlint.sh` | GDScript naming (gdlint) on changed files |
 
 ```bash
 ./scripts/diff-clang-tidy.sh origin/main build "cpp hpp h"
