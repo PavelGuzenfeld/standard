@@ -410,6 +410,7 @@ Run the same logic as CI, only on files changed vs a base branch:
 | `diff-clang-format.sh` | clang-format on changed files |
 | `diff-file-naming.sh` | snake_case naming on changed files |
 | `diff-iwyu.sh` | Include-What-You-Use on changed files |
+| `diff-test-mirror.sh` | added source modules have a mirrored test |
 
 ```bash
 ./scripts/diff-clang-tidy.sh origin/main build "cpp hpp h"
