@@ -1,8 +1,8 @@
 """Slice test: run the ruff-check action's lint step the way a consumer PR does."""
 
+import os
 import re
 import shutil
-import os
 import subprocess
 import textwrap
 from pathlib import Path
@@ -18,7 +18,11 @@ pytestmark = pytest.mark.skipif(
 
 
 def _input_defaults(text):
-    return dict(re.findall(r"^  (\w+):\n    description: '[^']*'\n    default: '([^']*)'", text, re.M))
+    return dict(
+        re.findall(
+            r"^  (\w+):\n    description: '[^']*'\n    default: '([^']*)'", text, re.M
+        )
+    )
 
 
 def _lint_script(overrides, workdir):
