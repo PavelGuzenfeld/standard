@@ -3,7 +3,7 @@ set -uo pipefail
 
 ROOT="$(cd "${1:-.}" && pwd)"
 DEPCRUISE_TARGET="${DEPCRUISE_TARGET:-src}"
-cd "$ROOT"
+cd "$ROOT" || exit 1
 
 STATUS=0
 RAN=0

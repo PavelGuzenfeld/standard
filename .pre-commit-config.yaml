@@ -1,0 +1,23 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.9
+    hooks:
+      - id: ruff-check
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        args: [--severity=warning, --exclude=SC2054, --exclude=SC2154]
+  - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
+    rev: v1.7.12.25
+    hooks:
+      - id: actionlint
+  - repo: https://github.com/PavelGuzenfeld/agent-sdlc
+    rev: v0.3.1
+    hooks:
+      - id: rules-check
+      - id: mutation-gate
+      - id: no-new-docs
+      - id: commit-msg
+      - id: diff-discipline
+      - id: no-leaks
