@@ -17,10 +17,6 @@ ALLOWED_PREFIXES="${NAMING_ALLOWED_PREFIXES:-_}"
 
 source "$(dirname "${BASH_SOURCE[0]}")/naming-exemptions.sh"
 
-BUILTIN_EXEMPT_PATH_PATTERNS=(
-    '^\.'
-)
-
 SNAKE_CASE_PATTERN='^[a-z][a-z0-9_]*$'
 
 USER_EXCEPTIONS=()
@@ -57,16 +53,6 @@ is_exempt_pattern() {
     local name="$1"
     for pattern in "${BUILTIN_EXEMPT_PATTERNS[@]}"; do
         if echo "$name" | grep -qE "$pattern"; then
-            return 0
-        fi
-    done
-    return 1
-}
-
-is_exempt_path_segment() {
-    local segment="$1"
-    for pattern in "${BUILTIN_EXEMPT_PATH_PATTERNS[@]}"; do
-        if echo "$segment" | grep -qE "$pattern"; then
             return 0
         fi
     done
@@ -112,7 +98,7 @@ while IFS= read -r filepath; do
         segment="${SEGMENTS[$i]}"
         is_last=$(( i == SEGMENT_COUNT - 1 ))
 
-        if is_exempt_path_segment "$segment"; then
+        if echo "$segment" | grep -qE '^\.'; then
             break
         fi
 
