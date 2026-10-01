@@ -1,8 +1,8 @@
 # Integration Guide
 
-Quick-start workflow files are in the [README](https://github.com/PavelGuzenfeld/standard/blob/main/README.md#quick-start). Every input and default is in [Workflow Inputs](https://github.com/PavelGuzenfeld/standard/blob/main/README.md#workflow-inputs).
+Quick-start workflow files are in the [README](https://github.com/PavelGuzenfeld/standard/blob/main/README.md#quick-start). Every input and default is in [Workflows](workflows/index.md).
 
-The [README scripts table](https://github.com/PavelGuzenfeld/standard/blob/main/README.md#scripts) lists the generators (`generate-workflow.sh`, `generate-agents-md.sh`, `install-hooks.sh`, `generate-baseline.sh`, `generate-badges.sh`). They are idempotent, so re-run them as you enable more checks. The steps below are the manual route.
+The [scripts table](scripts.md) lists the generators (`generate-workflow.sh`, `generate-agents-md.sh`, `install-hooks.sh`, `generate-baseline.sh`, `generate-badges.sh`). They are idempotent, so re-run them as you enable more checks. The steps below are the manual route.
 
 ## C++ Setup
 
@@ -69,7 +69,7 @@ jobs:
       security-events: write
 ```
 
-`security-events: write` is needed for SARIF upload. The sanitizer, TSan, coverage and IWYU jobs each take an `enable_*` flag and a script input, listed in the README.
+`security-events: write` is needed for SARIF upload. The sanitizer, TSan, coverage and IWYU jobs each take an `enable_*` flag and a script input, listed in [C++ quality](workflows/cpp-quality.md).
 
 ### 4. SAST
 
@@ -377,7 +377,7 @@ In `branch_protection.yaml`, set `action: fix` to configure branch protection in
 
 ## Trend Dashboard
 
-`trend-dashboard.yml` queries the GitHub Actions API for the last `lookback_days` days of runs of the standard workflows it finds in the repo. It buckets job results by week and writes a table of pass rates with trend arrows to the workflow summary. Inputs are in the [README](https://github.com/PavelGuzenfeld/standard/blob/main/README.md#workflow-inputs).
+`trend-dashboard.yml` queries the GitHub Actions API for the last `lookback_days` days of runs of the standard workflows it finds in the repo. It buckets job results by week and writes a table of pass rates with trend arrows to the workflow summary. Inputs are in [Trend dashboard](workflows/trend-dashboard.md).
 
 `.github/workflows/trends.yml`:
 

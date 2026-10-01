@@ -40,11 +40,22 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Usage: usage.md
   - Quickstart: CONSUMER-QUICKSTART.md
+  - Usage: usage.md
   - Integration: INTEGRATION.md
-  - Workflows and inputs: workflows.md
+  - Workflows:
+      - Overview: workflows/index.md
+      - C++ quality: workflows/cpp-quality.md
+      - Infra lint: workflows/infra-lint.md
+      - Python quality: workflows/python-quality.md
+      - Python SAST: workflows/sast-python.md
+      - SBOM: workflows/sbom.md
+      - Fuzzing: workflows/fuzz.md
+      - Version check and release: workflows/release.md
+      - Trend dashboard: workflows/trend-dashboard.md
   - Configs: configs.md
+  - Scripts: scripts.md
+  - CLI: cli.md
   - Gate and PR checks: SDLC.md
   - Compliance: COMPLIANCE.md
   - Versioning: VERSIONING.md

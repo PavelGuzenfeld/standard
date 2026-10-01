@@ -125,7 +125,7 @@ ruff check src/ tests/
 pytest --cov=src tests/
 ```
 
-Setup generators (`generate-workflow.sh`, `install-hooks.sh`, `generate-baseline.sh`, `generate-badges.sh`) are listed in the [standard README](https://github.com/PavelGuzenfeld/standard#scripts).
+Setup generators (`generate-workflow.sh`, `install-hooks.sh`, `generate-baseline.sh`, `generate-badges.sh`) are listed in the [standard docs](https://pavelguzenfeld.com/standard/scripts/).
 
 ## Customization
 

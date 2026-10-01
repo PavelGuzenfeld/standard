@@ -1,2 +1,6 @@
 test_paths = ["tests"]
 no_comments = true
+
+[[doc_allow]]
+glob = "docs/**/*"
+reason = "mkdocs site content"

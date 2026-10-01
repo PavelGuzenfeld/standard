@@ -24,7 +24,7 @@ Setup is in [Integration](INTEGRATION.md#7-pre-commit-hooks).
 
 ### Local Scripts
 
-The `diff-*.sh` scripts run the CI checks on changed files. They are listed in the [README](https://github.com/PavelGuzenfeld/standard/blob/main/README.md#scripts). Run every C++ script and test inside the project's Docker dev container, never on the host.
+The `diff-*.sh` scripts run the CI checks on changed files. They are listed in [Scripts](scripts.md). Run every C++ script and test inside the project's Docker dev container, never on the host.
 
 `cppcheck` takes its suppressions from the environment: `CPPCHECK_SUPPRESS=cppcheck.suppress ./scripts/diff-cppcheck.sh origin/main`.
 
