@@ -180,7 +180,7 @@ Release provenance is in [Auto-Release](INTEGRATION.md#auto-release). Other chec
 
 | Check | Tool | What it does |
 |-------|------|-------------|
-| Dependency updates | Dependabot | Monitors GitHub Actions and pip ecosystems for outdated dependencies |
+| Dependency updates | Dependabot or Renovate | Dependabot monitors GitHub Actions and pip. Renovate pins GitHub Actions digests and updates Conan dependencies. `generate-workflow.sh --dependency-bot dependabot\|renovate\|both` writes the config |
 | Security policy | `SECURITY.md` | Defines vulnerability reporting process (OpenSSF Scorecard requirement) |
 
 ## Phase 4: Testing & Hardening

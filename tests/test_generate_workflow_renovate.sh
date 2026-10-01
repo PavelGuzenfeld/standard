@@ -2,6 +2,7 @@
 set -uo pipefail
 
 GENERATOR="$(cd "$(dirname "$0")/.." && pwd)/scripts/generate-workflow.sh"
+VALIDATOR="$(cd "$(dirname "$0")" && pwd)/renovate-tools/node_modules/.bin/renovate-config-validator"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 FAILURES=0
@@ -38,6 +39,9 @@ check "renovate.json extends config:recommended" \
     jq -e '.extends | index("config:recommended") != null' "$WORK/renovate/.github/renovate.json"
 check "renovate.json pins github-actions digests" \
     jq -e '.["github-actions"].pinDigests == true' "$WORK/renovate/.github/renovate.json"
+
+check "renovate.json passes renovate-config-validator --strict" \
+    "$VALIDATOR" --strict "$WORK/renovate/.github/renovate.json"
 
 generate both --dependency-bot both
 check "both writes renovate.json" test -f "$WORK/both/.github/renovate.json"

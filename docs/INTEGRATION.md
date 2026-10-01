@@ -320,7 +320,7 @@ mkdir -p .github
 cp configs/dependabot.yml .github/dependabot.yml
 ```
 
-Fill the `TODO` placeholders in `SECURITY.md` with a contact and response times. The Dependabot template watches `github-actions`. Uncomment `pip`, `npm`, `cargo` or `docker` as needed.
+Fill the `TODO` placeholders in `SECURITY.md` with a contact and response times. The Dependabot template watches `github-actions`. Uncomment `pip`, `npm`, `cargo` or `docker` as needed. For Renovate, or for Conan dependencies, run `scripts/generate-workflow.sh --dependency-bot renovate` (or `both`) to write `.github/renovate.json`.
 
 Add these to your infra-lint workflow call:
 
