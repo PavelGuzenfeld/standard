@@ -1,0 +1,64 @@
+name: Fuzz
+
+on:
+  workflow_call:
+    inputs:
+      sanitizer:
+        type: string
+        default: 'address'
+        description: 'Sanitizer: address, undefined, memory or coverage'
+      fuzz_seconds:
+        type: number
+        default: 600
+        description: 'Total fuzzing time in seconds'
+      language:
+        type: string
+        default: 'c++'
+        description: 'Project language: c, c++, go, rust, python, jvm or swift'
+      mode:
+        type: string
+        default: 'code-change'
+        description: 'code-change for PRs, batch for scheduled full runs'
+      runner:
+        type: string
+        default: '"ubuntu-latest"'
+        description: 'Runner labels as JSON (e.g., "\"ubuntu-latest\"" or "[\"self-hosted\",\"X64\",\"Linux\"]")'
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  fuzz:
+    name: ClusterFuzzLite (${{ inputs.sanitizer }})
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Detect ClusterFuzzLite setup
+        id: setup
+        run: |
+          if [ -f .clusterfuzzlite/Dockerfile ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No .clusterfuzzlite/Dockerfile in this repository, fuzzing skipped"
+          fi
+
+      - name: Build fuzzers
+        if: steps.setup.outputs.present == 'true'
+        uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          language: ${{ inputs.language }}
+          sanitizer: ${{ inputs.sanitizer }}
+
+      - name: Run fuzzers
+        if: steps.setup.outputs.present == 'true'
+        uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          fuzz-seconds: ${{ inputs.fuzz_seconds }}
+          mode: ${{ inputs.mode }}
+          sanitizer: ${{ inputs.sanitizer }}
+          language: ${{ inputs.language }}

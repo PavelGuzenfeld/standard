@@ -203,10 +203,9 @@ Template: [`configs/ci-multi-compiler.yml`](https://github.com/PavelGuzenfeld/st
 
 Template: [`configs/ci-fuzz.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/configs/ci-fuzz.yml)
 
-- libFuzzer with ASan + UBSan enabled
-- Corpus caching between CI runs
-- Crash artifact upload on failure
-- Weekly scheduled + PR trigger
+- ClusterFuzzLite through the reusable `fuzz.yml`, ASan by default
+- Skipped with a notice when `.clusterfuzzlite/Dockerfile` is absent
+- `code-change` mode on PRs, `batch` on the weekly schedule
 
 Setup and a harness example: [Integration](INTEGRATION.md#9-fuzzing).
 
