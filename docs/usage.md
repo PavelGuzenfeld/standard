@@ -31,6 +31,7 @@ Every script prints its usage with `--help`.
 | `diff-file-naming.sh` | `<base> [exceptions_file]` | snake_case file and directory names in the diff. Env: `NAMING_ALLOWED_PREFIXES` |
 | `diff-ts-naming.sh` | `<base> [extensions]` | typescript-eslint naming rules on changed `.ts` and `.tsx`. Env: `TS_NAMING_CONFIG` |
 | `diff-gdlint.sh` | `<base> [config_file]` | gdlint naming rules on changed `.gd` files |
+| `diff-jscpd.sh` | `<base> [threshold_percent] [extensions] [--strict]` | jscpd copy-paste detection on changed files. Reports only, unless `--strict`. Env: `JSCPD_BIN` |
 | `diff-test-mirror.sh` | `<base>` | each newly added file under `src/` has a mirrored test under `tests/`. Env: `MIRROR_*` |
 | `check-dangerous-workflows.sh` | `[workflows_dir]` | `pull_request_target` with a PR head checkout, and PR, issue or comment text inside `run:` |
 | `check-layering.sh` | `[root_dir]` | runs the contract it finds: `.importlinter`, a dependency-cruiser config or `.layers`. Skips if none. Env: `DEPCRUISE_TARGET` |
