@@ -19,7 +19,7 @@ expect_contains "--help prints usage" "$help_output" "Usage: "
 expect_contains "--help names --list" "$help_output" "--list"
 
 targets=$(bash "$SCRIPT" --list)
-for name in docs layering patterns; do
+for name in docs layering patterns workflow-docs; do
     expect_contains "lists $name compile target" "$targets" "compile .github/requirements/$name.in -> .github/requirements/$name.txt"
 done
 expect_contains "lists flawfinder heredoc" "$targets" "inline  .github/workflows/cpp-quality.yml: flawfinder"

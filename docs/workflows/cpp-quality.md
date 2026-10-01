@@ -4,128 +4,128 @@
 
 ## Core
 
-| Input | Default | Description |
-|-------|---------|-------------|
-| `docker_image` | *required* | Docker image with clang-tidy, cppcheck, and compile_commands.json |
-| `compile_commands_path` | `build` | Path to compile_commands.json inside the container |
-| `source_mount` | `/workspace/src` | Where repo source is mounted inside the container |
-| `source_setup` | `''` | Shell command to source before tools (e.g., ROS2 setup.bash) |
-| `runner` | `"ubuntu-latest"` | Runner labels as a JSON string or array |
-| `file_extensions` | `cpp hpp h cc cxx` | Space-separated C++ file extensions to check |
-| `exclude_file` | `''` | Path to file listing excluded paths (one per line, `#` comments) |
-| `pre_analysis_script` | `''` | Script to run inside Docker before analysis |
-| `build_cache_key` | `''` | Cache key for build artifacts (empty = no caching) |
-| `build_cache_paths` | `build install` | Space-separated paths to cache |
-| `checkout_submodules` | `false` | Pass to actions/checkout submodules (false, true, recursive) |
-| `select_jobs` | `all` | Comma-separated jobs to run (all, clang-tidy, cppcheck, coverage, tsan, sanitizers, iwyu, clang-format, doctest, file-naming, cout-ban, new-delete-ban, flawfinder, hardening, binskim, jscpd) |
-| `base_ref` | `''` | Base branch for diff (fallback when github.base_ref is empty) |
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
 
 ## clang-tidy
 
-| Input | Default | Description |
-|-------|---------|-------------|
-| `enable_clang_tidy` | `true` | Enable clang-tidy analysis |
-| `clang_tidy_config` | `''` | Path to .clang-tidy config (empty = use repo default) |
-| `clang_tidy_jobs` | `4` | Parallel clang-tidy jobs inside Docker |
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
 
 ## cppcheck
 
-| Input | Default | Description |
-|-------|---------|-------------|
-| `enable_cppcheck` | `true` | Enable cppcheck analysis |
-| `cppcheck_suppress` | `''` | Path to cppcheck suppressions file |
-| `cppcheck_includes` | `''` | Space-separated include directories |
-| `cppcheck_include_file` | `''` | Path to file containing include dirs (one per line) |
-| `cppcheck_std` | `c++23` | C++ standard for cppcheck |
-| `cppcheck_inconclusive` | `false` | Enable --inconclusive mode (may produce false positives) |
-| `cppcheck_strict` | `false` | Use --error-exitcode=1 for native cppcheck error handling |
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
 
 ## clang-format
 
-| Input | Default | Description |
-|-------|---------|-------------|
-| `enable_clang_format` | `false` | Enable clang-format check (opt-in) |
-| `clang_format_config` | `''` | Path to .clang-format config |
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
 
 ## Flawfinder
 
-| Input | Default | Description |
-|-------|---------|-------------|
-| `enable_flawfinder` | `false` | Enable flawfinder CWE lexical scan (opt-in) |
-| `flawfinder_min_level` | `2` | Minimum flawfinder finding level (1-5) |
-| `enable_sarif` | `false` | Upload SARIF to GitHub Security tab |
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
 
 ## Sanitizers (ASan/UBSan)
 
-| Input | Default | Description |
-|-------|---------|-------------|
-| `enable_sanitizers` | `false` | Enable ASan/UBSan test job (opt-in) |
-| `sanitizer_script` | `''` | Script to build+test with sanitizers |
-| `sanitizer_suppressions` | `''` | Path to LSAN suppressions file |
-| `sanitizer_packages` | `''` | Space-separated packages to test (empty = all) |
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
 
 ## ThreadSanitizer
 
-| Input | Default | Description |
-|-------|---------|-------------|
-| `enable_tsan` | `false` | Enable TSan test job (opt-in, mutually exclusive with ASan) |
-| `tsan_script` | `''` | Script to build+test with TSan |
-| `tsan_suppressions` | `''` | Path to TSan suppressions file |
-| `tsan_packages` | `''` | Space-separated packages to test with TSan (empty = all) |
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
 
 ## Coverage
 
-| Input | Default | Description |
-|-------|---------|-------------|
-| `enable_coverage` | `false` | Enable gcov/lcov coverage reporting (opt-in) |
-| `coverage_script` | `''` | Script to build+test with coverage and collect lcov |
-| `coverage_packages` | `''` | Space-separated packages to measure (empty = all) |
-| `coverage_threshold` | `0` | Minimum overall line coverage % (0 = no threshold) |
-| `coverage_diff_threshold` | `0` | Minimum coverage % for changed lines via diff-cover (0 = disabled) |
-| `coverage_diff_report` | `false` | Generate diff-cover markdown report as artifact |
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
 
 ## Hardening
 
-| Input | Default | Description |
-|-------|---------|-------------|
-| `enable_hardening` | `false` | Enable binary hardening verification (opt-in) |
-| `hardening_script` | `''` | Script to build with hardening flags |
-| `hardening_binary_paths` | `build-hardened/bin/*` | Space-separated globs to ELF binaries to check |
-| `hardening_skip_checks` | `''` | Space-separated checks to skip: pie relro bindnow canary fortify nx cet |
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
 
 ## BinSkim
 
-| Input | Default | Description |
-|-------|---------|-------------|
-| `enable_binskim` | `false` | Enable BinSkim ELF analysis (opt-in); builds like `enable_hardening` (`hardening_script` or `release-hardened` preset) |
-| `binskim_paths` | `build-hardened/bin` | Space-separated files or directories of built ELF binaries |
-| `binskim_fail_level` | `error` | Lowest result level that fails the job: error, warning or note. SARIF is uploaded as `binskim-sarif` |
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
 
 ## IWYU
 
-| Input | Default | Description |
-|-------|---------|-------------|
-| `enable_iwyu` | `false` | Enable Include-What-You-Use analysis (opt-in) |
-| `iwyu_script` | `''` | Script to run IWYU analysis |
-| `iwyu_mapping_file` | `''` | Path to IWYU mapping file (.imp) |
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
 
 ## Naming & Banned Patterns
 
-| Input | Default | Description |
-|-------|---------|-------------|
-| `enable_file_naming` | `false` | Enable snake_case file naming check (opt-in) |
-| `file_naming_exceptions` | `''` | Path to naming exception regexes |
-| `file_naming_allowed_prefixes` | `_` | Allowed prefixes for file names |
-| `enforce_doctest` | `false` | Require doctest instead of gtest (opt-in) |
-| `test_file_pattern` | `test` | Grep pattern to identify test files |
-| `ban_cout` | `false` | Ban cout/cerr/printf in non-test files (opt-in) |
-| `ban_new` | `false` | Ban raw new/delete in non-test files (opt-in) |
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
 
 ## jscpd
 
-| Input | Default | Description |
-|-------|---------|-------------|
-| `enable_jscpd` | `false` | Enable jscpd copy-paste detection on changed files (opt-in) |
-| `jscpd_threshold` | `5` | Maximum duplicated lines in percent before jscpd flags the changed files |
-| `jscpd_report_only` | `true` | Report duplication as a warning without failing the job |
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `docker_image` | string | required | Docker image with clang-tidy, cppcheck, and compile_commands.json |
+| `compile_commands_path` | string | `'build'` | Path to directory containing compile_commands.json (inside container) |
+| `source_mount` | string | `'/workspace/src'` | Where repo source is mounted inside the container |
+| `clang_tidy_config` | string | `''` | Path to .clang-tidy config (empty = use repo default) |
+| `cppcheck_suppress` | string | `''` | Path to cppcheck suppressions file |
+| `cppcheck_includes` | string | `''` | Space-separated include directories for cppcheck |
+| `cppcheck_include_file` | string | `''` | Path to file containing include dirs for cppcheck (one per line) |
+| `cppcheck_std` | string | `'c++23'` | C++ standard for cppcheck |
+| `runner` | string | `'"ubuntu-latest"'` | Runner labels as JSON (e.g., "\"ubuntu-latest\"" or "[\"self-hosted\",\"X64\",\"Linux\"]") |
+| `file_extensions` | string | `'cpp hpp h cc cxx'` | Space-separated C++ file extensions to check |
+| `enforce_doctest` | boolean | `false` | Require doctest instead of gtest in test files |
+| `test_file_pattern` | string | `'test'` | Grep pattern to identify test files (matched against path) |
+| `enable_clang_format` | boolean | `false` | Enable clang-format check on changed files (opt-in) |
+| `clang_format_config` | string | `''` | Path to .clang-format config (empty = use repo default) |
+| `source_setup` | string | `''` | Shell command to source before running tools (e.g., source /opt/ros/humble/install/setup.bash) |
+| `enable_file_naming` | boolean | `false` | Enable file/directory naming convention check (snake_case enforcement, opt-in) |
+| `file_naming_exceptions` | string | `''` | Path to file with additional naming exception regexes (one per line) |
+| `file_naming_allowed_prefixes` | string | `'_'` | Space-separated allowed prefixes for file/dir names (e.g., _ for pybind11 _bindings.so) |
+| `ban_cout` | boolean | `false` | Ban std::cout/cerr/clog and printf family in non-test source files (opt-in) |
+| `ban_new` | boolean | `false` | Ban raw new/delete in non-test source files (opt-in) |
+| `clang_tidy_jobs` | number | `4` | Parallel clang-tidy jobs inside Docker container |
+| `exclude_file` | string | `''` | Path to file listing excluded paths (one per line, # comments) |
+| `enable_flawfinder` | boolean | `false` | Enable flawfinder CWE lexical scan (opt-in) |
+| `flawfinder_min_level` | number | `2` | Minimum flawfinder finding level (1-5) |
+| `enable_sarif` | boolean | `false` | Upload SARIF to GitHub Security tab (requires security-events: write) |
+| `pre_analysis_script` | string | `''` | Script path (in repo) to run inside Docker before analysis (build compile_commands.json, etc.) |
+| `build_cache_key` | string | `''` | Cache key for build artifacts (empty = no caching) |
+| `build_cache_paths` | string | `'build install'` | Space-separated paths to cache |
+| `checkout_submodules` | string | `'false'` | Pass to actions/checkout submodules parameter (false, true, recursive) |
+| `enable_sanitizers` | boolean | `false` | Enable ASAN/UBSAN test job |
+| `sanitizer_script` | string | `''` | Script to build+test with sanitizers (in repo). If empty, uses default colcon flow. |
+| `sanitizer_suppressions` | string | `''` | Path to LSAN suppressions file (in repo) |
+| `sanitizer_packages` | string | `''` | Space-separated packages to test (empty = all) |
+| `enable_iwyu` | boolean | `false` | Enable Include-What-You-Use analysis (opt-in, non-blocking) |
+| `iwyu_script` | string | `''` | Script to run IWYU analysis (in repo). If empty, uses default flow. |
+| `iwyu_mapping_file` | string | `''` | Path to IWYU mapping file (.imp) in repo |
+| `enable_tsan` | boolean | `false` | Enable ThreadSanitizer (TSAN) test job (mutually exclusive with ASAN) |
+| `tsan_script` | string | `''` | Script to build+test with TSAN (in repo). If empty, uses default colcon flow. |
+| `tsan_suppressions` | string | `''` | Path to TSAN suppressions file (in repo) |
+| `tsan_packages` | string | `''` | Space-separated packages to test with TSAN (empty = all) |
+| `enable_coverage` | boolean | `false` | Enable gcov/lcov test coverage reporting (opt-in, non-blocking) |
+| `coverage_script` | string | `''` | Script to build+test with coverage and collect lcov (in repo). If empty, uses default flow. |
+| `coverage_packages` | string | `''` | Space-separated packages to measure coverage (empty = all) |
+| `coverage_threshold` | string | `'0'` | Minimum overall line coverage % (0 = no threshold, job always passes) |
+| `coverage_diff_threshold` | string | `'0'` | Minimum line coverage % for changed lines via diff-cover (0 = disabled) |
+| `coverage_diff_report` | boolean | `false` | Generate diff-cover markdown report as artifact |
+| `enable_hardening` | boolean | `false` | Enable binary hardening verification (PIE, RELRO, stack canary, NX, CET) |
+| `hardening_script` | string | `''` | Script to build with hardening flags (in repo). If empty, uses cmake --preset release-hardened. |
+| `hardening_binary_paths` | string | `'build-hardened/bin/*'` | Space-separated globs to ELF binaries to check (inside container) |
+| `hardening_skip_checks` | string | `''` | Space-separated checks to skip: pie relro bindnow canary fortify nx cet |
+| `select_jobs` | string | `'all'` | Comma-separated jobs to run (all, clang-tidy, cppcheck, coverage, tsan, sanitizers, iwyu, clang-format, doctest, file-naming, cout-ban, new-delete-ban, flawfinder, hardening, binskim, jscpd) |
+| `base_ref` | string | `''` | Base branch for diff (fallback when github.base_ref is empty, e.g. workflow_dispatch) |
+| `enable_clang_tidy` | boolean | `true` | Enable clang-tidy analysis (on by default for backward compat) |
+| `enable_cppcheck` | boolean | `true` | Enable cppcheck analysis (on by default for backward compat) |
+| `cppcheck_inconclusive` | boolean | `false` | Enable cppcheck --inconclusive mode (may produce false positives) |
+| `cppcheck_strict` | boolean | `false` | Use --error-exitcode=1 for native cppcheck error handling |
+| `enable_jscpd` | boolean | `false` | Enable jscpd copy-paste detection on changed files (opt-in) |
+| `jscpd_threshold` | number | `5` | Maximum duplicated lines in percent before jscpd flags the changed files |
+| `jscpd_report_only` | boolean | `true` | Report jscpd duplication as a warning without failing the job |
+| `enable_binskim` | boolean | `false` | Enable BinSkim ELF analysis (stack clash, SafeStack, checked functions; opt-in) |
+| `binskim_paths` | string | `'build-hardened/bin'` | Space-separated files or directories of built ELF binaries for BinSkim |
+| `binskim_fail_level` | string | `'error'` | Lowest BinSkim result level that fails the job: error, warning or note |
 

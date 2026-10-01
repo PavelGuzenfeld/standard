@@ -4,16 +4,16 @@
 
 ## Version Check
 
-| Input | Default | Description |
-|-------|---------|-------------|
-| `exclude_file` | `''` | Path to file listing excluded paths (one per line, `#` comments) |
-| `base_ref` | `''` | Base branch for diff (fallback when github.base_ref is empty) |
-| `runner` | `"ubuntu-latest"` | Runner labels as a JSON string or array |
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `exclude_file` | string | `''` | Path to file listing excluded paths (one per line, # comments) |
+| `base_ref` | string | `''` | Base branch for diff (fallback when github.base_ref is empty) |
+| `runner` | string | `'"ubuntu-latest"'` | Runner labels as JSON (e.g., "\"ubuntu-latest\"" or "[\"self-hosted\",\"X64\",\"Linux\"]") |
 
 ## Auto-Release
 
-| Input | Default | Description |
-|-------|---------|-------------|
-| `default_bump` | `patch` | Default bump when no conventional commit prefix detected |
-| `enable_provenance` | `false` | Enable SLSA provenance attestation for releases (opt-in) |
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `default_bump` | string | `'patch'` | Default bump when no conventional commit prefix detected |
+| `enable_provenance` | boolean | `false` | Enable SLSA provenance attestation for releases (opt-in) |
 
