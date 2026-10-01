@@ -53,6 +53,11 @@ nav:
       - Fuzzing: workflows/fuzz.md
       - Version check and release: workflows/release.md
       - Trend dashboard: workflows/trend-dashboard.md
+      - Compliance and CIS: workflows/compliance.md
+      - Install test: workflows/install-test.md
+      - Scheduled health: workflows/scheduled-health.md
+      - Pre-commit: workflows/pre-commit.md
+      - Version sync: workflows/version-sync.md
   - Configs: configs.md
   - Scripts: scripts.md
   - CLI: cli.md
