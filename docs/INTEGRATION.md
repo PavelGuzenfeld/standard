@@ -169,6 +169,38 @@ target-version = "py38"
 line-length = 88
 ```
 
+## With agent-sdlc
+
+[agent-sdlc](https://github.com/PavelGuzenfeld/agent-sdlc) gates the coding agent's session and each commit: rules, a diff-scoped mutation gate, commit-message and scope checks. standard gates the PR. This repo runs both.
+
+```text
+ agent session  ->  git commit  ->  PR  ->  merge
+ '------ agent-sdlc -------'       '-- standard --'
+```
+
+Do the standard setup first, then add agent-sdlc. `cp configs/AGENTS.md` and `cp configs/.pre-commit-config.yaml` overwrite the file, so running them after `mutation-gate rules sync` drops the rules block, and `rules-check` fails until you sync again.
+
+```bash
+standard-ci init --preset recommended
+cp configs/AGENTS.md AGENTS.md
+cp configs/.pre-commit-config.yaml .pre-commit-config.yaml
+# then add the agent-sdlc repo: entry to .pre-commit-config.yaml
+touch .mutation-gate.toml
+mutation-gate rules sync
+pre-commit install
+pre-commit install --hook-type commit-msg
+```
+
+With an mkdocs `docs/` folder, allowlist it in `.mutation-gate.toml`, or `no-new-docs` blocks every new page:
+
+```toml
+[[doc_allow]]
+glob = "docs/**/*"
+reason = "mkdocs site content"
+```
+
+The reusable `pre-commit.yml` doesn't enforce agent-sdlc's diff checks. Under `pre-commit run --from-ref`, `mutation-gate` and `no-new-docs` read an empty index and pass, and the commit-msg hooks don't run. Run them with `--range` in their own job, as in [agent-sdlc's usage guide](https://pavelguzenfeld.com/agent-sdlc/usage/#with-standard). The mutation gate itself needs the project's test environment and has no CI mode.
+
 ## Customization
 
 ### cppcheck include file
