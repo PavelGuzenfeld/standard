@@ -8,6 +8,31 @@ from standard_ci.workflows import ALL_WORKFLOWS
 
 REPO = "PavelGuzenfeld/standard"
 
+PLACEHOLDER_LINE = re.compile(
+    r"^\s*(?P<key>[A-Za-z0-9_-]+):\s*[\"']?(?P<value>REQUIRED_[A-Za-z0-9_]+)"
+)
+
+
+def _placeholder_issues(workflows_dir):
+    issues = []
+    if not os.path.isdir(workflows_dir):
+        return issues
+    for filename in sorted(os.listdir(workflows_dir)):
+        if not filename.endswith((".yml", ".yaml")):
+            continue
+        with open(os.path.join(workflows_dir, filename)) as f:
+            for line_number, line in enumerate(f, start=1):
+                match = PLACEHOLDER_LINE.match(line)
+                if match:
+                    issues.append(
+                        (
+                            "error",
+                            f"{filename}:{line_number}: {match['key']} "
+                            f"still has placeholder {match['value']}",
+                        )
+                    )
+    return issues
+
 
 def check(project_dir="."):
     """Validate setup. Returns list of (level, message) tuples."""
@@ -66,6 +91,8 @@ def check(project_dir="."):
                     issues.append(
                         ("warning", f"{wf['filename']}: not pinned to a full SHA")
                     )
+
+    issues.extend(_placeholder_issues(workflows_dir))
 
     if not issues:
         tag_info = f" ({pinned_tag})" if pinned_tag else ""

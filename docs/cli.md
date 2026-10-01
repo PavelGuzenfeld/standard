@@ -45,4 +45,6 @@
 | `auto-update` | `--pr-title-prefix PREFIX` | `chore(deps): ` | Prefix for auto-update PR titles |
 | `auto-update` | `--pr-labels LABELS` | `dependencies,standard-ci` | Comma-separated labels for auto-update PRs |
 
+`check` also reports every `.yml` or `.yaml` file under `.github/workflows` that still has a `REQUIRED_` placeholder as a workflow input value, for example `docker_image: REQUIRED_DOCKER_IMAGE` left behind by `init`. Each finding is an `ERROR` naming the file, line and key, and makes `check` exit 1. Placeholders in comments, in keys, or in the middle of a value are not reported.
+
 [Compliance](COMPLIANCE.md) covers `scan`, `dashboard` and `auto-update` in an org.

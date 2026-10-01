@@ -118,6 +118,10 @@ class TestCLICheck:
                 ]
             )
 
+        cpp_quality = project / ".github" / "workflows" / "cpp-quality.yml"
+        cpp_quality.write_text(
+            cpp_quality.read_text().replace("REQUIRED_DOCKER_IMAGE", "ghcr.io/o/i:1")
+        )
         main(["check", "--output-dir", str(project)])
 
     def test_check_fails_no_config(self, tmp_path, capsys):
