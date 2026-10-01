@@ -49,3 +49,12 @@ jobs:
       - name: Run affected tests in parallel
         run: |
           pytest --testmon -n auto --verbose
+
+      - name: Fail if tests dirtied the working tree
+        run: |
+          dirty="$(git status --porcelain)"
+          if [ -n "$dirty" ]; then
+            echo "::error::Tests modified or created files in the checkout:"
+            echo "$dirty"
+            exit 1
+          fi

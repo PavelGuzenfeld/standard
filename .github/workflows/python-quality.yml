@@ -43,6 +43,10 @@ on:
         type: boolean
         default: true
         description: 'Run pytest and collect coverage (disable for projects with external test deps like ROS2)'
+      fail_on_dirty_tree:
+        type: boolean
+        default: false
+        description: 'Fail when the tests leave modified or untracked files in the checkout'
       base_ref:
         type: string
         default: ''
@@ -141,6 +145,16 @@ jobs:
           read -ra TEST_DIR_ARGS <<< "$TEST_DIRS"
           pytest "${TEST_DIR_ARGS[@]}" \
             --cov --cov-report=xml --verbose
+
+      - name: Fail if tests dirtied the working tree
+        if: inputs.enable_tests && inputs.fail_on_dirty_tree
+        run: |
+          dirty="$(git status --porcelain)"
+          if [ -n "$dirty" ]; then
+            echo "::error::Tests modified or created files in the checkout:"
+            echo "$dirty"
+            exit 1
+          fi
 
       - name: Generate diff coverage report
         if: inputs.enable_tests

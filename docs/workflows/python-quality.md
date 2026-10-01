@@ -14,6 +14,7 @@
 | `ruff_select` | string | `'E,W,F,I,N'` | Ruff rule selection (comma-separated). Overrides `select` in pyproject.toml |
 | `ruff_ignore` | string | `'E501'` | Ruff rules to ignore (comma-separated). Overrides `ignore` in pyproject.toml, so CI agrees with pre-commit; empty ignores nothing |
 | `enable_tests` | boolean | `true` | Run pytest and collect coverage (disable for projects with external test deps like ROS2) |
+| `fail_on_dirty_tree` | boolean | `false` | Fail when the tests leave modified or untracked files in the checkout |
 | `base_ref` | string | `''` | Base branch for diff comparison (falls back to github.base_ref, then main) |
 | `fail_under` | string | `'100'` | Minimum diff-quality score (0-100) |
 | `runner` | string | `'"ubuntu-latest"'` | Runner labels as JSON (e.g., "\"ubuntu-latest\"" or "[\"self-hosted\",\"X64\",\"Linux\"]") |
