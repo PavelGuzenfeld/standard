@@ -9,9 +9,10 @@
 | `python_linter` | `ruff` | Linter: `ruff` or `flake8` |
 | `source_dirs` | `src` | Source directories |
 | `test_dirs` | `tests` | Test directories |
-| `ruff_version` | `0.16.5` | Ruff version to install |
-| `diff_cover_version` | `10.5.1` | diff-cover version to install. The ruff step needs a diff-cover that lists the `ruff.check` driver, which Python 3.8 cannot install (diff-cover 9.2.0 has none) |
-| `ruff_select` | `E,W,F,I,N` | Ruff rule selection. Overrides `select` and `ignore` in pyproject.toml; drop `E` to skip E501 line-length errors |
+| `ruff_version` | `0.16.9` | Ruff version to install; matches the `ruff-pre-commit` pin |
+| `diff_cover_version` | empty | diff-cover version to install. Empty picks `10.5.1`, or `9.2.0` on Python below 3.10. 9.2.0 has no `ruff.check` driver, so the ruff lint step fails with that reason there; use `python_linter: flake8` or a newer `python_version` |
+| `ruff_select` | `E,W,F,I,N` | Ruff rule selection. Overrides `select` in pyproject.toml |
+| `ruff_ignore` | `E501` | Ruff rules to ignore. Overrides `ignore` in pyproject.toml, so CI agrees with pre-commit; empty ignores nothing |
 | `enable_tests` | `true` | Run pytest and collect coverage (disable for projects with external test deps like ROS2) |
 | `base_ref` | `''` | Base branch for diff comparison (falls back to github.base_ref, then main) |
 | `fail_under` | `100` | Minimum diff-quality score (0-100) |

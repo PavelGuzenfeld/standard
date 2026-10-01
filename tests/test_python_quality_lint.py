@@ -1,5 +1,6 @@
 """Slice test: run the python-quality lint step the way a consumer PR does."""
 
+import os
 import re
 import shutil
 import subprocess
@@ -20,7 +21,7 @@ def _diff_quality_has_ruff():
     return "ruff.check" in help_text
 
 
-pytestmark = pytest.mark.skipif(
+needs_ruff_driver = pytest.mark.skipif(
     not _diff_quality_has_ruff() or shutil.which("ruff") is None,
     reason="needs diff-quality with the ruff.check driver and ruff on PATH",
 )
@@ -47,7 +48,7 @@ def _lint_script(overrides):
     return re.sub(r"\$\{\{ inputs\.(\w+) \}\}", lambda m: defaults[m.group(1)], script)
 
 
-def _lint(tmp_path, source, overrides):
+def _lint(tmp_path, source, overrides, path=None):
     def git(*args):
         subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
 
@@ -66,9 +67,11 @@ def _lint(tmp_path, source, overrides):
         cwd=tmp_path,
         capture_output=True,
         text=True,
+        env={**os.environ, "PATH": f"{path}:{os.environ['PATH']}"} if path else None,
     )
 
 
+@needs_ruff_driver
 class TestDefaultRuffSelect:
     def test_pascal_case_function_fails_default(self, tmp_path):
         result = _lint(tmp_path, "def ParseFrame():\n    return 1\n", {})
@@ -90,3 +93,70 @@ class TestDefaultRuffSelect:
 
     def test_snake_case_function_passes_default(self, tmp_path):
         assert _lint(tmp_path, "def parse_frame():\n    return 1\n", {}).returncode == 0
+
+    def test_line_over_88_columns_passes_default_like_pyproject(self, tmp_path):
+        assert _lint(tmp_path, f'X = "{"a" * 100}"\n', {}).returncode == 0
+
+    def test_line_over_88_columns_fails_when_consumer_clears_ignore(self, tmp_path):
+        result = _lint(tmp_path, f'X = "{"a" * 100}"\n', {"ruff_ignore": ""})
+        assert result.returncode != 0
+        assert "E501" in result.stdout + result.stderr
+
+
+def _stub_executable(directory, name, body):
+    path = directory / name
+    path.write_text(f"#!/bin/bash\n{body}\n")
+    path.chmod(0o755)
+
+
+class TestLintWithoutRuffDriver:
+    def test_diff_quality_lacking_ruff_driver_fails_with_reason(self, tmp_path):
+        stubs = tmp_path / "stubs"
+        stubs.mkdir()
+        _stub_executable(stubs, "diff-quality", "echo 'drivers: pycodestyle flake8'")
+        result = _lint(tmp_path, "X = 2\n", {}, path=stubs)
+        assert result.returncode != 0
+        assert "ruff.check" in result.stdout + result.stderr
+
+
+def _install_script(overrides):
+    text = WORKFLOW.read_text()
+    defaults = {**_input_defaults(text), **overrides}
+    step = re.search(
+        r"- name: Install dependencies\n.*?run: \|\n(.*?)\n\n      - name",
+        text,
+        re.S,
+    )
+    script = textwrap.dedent(step.group(1))
+    return re.sub(r"\$\{\{ inputs\.(\w+) \}\}", lambda m: defaults[m.group(1)], script)
+
+
+def _pip_arguments(tmp_path, overrides, python_is_old):
+    stubs = tmp_path / "stubs"
+    stubs.mkdir()
+    _stub_executable(stubs, "pip", f'echo "$@" >> {tmp_path}/pip.log')
+    _stub_executable(stubs, "python", f"exit {0 if python_is_old else 1}")
+    subprocess.run(
+        ["bash", "-c", _install_script(overrides)],
+        cwd=tmp_path,
+        env={**os.environ, "PATH": f"{stubs}:{os.environ['PATH']}"},
+        check=True,
+    )
+    return (tmp_path / "pip.log").read_text()
+
+
+class TestPinnedVersions:
+    def test_ruff_default_matches_pre_commit_pin(self):
+        config = (WORKFLOW.parent.parent.parent / ".pre-commit-config.yaml").read_text()
+        pinned = re.search(r"ruff-pre-commit\n\s+rev: v(\S+)", config).group(1)
+        assert _input_defaults(WORKFLOW.read_text())["ruff_version"] == pinned
+
+    def test_old_python_gets_last_diff_cover_supporting_it(self, tmp_path):
+        assert "diff-cover==9.2.0" in _pip_arguments(tmp_path, {}, python_is_old=True)
+
+    def test_new_python_gets_diff_cover_with_ruff_driver(self, tmp_path):
+        assert "diff-cover==10.5.1" in _pip_arguments(tmp_path, {}, python_is_old=False)
+
+    def test_explicit_diff_cover_version_wins_on_old_python(self, tmp_path):
+        log = _pip_arguments(tmp_path, {"diff_cover_version": "8.0.0"}, True)
+        assert "diff-cover==8.0.0" in log

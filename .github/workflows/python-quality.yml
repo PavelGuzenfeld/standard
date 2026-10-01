@@ -25,16 +25,20 @@ on:
         description: 'Space-separated test directories'
       ruff_version:
         type: string
-        default: '0.16.5'
+        default: '0.16.9'
         description: 'Ruff version (pin to avoid breaking changes)'
       diff_cover_version:
         type: string
-        default: '10.5.1'
-        description: 'diff-cover version (pin to avoid breaking changes)'
+        default: ''
+        description: 'diff-cover version (empty picks 10.5.1, or 9.2.0 on Python below 3.10, which has no ruff.check driver)'
       ruff_select:
         type: string
         default: 'E,W,F,I,N'
-        description: 'Ruff rule selection (comma-separated). Overrides select and ignore in pyproject.toml; drop E to skip E501 line-length errors'
+        description: 'Ruff rule selection (comma-separated). Overrides select in pyproject.toml'
+      ruff_ignore:
+        type: string
+        default: 'E501'
+        description: 'Ruff rules to ignore (comma-separated). Overrides ignore in pyproject.toml; empty ignores nothing'
       enable_tests:
         type: boolean
         default: true
@@ -78,7 +82,15 @@ jobs:
             pip install -r requirements.txt
           fi
           if [ "${{ inputs.python_linter }}" = "ruff" ]; then
-            pip install "ruff==${{ inputs.ruff_version }}" "diff-cover==${{ inputs.diff_cover_version }}"
+            DIFF_COVER_VERSION="${{ inputs.diff_cover_version }}"
+            if [ -z "$DIFF_COVER_VERSION" ]; then
+              if python -c 'import sys; sys.exit(sys.version_info >= (3, 10))'; then
+                DIFF_COVER_VERSION=9.2.0
+              else
+                DIFF_COVER_VERSION=10.5.1
+              fi
+            fi
+            pip install "ruff==${{ inputs.ruff_version }}" "diff-cover==$DIFF_COVER_VERSION"
           else
             pip install flake8 diff-cover
           fi
@@ -91,7 +103,14 @@ jobs:
           OPTIONS=""
           if [ "$VIOLATIONS" = "ruff" ]; then
             VIOLATIONS="ruff.check"
+            if ! diff-quality --help | grep -q "ruff.check"; then
+              echo "::error::installed diff-cover has no ruff.check driver (needs Python 3.10+); use python_linter: flake8 or a newer python_version"
+              exit 1
+            fi
             OPTIONS="--select=${{ inputs.ruff_select }}"
+            if [ -n "${{ inputs.ruff_ignore }}" ]; then
+              OPTIONS="$OPTIONS --ignore=${{ inputs.ruff_ignore }}"
+            fi
           fi
           diff-quality --violations="$VIOLATIONS" \
             --options="$OPTIONS" \
