@@ -12,6 +12,11 @@ FAKE_SHA = "abc123def456789012345678901234567890abcd"
 FAKE_TAG = "v2.2.3.4"
 
 
+@pytest.fixture(autouse=True)
+def _run_from_tmp_path(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+
 def _mock_resolve(tag=None):
     return FAKE_SHA, FAKE_TAG
 
