@@ -1,4 +1,5 @@
 test_paths = ["tests"]
+closure_depth = 2
 import_roots = ["src"]
 no_comments = true
 
