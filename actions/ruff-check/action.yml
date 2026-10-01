@@ -5,9 +5,6 @@ inputs:
   python_version:
     description: 'Python version to use'
     default: '3.12'
-  source_dirs:
-    description: 'Space-separated source directories'
-    default: 'src'
   base_ref:
     description: 'Base branch for diff comparison'
     default: ''

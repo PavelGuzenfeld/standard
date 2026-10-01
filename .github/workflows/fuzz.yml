@@ -18,7 +18,7 @@ on:
       mode:
         type: string
         default: 'code-change'
-        description: 'code-change for PRs, batch for scheduled full runs'
+        description: '`code-change` for PRs, `batch` for scheduled full runs'
       runner:
         type: string
         default: '"ubuntu-latest"'

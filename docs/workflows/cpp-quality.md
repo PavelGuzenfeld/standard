@@ -87,7 +87,7 @@
 | `ban_cout` | boolean | `false` | Ban std::cout/cerr/clog and printf family in non-test source files (opt-in) |
 | `ban_new` | boolean | `false` | Ban raw new/delete in non-test source files (opt-in) |
 | `clang_tidy_jobs` | number | `4` | Parallel clang-tidy jobs inside Docker container |
-| `exclude_file` | string | `''` | Path to file listing excluded paths (one per line, # comments) |
+| `exclude_file` | string | `''` | Path to file listing excluded paths (one per line, `#` comments) |
 | `enable_flawfinder` | boolean | `false` | Enable flawfinder CWE lexical scan (opt-in) |
 | `flawfinder_min_level` | number | `2` | Minimum flawfinder finding level (1-5) |
 | `enable_sarif` | boolean | `false` | Upload SARIF to GitHub Security tab (requires security-events: write) |
@@ -125,7 +125,7 @@
 | `enable_jscpd` | boolean | `false` | Enable jscpd copy-paste detection on changed files (opt-in) |
 | `jscpd_threshold` | number | `5` | Maximum duplicated lines in percent before jscpd flags the changed files |
 | `jscpd_report_only` | boolean | `true` | Report jscpd duplication as a warning without failing the job |
-| `enable_binskim` | boolean | `false` | Enable BinSkim ELF analysis (stack clash, SafeStack, checked functions; opt-in) |
+| `enable_binskim` | boolean | `false` | Enable BinSkim ELF analysis (stack clash, SafeStack, checked functions; opt-in); builds like `enable_hardening` (`hardening_script` or `release-hardened` preset) |
 | `binskim_paths` | string | `'build-hardened/bin'` | Space-separated files or directories of built ELF binaries for BinSkim |
-| `binskim_fail_level` | string | `'error'` | Lowest BinSkim result level that fails the job: error, warning or note |
+| `binskim_fail_level` | string | `'error'` | Lowest BinSkim result level that fails the job: error, warning or note. SARIF is uploaded as `binskim-sarif` |
 

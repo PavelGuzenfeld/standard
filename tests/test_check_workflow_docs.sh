@@ -81,6 +81,53 @@ restore_doc() {
     cat "$WORK/docs/sample.md.orig" >"$WORK/docs/sample.md"
 }
 
+cp "$WORK/docs/sample.md" "$WORK/clean.md"
+cat >"$WORK/docs/sample.md" <<'MD'
+# Sample
+
+Intro prose with `code` and a | pipe.
+
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `target` | string | required | Target &lt;name&gt; to build |
+| `retries` | number | `4` | Old text |
+| `verbose` | boolean | `false` | Print more |
+
+Middle prose.
+
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `label` | string | `'it''s'` | Label |
+
+Closing prose.
+MD
+cp "$WORK/docs/sample.md" "$WORK/stale.md"
+status=0
+run_check --write >/dev/null || status=$?
+if [ "$status" -eq 0 ] && run_check >/dev/null 2>&1; then
+    echo "PASS: --write fixes a stale table and exits 0"
+else
+    echo "FAIL: --write fixes a stale table (exit $status)"
+    FAILED=1
+fi
+expected_after=$(sed -e 's/`4` | Old text/`3` | Retry count/' "$WORK/stale.md")
+if [ "$(cat "$WORK/docs/sample.md")" = "$expected_after" ]; then
+    echo "PASS: --write changes only the table rows and keeps prose and table split"
+else
+    echo "FAIL: --write changes only the table rows and keeps prose and table split"
+    diff "$WORK/stale.md" "$WORK/docs/sample.md" || true
+    FAILED=1
+fi
+cp "$WORK/docs/sample.md" "$WORK/written.md"
+run_check --write >/dev/null
+if cmp -s "$WORK/docs/sample.md" "$WORK/written.md"; then
+    echo "PASS: --write is idempotent"
+else
+    echo "FAIL: --write is idempotent"
+    FAILED=1
+fi
+cp "$WORK/clean.md" "$WORK/docs/sample.md"
+
 expect_pass "matching table passes"
 
 with_doc 's/`3`/`4`/'
