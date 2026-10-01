@@ -103,3 +103,17 @@ class TestGenerateWorkflow:
         assert "on:" in yaml
         assert "jobs:" in yaml
         assert "permissions:" in yaml
+
+    def test_input_equal_to_its_default_does_not_hide_later_inputs(self):
+        yaml = generate_workflow(
+            "cpp-quality",
+            {
+                "docker_image": "ghcr.io/org/builder:latest",
+                "compile_commands_path": "build",
+                "source_setup": "source setup.bash",
+            },
+            self.SHA,
+            self.TAG,
+        )
+        assert "compile_commands_path" not in yaml
+        assert "source_setup: source setup.bash" in yaml

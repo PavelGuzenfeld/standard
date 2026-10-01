@@ -2,7 +2,10 @@
 
 import base64
 import json
+import urllib.error
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from standard_ci.scanner import (
     fetch_standard_config,
@@ -179,3 +182,90 @@ class TestScanOrg:
         assert results[0]["up_to_date"]
         assert not results[1]["up_to_date"]
         assert not results[2]["has_config"]
+
+
+def _http_error(code):
+    return urllib.error.HTTPError("url", code, "err", {}, None)
+
+
+def _repo_entry(name):
+    return {
+        "full_name": f"org/{name}",
+        "default_branch": "main",
+        "archived": False,
+        "fork": False,
+    }
+
+
+class TestRequests:
+    @patch("standard_ci.scanner.urllib.request.urlopen")
+    def test_api_calls_time_out_after_fifteen_seconds(self, mock_urlopen):
+        mock_urlopen.return_value = _make_api_response([])
+        list_org_repos("org", token="t")
+        assert mock_urlopen.call_args.kwargs["timeout"] == 15
+
+
+class TestOrgThenUserFallback:
+    @patch("standard_ci.scanner.urllib.request.urlopen")
+    def test_org_not_found_falls_back_to_the_user_endpoint(self, mock_urlopen):
+        mock_urlopen.side_effect = [
+            _http_error(404),
+            _make_api_response([_repo_entry("mine")]),
+        ]
+        repos = list_org_repos("someone", token="t")
+        urls = [c.args[0].full_url for c in mock_urlopen.call_args_list]
+        assert urls == [
+            "https://api.github.com/orgs/someone/repos?per_page=100&type=sources",
+            "https://api.github.com/users/someone/repos?per_page=100&type=sources",
+        ]
+        assert [r["full_name"] for r in repos] == ["org/mine"]
+
+    @patch("standard_ci.scanner.urllib.request.urlopen")
+    def test_other_http_errors_are_not_swallowed(self, mock_urlopen):
+        mock_urlopen.side_effect = _http_error(403)
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            list_org_repos("org", token="t")
+        assert exc.value.code == 403
+        assert mock_urlopen.call_count == 1
+
+    @patch("standard_ci.scanner.urllib.request.urlopen")
+    def test_not_found_as_org_and_user_raises(self, mock_urlopen):
+        mock_urlopen.side_effect = [_http_error(404), _http_error(404)]
+        with pytest.raises(RuntimeError, match="'ghost' — not found as org or user"):
+            list_org_repos("ghost", token="t")
+
+    @patch("standard_ci.scanner.urllib.request.urlopen")
+    def test_non_404_error_fetching_config_propagates(self, mock_urlopen):
+        mock_urlopen.side_effect = _http_error(500)
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            fetch_standard_config("org/repo", token="t")
+        assert exc.value.code == 500
+
+
+class TestScanOrgToken:
+    @patch("standard_ci.scanner.resolve_tag_sha", return_value=("sha123", "v1.0.0"))
+    @patch("standard_ci.scanner.list_org_repos", return_value=[])
+    def test_environment_token_is_used_when_none_is_given(
+        self, mock_list, mock_resolve, monkeypatch
+    ):
+        monkeypatch.setenv("GITHUB_TOKEN", "from-env")
+        scan_org("org")
+        mock_list.assert_called_once_with("org", "from-env")
+
+    @patch("standard_ci.scanner.resolve_tag_sha", return_value=("sha123", "v1.0.0"))
+    @patch("standard_ci.scanner.list_org_repos", return_value=[])
+    def test_explicit_token_wins_over_the_environment(
+        self, mock_list, mock_resolve, monkeypatch
+    ):
+        monkeypatch.setenv("GITHUB_TOKEN", "from-env")
+        scan_org("org", token="explicit")
+        mock_list.assert_called_once_with("org", "explicit")
+
+    @patch("standard_ci.scanner.resolve_tag_sha", return_value=("sha123", "v1.0.0"))
+    @patch("standard_ci.scanner.list_org_repos", return_value=[])
+    def test_no_token_anywhere_passes_an_empty_token(
+        self, mock_list, mock_resolve, monkeypatch
+    ):
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        scan_org("org")
+        mock_list.assert_called_once_with("org", "")

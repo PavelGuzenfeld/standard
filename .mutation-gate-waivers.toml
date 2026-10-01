@@ -5,3 +5,27 @@ column = 40
 old = """-1"""
 new = """1"""
 reason = "Repo slugs are always owner/name, so index 1 and index -1 select the same segment; no valid input tells them apart."
+
+[[waiver]]
+file = "src/standard_ci/dashboard.py"
+line = 67
+column = 41
+old = """-1"""
+new = """1"""
+reason = "Repo slugs are always owner/name, so index 1 and index -1 select the same segment; no valid input tells them apart."
+
+[[waiver]]
+file = "src/standard_ci/dashboard.py"
+line = 91
+column = 45
+old = """-1"""
+new = """1"""
+reason = "Repo slugs are always owner/name, so index 1 and index -1 select the same segment; no valid input tells them apart."
+
+[[waiver]]
+file = "src/standard_ci/updater.py"
+line = 57
+column = 36
+old = """1"""
+new = """2"""
+reason = "git ref names cannot contain a tab, so each ls-remote line has exactly one tab and a maxsplit of 1 or 2 yields the same two fields."

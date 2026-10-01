@@ -5,8 +5,10 @@ from unittest import mock
 
 import pytest
 
+from standard_ci.checker import check
 from standard_ci.cli import main
 from standard_ci.config import read_config, write_config
+from standard_ci.workflows import ALL_WORKFLOWS
 
 FAKE_SHA = "abc123def456789012345678901234567890abcd"
 FAKE_TAG = "v2.2.3.4"
@@ -498,6 +500,103 @@ class TestCheckOutput:
         with mock.patch("standard_ci.cli.check", return_value=[("error", "bad")]):
             assert _exit_code(["check", "--output-dir", str(tmp_path)]) == 1
         assert capsys.readouterr().out == "ERROR: bad\n"
+
+
+SHA_A = "a" * 40
+SHA_B = "b" * 40
+
+
+def _checked_project(tmp_path, workflows, sha="", tag="", files=None):
+    config = {"workflows": workflows}
+    if sha:
+        config["sha"] = sha
+    if tag:
+        config["tag"] = tag
+    write_config(str(tmp_path / ".standard.yml"), config)
+    wf_dir = tmp_path / ".github" / "workflows"
+    wf_dir.mkdir(parents=True)
+    for name, content in (files or {}).items():
+        (wf_dir / name).write_text(content)
+    return str(tmp_path)
+
+
+def _pinned(wf_name, ref):
+    ref_path = ALL_WORKFLOWS[wf_name]["ref_path"]
+    return f"uses: PavelGuzenfeld/standard/{ref_path}@{ref}\n"
+
+
+class TestCheckerIssues:
+    def test_unknown_workflow_does_not_stop_the_remaining_checks(self, tmp_path):
+        project = _checked_project(tmp_path, ["bogus", "cpp-quality"])
+        assert check(project) == [
+            ("warning", "Unknown workflow 'bogus' in .standard.yml"),
+            ("error", "Missing workflow file: .github/workflows/cpp-quality.yml"),
+        ]
+
+    def test_missing_file_does_not_stop_the_remaining_checks(self, tmp_path):
+        project = _checked_project(tmp_path, ["cpp-quality", "infra-lint"])
+        assert check(project) == [
+            ("error", "Missing workflow file: .github/workflows/cpp-quality.yml"),
+            ("error", "Missing workflow file: .github/workflows/infra-lint.yml"),
+        ]
+
+    def test_matching_sha_reports_ok_with_count_and_tag(self, tmp_path):
+        project = _checked_project(
+            tmp_path,
+            ["cpp-quality", "infra-lint"],
+            sha=SHA_A,
+            tag="v1.2.3",
+            files={
+                "cpp-quality.yml": _pinned("cpp-quality", SHA_A),
+                "infra-lint.yml": _pinned("infra-lint", SHA_A),
+            },
+        )
+        assert check(project) == [
+            ("ok", "All 2 workflows match .standard.yml (v1.2.3)")
+        ]
+
+    def test_ok_message_omits_tag_when_config_has_none(self, tmp_path):
+        project = _checked_project(
+            tmp_path,
+            ["cpp-quality"],
+            files={"cpp-quality.yml": "name: whatever\n"},
+        )
+        assert check(project) == [("ok", "All 1 workflows match .standard.yml")]
+
+    def test_sha_mismatch_warns_with_twelve_char_prefixes(self, tmp_path):
+        project = _checked_project(
+            tmp_path,
+            ["cpp-quality"],
+            sha=SHA_A,
+            files={"cpp-quality.yml": _pinned("cpp-quality", SHA_B)},
+        )
+        assert check(project) == [
+            (
+                "warning",
+                "cpp-quality.yml: SHA mismatch — "
+                f"file has {'b' * 12}, config has {'a' * 12}",
+            )
+        ]
+
+    def test_reference_without_full_sha_warns_not_pinned(self, tmp_path):
+        project = _checked_project(
+            tmp_path,
+            ["cpp-quality"],
+            sha=SHA_A,
+            files={"cpp-quality.yml": _pinned("cpp-quality", "v1.2.3")},
+        )
+        assert check(project) == [
+            ("warning", "cpp-quality.yml: not pinned to a full SHA")
+        ]
+
+    def test_file_not_referencing_the_workflow_is_not_sha_checked(self, tmp_path):
+        project = _checked_project(
+            tmp_path,
+            ["cpp-quality"],
+            sha=SHA_A,
+            files={"cpp-quality.yml": "name: local copy\n"},
+        )
+        assert check(project) == [("ok", "All 1 workflows match .standard.yml")]
 
 
 LATEST_SHA = "f" * 40
