@@ -1,4 +1,5 @@
 test_paths = ["tests"]
+import_roots = ["src"]
 no_comments = true
 
 [[doc_allow]]
