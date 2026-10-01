@@ -35,17 +35,36 @@ def _input_defaults(text):
     )
 
 
-def _lint_script(overrides):
+def _step(text, name):
+    return re.search(
+        rf"- name: {name}\n(.*?)(?=\n      - name|\n    outputs:)", text, re.S
+    ).group(1)
+
+
+def _step_env(name, overrides):
     text = WORKFLOW.read_text()
     defaults = {**_input_defaults(text), **overrides}
-    step = re.search(
-        r"- name: Run diff-aware linting\n.*?run: \|\n(.*?)\n        continue-on-error",
-        text,
+    env_block = re.search(r"env:\n((?:          .*\n)+)", _step(text, name)).group(1)
+    env = {}
+    for variable, expression in re.findall(r"^          (\w+): (.*)$", env_block, re.M):
+        if "inputs.base_ref" in expression:
+            env[variable] = "main"
+            continue
+        env[variable] = defaults[re.search(r"inputs\.(\w+)", expression).group(1)]
+    return env
+
+
+def _step_script(name):
+    run = re.search(
+        r"run: \|\n(.*?)(?:\n        continue-on-error.*)?\Z",
+        _step(WORKFLOW.read_text(), name),
         re.S,
     )
-    script = textwrap.dedent(step.group(1))
-    script = re.sub(r"\$\{\{ inputs\.base_ref \|\|[^}]*\}\}", "main", script)
-    return re.sub(r"\$\{\{ inputs\.(\w+) \}\}", lambda m: defaults[m.group(1)], script)
+    return textwrap.dedent(run.group(1))
+
+
+def _lint_script():
+    return _step_script("Run diff-aware linting")
 
 
 def _lint(tmp_path, source, overrides, path=None):
@@ -63,11 +82,15 @@ def _lint(tmp_path, source, overrides, path=None):
     git("add", ".")
     git("commit", "-m", "change")
     return subprocess.run(
-        ["bash", "-c", _lint_script(overrides)],
+        ["bash", "-c", _lint_script()],
         cwd=tmp_path,
         capture_output=True,
         text=True,
-        env={**os.environ, "PATH": f"{path}:{os.environ['PATH']}"} if path else None,
+        env={
+            **os.environ,
+            **({"PATH": f"{path}:{os.environ['PATH']}"} if path else {}),
+            **_step_env("Run diff-aware linting", overrides),
+        },
     )
 
 
@@ -119,16 +142,8 @@ class TestLintWithoutRuffDriver:
         assert "ruff.check" in result.stdout + result.stderr
 
 
-def _install_script(overrides):
-    text = WORKFLOW.read_text()
-    defaults = {**_input_defaults(text), **overrides}
-    step = re.search(
-        r"- name: Install dependencies\n.*?run: \|\n(.*?)\n\n      - name",
-        text,
-        re.S,
-    )
-    script = textwrap.dedent(step.group(1))
-    return re.sub(r"\$\{\{ inputs\.(\w+) \}\}", lambda m: defaults[m.group(1)], script)
+def _install_script():
+    return _step_script("Install dependencies")
 
 
 def _pip_arguments(tmp_path, overrides, python_is_old):
@@ -137,9 +152,13 @@ def _pip_arguments(tmp_path, overrides, python_is_old):
     _stub_executable(stubs, "pip", f'echo "$@" >> {tmp_path}/pip.log')
     _stub_executable(stubs, "python", f"exit {0 if python_is_old else 1}")
     subprocess.run(
-        ["bash", "-c", _install_script(overrides)],
+        ["bash", "-c", _install_script()],
         cwd=tmp_path,
-        env={**os.environ, "PATH": f"{stubs}:{os.environ['PATH']}"},
+        env={
+            **os.environ,
+            "PATH": f"{stubs}:{os.environ['PATH']}",
+            **_step_env("Install dependencies", overrides),
+        },
         check=True,
     )
     return (tmp_path / "pip.log").read_text()
