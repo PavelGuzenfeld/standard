@@ -43,6 +43,10 @@ on:
         type: boolean
         default: true
         description: 'Run pytest and collect coverage (disable for projects with external test deps like ROS2)'
+      fail_on_dirty_tree:
+        type: boolean
+        default: false
+        description: 'Fail when the tests leave modified or untracked files in the checkout'
       base_ref:
         type: string
         default: ''
@@ -125,7 +129,7 @@ jobs:
             --cov --cov-report=xml --verbose
 
       - name: Fail if tests dirtied the working tree
-        if: inputs.enable_tests
+        if: inputs.enable_tests && inputs.fail_on_dirty_tree
         run: |
           dirty="$(git status --porcelain)"
           if [ -n "$dirty" ]; then

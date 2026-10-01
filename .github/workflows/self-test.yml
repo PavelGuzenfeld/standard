@@ -16,6 +16,7 @@ jobs:
       python_linter: 'ruff'
       source_dirs: 'src'
       test_dirs: 'tests'
+      fail_on_dirty_tree: true
     permissions:
       contents: read
       pull-requests: write
