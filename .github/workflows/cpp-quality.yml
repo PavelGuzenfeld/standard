@@ -206,7 +206,7 @@ on:
       select_jobs:
         type: string
         default: 'all'
-        description: 'Comma-separated jobs to run (all, clang-tidy, cppcheck, coverage, tsan, sanitizers, iwyu, clang-format, doctest, file-naming, cout-ban, new-delete-ban, flawfinder, hardening)'
+        description: 'Comma-separated jobs to run (all, clang-tidy, cppcheck, coverage, tsan, sanitizers, iwyu, clang-format, doctest, file-naming, cout-ban, new-delete-ban, flawfinder, hardening, binskim, jscpd)'
       base_ref:
         type: string
         default: ''
@@ -2547,7 +2547,7 @@ jobs:
   summary:
     name: Post Summary
     runs-on: ${{ fromJSON(inputs.runner) }}
-    needs: [verify-toolchain, clang-tidy, cppcheck, clang-format, doctest-enforce, file-naming, cout-ban, new-delete-ban, flawfinder, sanitizer-tests, tsan-tests, iwyu, coverage, hardening]
+    needs: [verify-toolchain, clang-tidy, cppcheck, clang-format, doctest-enforce, file-naming, cout-ban, new-delete-ban, flawfinder, sanitizer-tests, tsan-tests, iwyu, coverage, hardening, jscpd, binskim]
     if: always() && github.event_name == 'pull_request'
     steps:
       - name: Post or update PR comment
@@ -2568,6 +2568,8 @@ jobs:
             const iwyu = '${{ needs.iwyu.result }}';
             const coverage = '${{ needs.coverage.result }}';
             const hardening = '${{ needs.hardening.result }}';
+            const jscpd = '${{ needs.jscpd.result }}';
+            const binskim = '${{ needs.binskim.result }}';
 
             const icon = (r) => {
               if (r === 'success') return '✅';
@@ -2612,6 +2614,12 @@ jobs:
             }
             if (hardening && hardening !== 'skipped') {
               body += `| Hardening | ${icon(hardening)} ${hardening === 'success' ? 'all checks pass' : 'hardening issues'} |\n`;
+            }
+            if (jscpd && jscpd !== 'skipped') {
+              body += `| jscpd | ${icon(jscpd)} ${jscpd === 'success' ? 'clean' : 'duplication found'} |\n`;
+            }
+            if (binskim && binskim !== 'skipped') {
+              body += `| BinSkim | ${icon(binskim)} ${binskim === 'success' ? 'clean' : 'binary findings'} |\n`;
             }
             body += '\n---\n<sub>Powered by <a href="https://github.com/PavelGuzenfeld/standard">standard</a> · Only changed files checked</sub>';
 
