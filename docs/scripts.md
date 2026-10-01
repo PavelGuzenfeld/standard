@@ -22,6 +22,7 @@ Diff-aware checks run the CI logic on files changed against a base branch. Run t
 | `generate-workflow.sh` | `[--output-dir PATH] [--non-interactive] [--dependency-bot dependabot\|renovate\|both]` | write the quality workflows to `.github/workflows/`. `--dependency-bot` also writes `dependabot.yml` and `renovate.json` (Conan manager) beside them |
 | `generate-agents-md.sh` | `[--output PATH] [--non-interactive]` | write a tailored AGENTS.md |
 | `refresh-locks.sh` | `[--list]` | recompile the hashed `.github/requirements/*.txt` from their `.in` with uv (Docker `python:3.12-slim` if uv is absent) and print hashed blocks for the inline workflow heredocs. Never edits workflows. `--list` shows the targets |
+| `check-workflow-docs.py` | `[--map FILE] [--workflows-dir DIR] [--docs-dir DIR] [--regenerate]` | fail when an input table under `docs/workflows` differs from its workflow `workflow_call` inputs in names, order, types, defaults or descriptions. `--regenerate` prints the tables from the YAML. The workflow to page map is `scripts/workflow-docs.map`. Needs PyYAML (`.github/requirements/workflow-docs.txt`) |
 | `generate-badges.sh` | `[--scan-workflows\|--interactive] [--format markdown\|html]` | print README badge markup to stdout |
 | `install-hooks.sh` | `[--force] [--uninstall]` | install a git pre-commit hook that runs the diff scripts. `--force` if `.pre-commit-config.yaml` exists |
 
