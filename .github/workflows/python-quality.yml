@@ -77,11 +77,15 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
+        env:
+          DIFF_COVER_VERSION_INPUT: ${{ inputs.diff_cover_version }}
+          PYTHON_LINTER: ${{ inputs.python_linter }}
+          RUFF_VERSION: ${{ inputs.ruff_version }}
         run: |
           if [ -f requirements.txt ]; then
             pip install -r requirements.txt
           fi
-          DIFF_COVER_VERSION="${{ inputs.diff_cover_version }}"
+          DIFF_COVER_VERSION="$DIFF_COVER_VERSION_INPUT"
           if [ -z "$DIFF_COVER_VERSION" ]; then
             if python -c 'import sys; sys.exit(sys.version_info >= (3, 10))'; then
               DIFF_COVER_VERSION=9.2.0
@@ -89,8 +93,8 @@ jobs:
               DIFF_COVER_VERSION=10.5.1
             fi
           fi
-          if [ "${{ inputs.python_linter }}" = "ruff" ]; then
-            pip install "ruff==${{ inputs.ruff_version }}" "diff-cover==$DIFF_COVER_VERSION"
+          if [ "$PYTHON_LINTER" = "ruff" ]; then
+            pip install "ruff==$RUFF_VERSION" "diff-cover==$DIFF_COVER_VERSION"
           else
             pip install flake8 "diff-cover==$DIFF_COVER_VERSION"
           fi
@@ -98,8 +102,14 @@ jobs:
 
       - name: Run diff-aware linting
         id: lint
+        env:
+          BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+          FAIL_UNDER: ${{ inputs.fail_under }}
+          PYTHON_LINTER: ${{ inputs.python_linter }}
+          RUFF_IGNORE: ${{ inputs.ruff_ignore }}
+          RUFF_SELECT: ${{ inputs.ruff_select }}
         run: |
-          VIOLATIONS="${{ inputs.python_linter }}"
+          VIOLATIONS="$PYTHON_LINTER"
           OPTIONS=""
           if [ "$VIOLATIONS" = "ruff" ]; then
             VIOLATIONS="ruff.check"
@@ -107,34 +117,39 @@ jobs:
               echo "::error::installed diff-cover has no ruff.check driver (needs Python 3.10+); use python_linter: flake8 or a newer python_version"
               exit 1
             fi
-            OPTIONS="--select=${{ inputs.ruff_select }}"
-            if [ -n "${{ inputs.ruff_ignore }}" ]; then
-              OPTIONS="$OPTIONS --ignore=${{ inputs.ruff_ignore }}"
+            OPTIONS="--select=$RUFF_SELECT"
+            if [ -n "$RUFF_IGNORE" ]; then
+              OPTIONS="$OPTIONS --ignore=$RUFF_IGNORE"
             fi
           fi
           diff-quality --violations="$VIOLATIONS" \
             --options="$OPTIONS" \
-            --compare-branch=origin/${{ inputs.base_ref || github.base_ref || 'main' }} \
-            --fail-under=${{ inputs.fail_under }}
+            --compare-branch="origin/$BASE_REF" \
+            --fail-under="$FAIL_UNDER"
         continue-on-error: true
 
       - name: Run tests and collect coverage
         if: inputs.enable_tests
+        env:
+          TEST_DIRS: ${{ inputs.test_dirs }}
         run: |
-          pytest ${{ inputs.test_dirs }} \
+          read -ra TEST_DIR_ARGS <<< "$TEST_DIRS"
+          pytest "${TEST_DIR_ARGS[@]}" \
             --cov --cov-report=xml --verbose
 
       - name: Generate diff coverage report
         if: inputs.enable_tests
         id: diff-cover
+        env:
+          BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
         run: |
           echo "DIFF_COVER_REPORT<<EOF" >> "$GITHUB_ENV"
           diff-cover coverage.xml \
-            --compare-branch=origin/${{ inputs.base_ref || github.base_ref || 'main' }} \
+            --compare-branch="origin/$BASE_REF" \
             --markdown-report=diff-cover.md || true
           cat diff-cover.md >> "$GITHUB_ENV" 2>/dev/null || \
             diff-cover coverage.xml \
-              --compare-branch=origin/${{ inputs.base_ref || github.base_ref || 'main' }} >> "$GITHUB_ENV"
+              --compare-branch="origin/$BASE_REF" >> "$GITHUB_ENV"
           echo "EOF" >> "$GITHUB_ENV"
         continue-on-error: true
 
