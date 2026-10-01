@@ -81,18 +81,18 @@ jobs:
           if [ -f requirements.txt ]; then
             pip install -r requirements.txt
           fi
-          if [ "${{ inputs.python_linter }}" = "ruff" ]; then
-            DIFF_COVER_VERSION="${{ inputs.diff_cover_version }}"
-            if [ -z "$DIFF_COVER_VERSION" ]; then
-              if python -c 'import sys; sys.exit(sys.version_info >= (3, 10))'; then
-                DIFF_COVER_VERSION=9.2.0
-              else
-                DIFF_COVER_VERSION=10.5.1
-              fi
+          DIFF_COVER_VERSION="${{ inputs.diff_cover_version }}"
+          if [ -z "$DIFF_COVER_VERSION" ]; then
+            if python -c 'import sys; sys.exit(sys.version_info >= (3, 10))'; then
+              DIFF_COVER_VERSION=9.2.0
+            else
+              DIFF_COVER_VERSION=10.5.1
             fi
+          fi
+          if [ "${{ inputs.python_linter }}" = "ruff" ]; then
             pip install "ruff==${{ inputs.ruff_version }}" "diff-cover==$DIFF_COVER_VERSION"
           else
-            pip install flake8 diff-cover
+            pip install flake8 "diff-cover==$DIFF_COVER_VERSION"
           fi
           pip install pytest pytest-cov pytest-testmon pytest-xdist
 
