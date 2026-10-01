@@ -17,7 +17,7 @@
 | `build_cache_key` | `''` | Cache key for build artifacts (empty = no caching) |
 | `build_cache_paths` | `build install` | Space-separated paths to cache |
 | `checkout_submodules` | `false` | Pass to actions/checkout submodules (false, true, recursive) |
-| `select_jobs` | `all` | Comma-separated jobs to run (all, clang-tidy, cppcheck, coverage, tsan, sanitizers, iwyu, clang-format, doctest, file-naming, cout-ban, new-delete-ban, flawfinder, hardening) |
+| `select_jobs` | `all` | Comma-separated jobs to run (all, clang-tidy, cppcheck, coverage, tsan, sanitizers, iwyu, clang-format, doctest, file-naming, cout-ban, new-delete-ban, flawfinder, hardening, binskim, jscpd) |
 | `base_ref` | `''` | Base branch for diff (fallback when github.base_ref is empty) |
 
 ## clang-tidy
