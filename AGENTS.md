@@ -34,7 +34,7 @@ pytest tests
 2. Script, if needed: `scripts/diff-<name>.sh` for the diff-aware logic.
 3. Config, if needed: a template in `configs/`.
 4. Tests: a new numbered section in `tests/test_patterns.sh`.
-5. Docs: README (inputs, configs, scripts tables), `docs/INTEGRATION.md` (setup), `docs/SDLC.md` (lifecycle phases). A new script also goes in the README scripts table and the structure above.
+5. Docs: `docs/workflows/` (input tables), `docs/configs.md`, `docs/scripts.md`, `docs/INTEGRATION.md` (setup), `docs/SDLC.md` (lifecycle phases). A new script also goes in `docs/scripts.md` and the structure above.
 
 Always-on jobs are `clang-tidy` and `cppcheck`. Opt-in jobs are gated by a boolean input defaulting to `false`. Jobs post annotations with `::warning file=...`. The `summary` job collects results into one PR comment.
 
