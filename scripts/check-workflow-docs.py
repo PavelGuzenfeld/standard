@@ -50,7 +50,7 @@ class Table:
 
 def usage_text():
     return (
-        "Usage: check-workflow-docs.py [--map FILE] [--workflows-dir DIR] [--docs-dir DIR] [--regenerate]\n"
+        "Usage: check-workflow-docs.py [--map FILE] [--workflows-dir DIR] [--docs-dir DIR] [--regenerate | --write]\n"
         "\n"
         "Fail when a workflow_call input table in docs/workflows differs from its workflow YAML\n"
         "in names, order, types, defaults or descriptions. A page may split a workflow into\n"
@@ -63,7 +63,8 @@ def usage_text():
         "  --workflows-dir DIR  Workflow files (default: .github/workflows)\n"
         "  --docs-dir DIR       Docs pages (default: docs/workflows)\n"
         "  --regenerate         Print the tables from the YAML, one per existing table, and exit\n"
-        "  -h, --help           Show this help message"
+        "  --write              Rewrite the mapped tables in place from the YAML, keeping the prose, and exit 0\n"
+        "  -h, --help          Show this help message"
     )
 
 
@@ -86,10 +87,9 @@ def load_map(path):
     return entries
 
 
-def section_lines(text, heading):
-    lines = text.splitlines()
+def section_bounds(lines, heading):
     if heading is None:
-        return lines
+        return 0, len(lines)
     start = None
     for index, line in enumerate(lines):
         match = HEADING.match(line)
@@ -97,8 +97,14 @@ def section_lines(text, heading):
             if match and match.group(2) == heading:
                 start, level = index + 1, len(match.group(1))
         elif match and len(match.group(1)) <= level:
-            return lines[start:index]
-    return [] if start is None else lines[start:]
+            return start, index
+    return (len(lines), len(lines)) if start is None else (start, len(lines))
+
+
+def section_lines(text, heading):
+    lines = text.splitlines()
+    start, end = section_bounds(lines, heading)
+    return lines[start:end]
 
 
 def parse_tables(lines):
@@ -218,6 +224,28 @@ def regenerate(entries, workflows_dir, docs_dir):
             print()
 
 
+def rewrite_section(text, heading, inputs):
+    lines = text.split("\n")
+    start, end = section_bounds(lines, heading)
+    chunks = iter(partition(inputs, parse_tables(lines[start:end])))
+    rewritten, in_table = lines[:start], False
+    for line in lines[start:end]:
+        if not line.startswith("|"):
+            in_table = False
+            rewritten.append(line)
+        elif not in_table:
+            in_table = True
+            rewritten += render_table(next(chunks)).split("\n")
+    return "\n".join(rewritten + lines[end:])
+
+
+def write(entries, workflows_dir, docs_dir):
+    for workflow, page, heading in entries:
+        path = docs_dir / page
+        inputs = load_inputs(workflows_dir / workflow)
+        path.write_text(rewrite_section(path.read_text(), heading, inputs))
+
+
 def main(argv):
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
@@ -228,6 +256,7 @@ def main(argv):
     )
     parser.add_argument("--docs-dir", type=Path, default=ROOT / "docs" / "workflows")
     parser.add_argument("--regenerate", action="store_true")
+    parser.add_argument("--write", action="store_true")
     parser.add_argument("-h", "--help", action="store_true")
     try:
         args = parser.parse_args(argv)
@@ -240,6 +269,9 @@ def main(argv):
     entries = load_map(args.map)
     if args.regenerate:
         regenerate(entries, args.workflows_dir, args.docs_dir)
+        return 0
+    if args.write:
+        write(entries, args.workflows_dir, args.docs_dir)
         return 0
     problems = check(entries, args.workflows_dir, args.docs_dir)
     for problem in problems:

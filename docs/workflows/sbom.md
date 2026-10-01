@@ -8,7 +8,7 @@
 | `source_sbom_script` | string | `''` | Path to source-level SBOM generation script (empty = skip) |
 | `grype_fail_on` | string | `''` | Fail on severity: "" = report-only, "critical", "high", "medium", "low" |
 | `grype_ignore_file` | string | `''` | Path to .grype.yaml ignore file |
-| `enable_code_scanning` | boolean | `true` | Upload SARIF to code scanning. A private repo without Advanced Security rejects the upload — set false there and read the artifact |
+| `enable_code_scanning` | boolean | `true` | Upload SARIF to code scanning. A private repo without Advanced Security rejects the upload — set `false` there and read the artifact |
 | `runner` | string | `'"ubuntu-latest"'` | Runner labels as JSON (e.g., "\"ubuntu-latest\"" or "[\"self-hosted\",\"X64\",\"Linux\"]") |
 | `checkout_submodules` | string | `'false'` | Checkout submodules for source SBOM (true/false/recursive) |
 | `license_policy_file` | string | `''` | Path to license policy YAML (empty = skip license check) |

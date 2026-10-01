@@ -14,7 +14,7 @@ on:
       python_linter:
         type: string
         default: 'ruff'
-        description: 'Linter backend: ruff (default, fast) or flake8 (ROS2/ament compat)'
+        description: 'Linter backend: `ruff` (default, fast) or `flake8` (ROS2/ament compat)'
       source_dirs:
         type: string
         default: 'src'
@@ -26,19 +26,19 @@ on:
       ruff_version:
         type: string
         default: '0.16.9'
-        description: 'Ruff version (pin to avoid breaking changes)'
+        description: 'Ruff version to install; matches the `ruff-pre-commit` pin'
       diff_cover_version:
         type: string
         default: ''
-        description: 'diff-cover version (empty picks 10.5.1, or 9.2.0 on Python below 3.10, which has no ruff.check driver)'
+        description: 'diff-cover version to install, for either linter. Empty picks `10.5.1`, or `9.2.0` on Python below 3.10. 9.2.0 has no `ruff.check` driver, so the ruff lint step fails with that reason there; use `python_linter: flake8` or a newer `python_version`'
       ruff_select:
         type: string
         default: 'E,W,F,I,N'
-        description: 'Ruff rule selection (comma-separated). Overrides select in pyproject.toml'
+        description: 'Ruff rule selection (comma-separated). Overrides `select` in pyproject.toml'
       ruff_ignore:
         type: string
         default: 'E501'
-        description: 'Ruff rules to ignore (comma-separated). Overrides ignore in pyproject.toml; empty ignores nothing'
+        description: 'Ruff rules to ignore (comma-separated). Overrides `ignore` in pyproject.toml, so CI agrees with pre-commit; empty ignores nothing'
       enable_tests:
         type: boolean
         default: true

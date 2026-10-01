@@ -22,7 +22,7 @@ on:
       enable_code_scanning:
         type: boolean
         default: true
-        description: 'Upload SARIF to code scanning. A private repo without Advanced Security rejects the upload — set false there and read the artifact'
+        description: 'Upload SARIF to code scanning. A private repo without Advanced Security rejects the upload — set `false` there and read the artifact'
       runner:
         type: string
         default: '"ubuntu-latest"'
