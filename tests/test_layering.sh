@@ -133,6 +133,20 @@ expect_missing_tool() {
     fi
 }
 
+expect_failing_ast_grep_fails() {
+    local dir="$1" desc="$2" exit_code="$3" stub="$WORK/stub-ast-grep-$3" out rc
+    mkdir -p "$stub"
+    printf '#!/bin/sh\necho "ast-grep: simulated crash" >&2\nexit %s\n' "$exit_code" > "$stub/ast-grep"
+    chmod +x "$stub/ast-grep"
+    out="$(PATH="$stub:$PATH" bash "$CHECK" "$dir" 2>&1)"
+    rc=$?
+    if [ "$rc" -ne 0 ] && grep -q "ast-grep failed" <<<"$out"; then
+        PASS=$((PASS + 1)); echo "  PASS: $desc"
+    else
+        FAIL=$((FAIL + 1)); echo "  FAIL: $desc (rc=$rc)"; echo "$out" | sed 's/^/    /'
+    fi
+}
+
 echo "=== layering contract ==="
 expect fail "$(python_fixture bad bad)" "python: lower layer importing upper fails"
 expect pass "$(python_fixture good good)" "python: no upward import passes"
@@ -147,6 +161,8 @@ mkdir -p "$WORK/none"
 expect skip "$WORK/none" "no contract file skips with notice"
 expect_missing_tool jq "$(cpp_fixture good good)" "layers: missing jq is reported and fails"
 expect_missing_tool ast-grep "$(cpp_fixture good good)" "layers: missing ast-grep is reported and fails"
+expect_failing_ast_grep_fails "$(cpp_fixture good good)" "cpp: ast-grep usage error (exit 2) is reported and fails" 2
+expect_failing_ast_grep_fails "$(cpp_fixture good good)" "cpp: ast-grep runtime error (exit 1 with stderr) is reported and fails" 1
 expect_missing_tool lint-imports "$(python_fixture good good)" "python: missing lint-imports is reported and fails"
 expect_missing_tool npx "$(ts_fixture good good)" "typescript: missing npx is reported and fails"
 

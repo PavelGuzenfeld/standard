@@ -30,13 +30,13 @@ expect_usage_on_stderr_for_rejected_args() {
     fi
 }
 
-for script in check-dangerous-workflows.sh check-layering.sh check-repo-structure.sh \
+for script in check-dangerous-workflows.sh check-hardening.sh check-layering.sh check-repo-structure.sh \
     diff-clang-format.sh diff-clang-tidy.sh diff-cppcheck.sh diff-file-naming.sh \
     diff-gdlint.sh diff-jscpd.sh diff-test-mirror.sh diff-ts-naming.sh filter-excludes.sh; do
     expect_usage_on_stdout_for_help "$script"
 done
 
-for script in check-repo-structure.sh diff-clang-format.sh diff-clang-tidy.sh diff-cppcheck.sh \
+for script in check-hardening.sh check-repo-structure.sh diff-clang-format.sh diff-clang-tidy.sh diff-cppcheck.sh \
     diff-file-naming.sh diff-gdlint.sh diff-jscpd.sh diff-test-mirror.sh diff-ts-naming.sh; do
     expect_usage_on_stderr_for_rejected_args "without arguments" "$script"
 done

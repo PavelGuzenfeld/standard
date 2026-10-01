@@ -21,7 +21,6 @@ usage() {
     echo "  fortify   __*_chk symbol present (FORTIFY_SOURCE) — warning only"
     echo "  nx        GNU_STACK without execute flag (non-executable stack)"
     echo "  cet       .note.gnu.property with IBT/SHSTK (Control-flow Enforcement, x86-64)"
-    exit 1
 }
 
 SKIP_CHECKS=()
@@ -30,12 +29,12 @@ PATHS=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --skip)
-            [[ $# -lt 2 ]] && { echo "Error: --skip requires a check name"; exit 1; }
+            [[ $# -lt 2 ]] && { echo "Error: --skip requires a check name" >&2; exit 1; }
             SKIP_CHECKS+=("$2")
             shift 2
             ;;
         -h|--help)
-            usage
+            usage; exit 0
             ;;
         *)
             PATHS+=("$1")
@@ -45,9 +44,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ ${#PATHS[@]} -eq 0 ]]; then
-    echo "Error: No paths specified."
-    echo ""
-    usage
+    echo "Error: No paths specified." >&2
+    echo "" >&2
+    usage >&2
+    exit 1
 fi
 
 is_skipped() {
