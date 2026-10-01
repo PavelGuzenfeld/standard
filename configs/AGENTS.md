@@ -187,7 +187,7 @@ Full setup instructions: see `INTEGRATION.md`.
 ## Security Hygiene
 
 - **SECURITY.md** — must exist at repo root with vulnerability reporting instructions
-- **Dependabot** — `.github/dependabot.yml` monitors dependency updates (GitHub Actions, pip, etc.)
+- **Dependabot or Renovate** — `.github/dependabot.yml` monitors dependency updates (GitHub Actions, pip, etc.); `.github/renovate.json` does the same and adds the Conan manager
 - **SLSA provenance** — opt-in attestation on releases via `auto-release.yml` with `enable_provenance: true`
 
 ## Git & PR Rules
