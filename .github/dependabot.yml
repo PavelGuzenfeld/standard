@@ -13,3 +13,42 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "deps"
+
+  - package-ecosystem: "pip"
+    directory: "/.github/requirements"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps"
+    labels:
+      - "dependencies"
+    groups:
+      requirements:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/tests/ts-tools"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps"
+    labels:
+      - "dependencies"
+    groups:
+      ts-tools:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/tests/jscpd-tools"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps"
+    labels:
+      - "dependencies"
+    groups:
+      jscpd-tools:
+        patterns:
+          - "*"

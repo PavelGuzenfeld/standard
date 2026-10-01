@@ -29,3 +29,7 @@ find . -name '*.cpp' | xargs clang-tidy -p build/
 cppcheck --enable=all --suppressions-list=cppcheck.suppress .
 flawfinder --minlevel=2 --columns --context .
 ```
+
+## Refreshing pinned requirements
+
+Dependabot opens weekly grouped PRs for `.github/requirements`, `tests/ts-tools` and `tests/jscpd-tools`. It cannot see the hashed heredocs in `cpp-quality.yml` and `infra-lint.yml`: run `scripts/refresh-locks.sh`, then paste each printed block over its `REQUIREMENTS` heredoc by hand.
