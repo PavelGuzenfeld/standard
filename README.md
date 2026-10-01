@@ -52,6 +52,10 @@ jobs:
 
 To generate these files instead, see the [Quickstart](https://pavelguzenfeld.com/standard/CONSUMER-QUICKSTART/).
 
+## With agent-sdlc
+
+[agent-sdlc](https://github.com/PavelGuzenfeld/agent-sdlc) gates the coding agent's session and each commit. standard gates the PR. Do the standard setup first, then `mutation-gate rules sync`. The order, the `docs/` allowlist and the CI caveat are in [Integration](https://pavelguzenfeld.com/standard/INTEGRATION/#with-agent-sdlc).
+
 ## Documentation
 
 Full docs: <https://pavelguzenfeld.com/standard/>. They cover every workflow input, the configs, the scripts and the `standard-ci` CLI. `standard-ci` supports Python 3.8 and newer.
