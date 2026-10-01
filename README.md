@@ -183,6 +183,14 @@ Composite actions for single steps live in `actions/`: `diff-files`, `clang-tidy
 | `hardening_binary_paths` | `build-hardened/bin/*` | Space-separated globs to ELF binaries to check |
 | `hardening_skip_checks` | `''` | Space-separated checks to skip: pie relro bindnow canary fortify nx cet |
 
+**BinSkim:**
+
+| Input | Default | Description |
+|-------|---------|-------------|
+| `enable_binskim` | `false` | Enable BinSkim ELF analysis (opt-in); builds like `enable_hardening` (`hardening_script` or `release-hardened` preset) |
+| `binskim_paths` | `build-hardened/bin` | Space-separated files or directories of built ELF binaries |
+| `binskim_fail_level` | `error` | Lowest result level that fails the job: error, warning or note. SARIF is uploaded as `binskim-sarif` |
+
 **IWYU:**
 
 | Input | Default | Description |
