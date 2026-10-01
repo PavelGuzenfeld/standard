@@ -19,7 +19,7 @@ cd "$ROOT" || exit 1
 STATUS=0
 RAN=0
 EDGES="$(mktemp)"
-trap 'rm -f "$EDGES"' EXIT
+trap 'rm -f "$EDGES" "$EDGES.matches" "$EDGES.matches.tsv" "$EDGES.refs" "$EDGES.err"' EXIT
 
 require_tools() {
     local tool missing=0
@@ -64,28 +64,41 @@ resolve_include() {
 }
 
 collect_cpp_edges() {
-    local language
+    local language file quoted target ast_grep_status matches="$EDGES.matches"
+    : > "$matches"
     for language in c cpp; do
-        ast-grep run -l "$language" -p '#include $H' --json=stream .
-    done |
-        jq -r '[.file, .metaVariables.single.H.text] | @tsv' |
-        while IFS=$'\t' read -r file quoted; do
-            case "$quoted" in '"'*) ;; *) continue ;; esac
-            target="$(resolve_include "$(dirname "$ROOT/$file")" "${quoted//\"/}")"
-            [ -n "$target" ] && printf '%s\t%s\n' "$(normalise "$ROOT/$file")" "$target"
-        done >> "$EDGES"
+        ast_grep_status=0
+        ast-grep run -l "$language" -p '#include $H' --json=stream . >> "$matches" 2> "$EDGES.err" ||
+            ast_grep_status=$?
+        if [ "$ast_grep_status" -gt 1 ] || { [ "$ast_grep_status" -eq 1 ] && [ -s "$EDGES.err" ]; }; then
+            echo "::error::ast-grep failed (language: $language): $(tr '\n' ' ' < "$EDGES.err")" >&2
+            return 1
+        fi
+    done
+    jq -r '[.file, .metaVariables.single.H.text] | @tsv' < "$matches" > "$matches.tsv" ||
+        { echo "::error::jq failed parsing ast-grep output" >&2; return 1; }
+    while IFS=$'\t' read -r file quoted; do
+        case "$quoted" in '"'*) ;; *) continue ;; esac
+        target="$(resolve_include "$(dirname "$ROOT/$file")" "${quoted//\"/}")"
+        if [ -n "$target" ]; then
+            printf '%s\t%s\n' "$(normalise "$ROOT/$file")" "$target" >> "$EDGES"
+        fi
+    done < "$matches.tsv"
 }
 
 collect_gdscript_edges() {
-    local file path target
+    local file path target grep_status=0 refs="$EDGES.refs"
+    grep -rEoH --include='*.gd' '(preload|load)\("[^"]+"\)' . > "$refs" || grep_status=$?
+    [ "$grep_status" -le 1 ] || { echo "::error::grep failed scanning GDScript" >&2; return 1; }
     while IFS=: read -r file path; do
         case "$path" in
             res://*) target="${path#res://}" ;;
             *) target="$(dirname "$file")/$path" ;;
         esac
-        [ -f "$ROOT/$target" ] && printf '%s\t%s\n' "$(normalise "$ROOT/$file")" "$(normalise "$ROOT/$target")"
-    done < <(grep -rEoH --include='*.gd' '(preload|load)\("[^"]+"\)' . |
-        sed -E 's#^\./##; s#:(preload|load)\("([^"]+)"\)$#:\2#') >> "$EDGES"
+        if [ -f "$ROOT/$target" ]; then
+            printf '%s\t%s\n' "$(normalise "$ROOT/$file")" "$(normalise "$ROOT/$target")"
+        fi
+    done < <(sed -E 's#^\./##; s#:(preload|load)\("([^"]+)"\)$#:\2#' "$refs") >> "$EDGES"
 }
 
 layer_index() {
@@ -99,8 +112,8 @@ run_layers() {
     RAN=1
     echo "layers: .layers"
     mapfile -t LAYERS < <(grep -vE '^\s*$' .layers | sed -E 's#/+$##')
-    collect_cpp_edges
-    collect_gdscript_edges
+    collect_cpp_edges || STATUS=1
+    collect_gdscript_edges || STATUS=1
 
     local from to from_layer to_layer
     while IFS=$'\t' read -r from to; do
