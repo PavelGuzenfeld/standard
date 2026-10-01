@@ -105,8 +105,16 @@ def _completed(stdout="", returncode=0, stderr=""):
 
 
 class _FakeProcesses:
-    def __init__(self, view_rc=0, status_out="?? changed\n", push_rc=0, push_err=""):
+    def __init__(
+        self,
+        view_rc=0,
+        status_out="?? changed\n",
+        push_rc=0,
+        push_err="",
+        failing_git=None,
+    ):
         self.calls = []
+        self._failing_git = failing_git or {}
         self._view_rc = view_rc
         self._status_out = status_out
         self._push_rc = push_rc
@@ -116,6 +124,8 @@ class _FakeProcesses:
         self.calls.append((cmd, kwargs))
         if cmd[:3] == ["gh", "repo", "view"]:
             return _completed(returncode=self._view_rc)
+        if cmd[0] == "git" and cmd[1] in self._failing_git:
+            return _completed(returncode=128, stderr=self._failing_git[cmd[1]])
         if cmd[:2] == ["git", "status"]:
             return _completed(stdout=self._status_out)
         if cmd[:2] == ["git", "push"]:
@@ -224,6 +234,34 @@ class TestInstallStarters:
         fake = _FakeProcesses(push_rc=1, push_err=" rejected\n")
         with pytest.raises(RuntimeError, match=r"^git push failed: rejected$"):
             _install(fake)
+
+    @pytest.mark.parametrize(
+        "subcommand, later_steps",
+        [
+            ("clone", ["status", "add", "commit", "push"]),
+            ("status", ["add", "commit", "push"]),
+            ("add", ["commit", "push"]),
+            ("commit", ["push"]),
+        ],
+    )
+    def test_failed_git_step_raises_with_stderr_and_skips_later_steps(
+        self, subcommand, later_steps
+    ):
+        fake = _FakeProcesses(failing_git={subcommand: " fatal: boom\n"})
+        with pytest.raises(
+            RuntimeError, match=rf"^git {subcommand} failed: fatal: boom$"
+        ):
+            _install(fake)
+        ran = [c[1] for c in fake.commands() if c[0] == "git"]
+        assert ran[-1] == subcommand
+        assert not set(later_steps) & set(ran)
+
+    def test_failed_clone_writes_no_files(self):
+        fake = _FakeProcesses(failing_git={"clone": "fatal: no access"})
+        with patch("standard_ci.starters.os.makedirs") as makedirs:
+            with pytest.raises(RuntimeError):
+                _install(fake)
+        makedirs.assert_not_called()
 
     def test_dry_run_with_create_flag_lists_the_plan_and_runs_nothing(self):
         fake = _FakeProcesses()
