@@ -92,7 +92,12 @@ jobs:
           if [ "${{ inputs.python_linter }}" = "ruff" ]; then
             pip install "ruff==${{ inputs.ruff_version }}" "diff-cover==$DIFF_COVER_VERSION"
           else
-            pip install flake8 "diff-cover==$DIFF_COVER_VERSION"
+            if python -c 'import sys; sys.exit(sys.version_info >= (3, 10))'; then
+              FLAKE8_VERSION=7.1.2
+            else
+              FLAKE8_VERSION=7.4.1
+            fi
+            pip install "flake8==$FLAKE8_VERSION" "diff-cover==$DIFF_COVER_VERSION"
           fi
           pip install pytest pytest-cov pytest-testmon pytest-xdist
 

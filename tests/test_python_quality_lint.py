@@ -157,6 +157,14 @@ class TestPinnedVersions:
     def test_new_python_gets_diff_cover_with_ruff_driver(self, tmp_path):
         assert "diff-cover==10.5.1" in _pip_arguments(tmp_path, {}, python_is_old=False)
 
+    def test_old_python_gets_flake8_pinned_to_its_requirements_marker(self, tmp_path):
+        log = _pip_arguments(tmp_path, {"python_linter": "flake8"}, python_is_old=True)
+        assert "flake8==7.1.2" in log
+
+    def test_new_python_gets_flake8_pinned_to_its_requirements_marker(self, tmp_path):
+        log = _pip_arguments(tmp_path, {"python_linter": "flake8"}, python_is_old=False)
+        assert "flake8==7.4.1" in log
+
     def test_explicit_diff_cover_version_wins_on_old_python(self, tmp_path):
         log = _pip_arguments(tmp_path, {"diff_cover_version": "8.0.0"}, True)
         assert "diff-cover==8.0.0" in log
