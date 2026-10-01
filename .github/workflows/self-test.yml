@@ -41,6 +41,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: bash tests/test_generate_agents_md.sh
 
+  generate-workflow-renovate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: bash tests/test_generate_workflow_renovate.sh
+
   test-mirror:
     runs-on: ubuntu-latest
     permissions:
@@ -106,3 +114,9 @@ jobs:
           node-version: 22
       - run: npm ci --ignore-scripts --prefix tests/jscpd-tools
       - run: bash tests/test_diff_jscpd.sh
+
+  fuzz-skip:
+    uses: ./.github/workflows/fuzz.yml
+    permissions:
+      contents: read
+      pull-requests: read

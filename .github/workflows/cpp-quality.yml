@@ -239,6 +239,18 @@ on:
         type: boolean
         default: true
         description: 'Report jscpd duplication as a warning without failing the job'
+      enable_binskim:
+        type: boolean
+        default: false
+        description: 'Enable BinSkim ELF analysis (stack clash, SafeStack, checked functions; opt-in)'
+      binskim_paths:
+        type: string
+        default: 'build-hardened/bin'
+        description: 'Space-separated files or directories of built ELF binaries for BinSkim'
+      binskim_fail_level:
+        type: string
+        default: 'error'
+        description: 'Lowest BinSkim result level that fails the job: error, warning or note'
 
 permissions:
   actions: read
@@ -2625,3 +2637,87 @@ jobs:
                 body: body,
               });
             }
+
+  binskim:
+    name: BinSkim
+    needs: [verify-toolchain]
+    if: inputs.enable_binskim && (inputs.select_jobs == 'all' || contains(inputs.select_jobs, 'binskim'))
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    env:
+      BINSKIM_VERSION: 4.4.9.11
+      BINSKIM_SHA256: 69678989cbc273b5b50fcf98fb0fd978e1e35a3f844acb24254b31f0ce90c447
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          submodules: ${{ inputs.checkout_submodules }}
+
+      - name: Login to GitHub Container Registry
+        if: inputs.docker_image != ''
+        run: echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build hardened binaries
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+          INPUT_HARDENING_SCRIPT: ${{ inputs.hardening_script }}
+          INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
+          INPUT_SOURCE_SETUP: ${{ inputs.source_setup }}
+        run: |
+          SETUP_CMD=""
+          if [ -n "${INPUT_SOURCE_SETUP}" ]; then
+            SETUP_CMD="${INPUT_SOURCE_SETUP} && "
+          fi
+          BUILD_CMD="cmake --preset release-hardened && cmake --build --preset release-hardened"
+          if [ -n "${INPUT_HARDENING_SCRIPT}" ]; then
+            BUILD_CMD="bash ${INPUT_HARDENING_SCRIPT}"
+          fi
+          docker run --rm \
+            -v "${{ github.workspace }}:${INPUT_SOURCE_MOUNT}" \
+            -w "${INPUT_SOURCE_MOUNT}" \
+            "${INPUT_DOCKER_IMAGE}" \
+            bash -c "${SETUP_CMD}${BUILD_CMD}"
+
+      - name: Install BinSkim
+        run: |
+          curl -fsSL -o binskim.nupkg \
+            "https://api.nuget.org/v3-flatcontainer/microsoft.codeanalysis.binskim/${BINSKIM_VERSION}/microsoft.codeanalysis.binskim.${BINSKIM_VERSION}.nupkg"
+          echo "${BINSKIM_SHA256}  binskim.nupkg" | sha256sum -c -
+          case "$(uname -m)" in
+            x86_64) RID=linux-x64 ;;
+            aarch64) RID=linux-arm64 ;;
+            *) echo "::error::BinSkim has no build for $(uname -m)"; exit 1 ;;
+          esac
+          unzip -q binskim.nupkg "tools/net9.0/${RID}/*" -d "${RUNNER_TEMP}/binskim"
+          chmod +x "${RUNNER_TEMP}/binskim/tools/net9.0/${RID}/BinSkim"
+          echo "${RUNNER_TEMP}/binskim/tools/net9.0/${RID}" >> "$GITHUB_PATH"
+
+      - name: Run BinSkim
+        env:
+          INPUT_BINSKIM_PATHS: ${{ inputs.binskim_paths }}
+        run: |
+          read -ra TARGETS <<< "${INPUT_BINSKIM_PATHS}"
+          BinSkim analyze "${TARGETS[@]}" --recurse --disable-telemetry --output binskim.sarif
+
+      - name: Upload BinSkim SARIF
+        if: always() && hashFiles('binskim.sarif') != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: binskim-sarif
+          path: binskim.sarif
+
+      - name: Fail on findings at or above level
+        env:
+          INPUT_BINSKIM_FAIL_LEVEL: ${{ inputs.binskim_fail_level }}
+        run: |
+          case "${INPUT_BINSKIM_FAIL_LEVEL}" in
+            error) LEVELS='["error"]' ;;
+            warning) LEVELS='["error","warning"]' ;;
+            note) LEVELS='["error","warning","note"]' ;;
+            *) echo "::error::binskim_fail_level must be error, warning or note"; exit 1 ;;
+          esac
+          COUNT=$(jq --argjson levels "${LEVELS}" \
+            '[.runs[].results[] | select((.kind // "fail") == "fail" and (.level as $l | $levels | index($l)))] | length' \
+            binskim.sarif)
+          echo "BinSkim findings at level ${INPUT_BINSKIM_FAIL_LEVEL} or above: ${COUNT}"
+          [ "${COUNT}" -eq 0 ]

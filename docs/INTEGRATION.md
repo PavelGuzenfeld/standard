@@ -128,23 +128,13 @@ Presets and flags are described in [SDLC](SDLC.md#cmake-presets-for-sanitizer-bu
 cp configs/ci-fuzz.yml .github/workflows/fuzz.yml
 ```
 
-Set `matrix.target` to your fuzz target names, for example `[parse_input, decode_frame]`. Put harnesses in `fuzz_targets/`:
+The template calls the reusable `fuzz.yml`, which runs ClusterFuzzLite. Add a `.clusterfuzzlite/` directory with a `Dockerfile` and `build.sh` that build your harnesses; without the Dockerfile the job is skipped with a notice. Harness:
 
 ```cpp
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     my_parser(data, size);
     return 0;
 }
-```
-
-Gate the targets in `CMakeLists.txt`:
-
-```cmake
-option(ENABLE_FUZZING "Build fuzz targets" OFF)
-if(ENABLE_FUZZING)
-    add_executable(parse_input fuzz_targets/parse_input.cpp)
-    target_link_libraries(parse_input PRIVATE my_library -fsanitize=fuzzer)
-endif()
 ```
 
 

@@ -39,7 +39,7 @@ Every script prints its usage with `--help`.
 | `check-hardening.sh` | `<path_or_glob>... [--skip check]...` | ELF hardening via readelf: pie, relro, bindnow, canary, fortify, nx, cet |
 | `filter-excludes.sh` | `[exclude_file] [file_list]` | rewrites `file_list` in place, dropping paths that start with an exclude prefix |
 | `generate-baseline.sh` | `<cppcheck\|file-naming\|clang-format\|flawfinder> [options]` | write a baseline or suppression file for incremental adoption |
-| `generate-workflow.sh` | `[--output-dir PATH] [--non-interactive]` | write the quality workflows to `.github/workflows/` |
+| `generate-workflow.sh` | `[--output-dir PATH] [--non-interactive] [--dependency-bot dependabot\|renovate\|both]` | write the quality workflows to `.github/workflows/`. `--dependency-bot` also writes `dependabot.yml` and `renovate.json` (Conan manager) beside them |
 | `generate-agents-md.sh` | `[--output PATH] [--non-interactive]` | write AGENTS.md |
 | `generate-badges.sh` | `[--scan-workflows\|--interactive] [--format markdown\|html]` | print README badge markup to stdout |
 | `install-hooks.sh` | `[--force] [--uninstall]` | install a git pre-commit hook that runs the diff scripts. `--force` if `.pre-commit-config.yaml` exists |
