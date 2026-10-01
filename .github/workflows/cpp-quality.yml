@@ -227,6 +227,18 @@ on:
         type: boolean
         default: false
         description: 'Use --error-exitcode=1 for native cppcheck error handling'
+      enable_jscpd:
+        type: boolean
+        default: false
+        description: 'Enable jscpd copy-paste detection on changed files (opt-in)'
+      jscpd_threshold:
+        type: number
+        default: 5
+        description: 'Maximum duplicated lines in percent before jscpd flags the changed files'
+      jscpd_report_only:
+        type: boolean
+        default: true
+        description: 'Report jscpd duplication as a warning without failing the job'
       enable_binskim:
         type: boolean
         default: false
@@ -2327,6 +2339,210 @@ jobs:
               [ $FAILURES -gt 0 ] && exit 1
               exit 0
             '
+
+  jscpd:
+    name: jscpd
+    if: inputs.enable_jscpd && (inputs.select_jobs == 'all' || contains(inputs.select_jobs, 'jscpd'))
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      - name: Install jscpd from a locked manifest
+        run: |
+          mkdir -p "$RUNNER_TEMP/jscpd"
+          cd "$RUNNER_TEMP/jscpd"
+          cat > package.json <<'EOF'
+          {"name":"jscpd-runner","version":"0.0.0","private":true,"dependencies":{"jscpd":"5.4.0"}}
+          EOF
+          cat > package-lock.json <<'EOF'
+          {
+            "name": "jscpd-runner",
+            "version": "0.0.0",
+            "lockfileVersion": 3,
+            "requires": true,
+            "packages": {
+              "": {
+                "name": "jscpd-runner",
+                "version": "0.0.0",
+                "dependencies": {
+                  "jscpd": "5.4.0"
+                }
+              },
+              "node_modules/jscpd": {
+                "version": "5.4.0",
+                "resolved": "https://registry.npmjs.org/jscpd/-/jscpd-5.4.0.tgz",
+                "integrity": "sha512-6mU8OHff4rPJ3D5lIsQns82/aQhDas22gMsGurHx1wcrfXWOZDNaobi6rKhLevo+77ntWKUXOwtM6lcrkJeL7w==",
+                "license": "MIT",
+                "bin": {
+                  "jscpd": "run-jscpd.js"
+                },
+                "engines": {
+                  "node": ">=18"
+                },
+                "funding": {
+                  "url": "https://opencollective.com/jscpd"
+                },
+                "optionalDependencies": {
+                  "jscpd-darwin-arm64": "5.4.0",
+                  "jscpd-darwin-x64": "5.4.0",
+                  "jscpd-linux-arm64-gnu": "5.4.0",
+                  "jscpd-linux-arm64-musl": "5.4.0",
+                  "jscpd-linux-x64-gnu": "5.4.0",
+                  "jscpd-linux-x64-musl": "5.4.0",
+                  "jscpd-windows-arm64-msvc": "5.4.0",
+                  "jscpd-windows-x64-msvc": "5.4.0"
+                }
+              },
+              "node_modules/jscpd-darwin-arm64": {
+                "version": "5.4.0",
+                "resolved": "https://registry.npmjs.org/jscpd-darwin-arm64/-/jscpd-darwin-arm64-5.4.0.tgz",
+                "integrity": "sha512-fNIDtNn9WE4YXoFoqf+3tkHb1+GaKKOeKzh77Wx61Gfa9iDxlCv5rO0Fjy7oWmGehUUKqslDaeXXtn/RoDprCg==",
+                "cpu": [
+                  "arm64"
+                ],
+                "license": "MIT",
+                "optional": true,
+                "os": [
+                  "darwin"
+                ]
+              },
+              "node_modules/jscpd-darwin-x64": {
+                "version": "5.4.0",
+                "resolved": "https://registry.npmjs.org/jscpd-darwin-x64/-/jscpd-darwin-x64-5.4.0.tgz",
+                "integrity": "sha512-bxlnCVEb69SGIsas1+PaqZyFY8iYVTVjCBxfjVD74UafX115Ysw+oO9LAlsJaGsKUnK8Zsq5bhM33kBHux6bTA==",
+                "cpu": [
+                  "x64"
+                ],
+                "license": "MIT",
+                "optional": true,
+                "os": [
+                  "darwin"
+                ]
+              },
+              "node_modules/jscpd-linux-arm64-gnu": {
+                "version": "5.4.0",
+                "resolved": "https://registry.npmjs.org/jscpd-linux-arm64-gnu/-/jscpd-linux-arm64-gnu-5.4.0.tgz",
+                "integrity": "sha512-c4hX5QjuRyzLFJ+A+jNGHRpGlDvxcx+zzs4RJmZHpl23istuTMIkelwTOWliF4gXOm0RWXDlX/ywWKr9+Lre7w==",
+                "cpu": [
+                  "arm64"
+                ],
+                "license": "MIT",
+                "optional": true,
+                "os": [
+                  "linux"
+                ]
+              },
+              "node_modules/jscpd-linux-arm64-musl": {
+                "version": "5.4.0",
+                "resolved": "https://registry.npmjs.org/jscpd-linux-arm64-musl/-/jscpd-linux-arm64-musl-5.4.0.tgz",
+                "integrity": "sha512-p4FUCNyL8WPTlizdZqfjontFwJ/+jnERYM2+YX2miYvm0NxzsIi23MhfzPl/eUHxkiT5wethV0NRYEAkJr999Q==",
+                "cpu": [
+                  "arm64"
+                ],
+                "license": "MIT",
+                "optional": true,
+                "os": [
+                  "linux"
+                ]
+              },
+              "node_modules/jscpd-linux-x64-gnu": {
+                "version": "5.4.0",
+                "resolved": "https://registry.npmjs.org/jscpd-linux-x64-gnu/-/jscpd-linux-x64-gnu-5.4.0.tgz",
+                "integrity": "sha512-44NXS0gtYbjBCc53Gwilgj7PPwnWv9YTF/rGc0ZfnFcpzSoOKKU11yH+qHfCVie1hHte1wHyZ1f9Kjc8nGe2/g==",
+                "cpu": [
+                  "x64"
+                ],
+                "license": "MIT",
+                "optional": true,
+                "os": [
+                  "linux"
+                ]
+              },
+              "node_modules/jscpd-linux-x64-musl": {
+                "version": "5.4.0",
+                "resolved": "https://registry.npmjs.org/jscpd-linux-x64-musl/-/jscpd-linux-x64-musl-5.4.0.tgz",
+                "integrity": "sha512-m9XHj14Zwia9RjWDkHDrl6VJ3W/b7m8qjFqjhcJ668Vkxoj4Ri/qeo0bo6is+fSw+bYxYexV6xxqIKRDolc8Lg==",
+                "cpu": [
+                  "x64"
+                ],
+                "license": "MIT",
+                "optional": true,
+                "os": [
+                  "linux"
+                ]
+              },
+              "node_modules/jscpd-windows-arm64-msvc": {
+                "version": "5.4.0",
+                "resolved": "https://registry.npmjs.org/jscpd-windows-arm64-msvc/-/jscpd-windows-arm64-msvc-5.4.0.tgz",
+                "integrity": "sha512-AoP5RXyb9gIf8xmFwAc+Rgh4XJNyX1upcD+R1A6u4XjsDo2/oF+KKB4dtKnG2DbFQ+0fyFg/ClOcw+asQZJfPg==",
+                "cpu": [
+                  "arm64"
+                ],
+                "license": "MIT",
+                "optional": true,
+                "os": [
+                  "win32"
+                ]
+              },
+              "node_modules/jscpd-windows-x64-msvc": {
+                "version": "5.4.0",
+                "resolved": "https://registry.npmjs.org/jscpd-windows-x64-msvc/-/jscpd-windows-x64-msvc-5.4.0.tgz",
+                "integrity": "sha512-dYkb5mAo5i7fjrtf2Ft6z9a/I38RJMd4JirEgJiW2BIv5pAGmfMVPDy1xEXL3hJqraXzeMIfnzqJFanefCyC6g==",
+                "cpu": [
+                  "x64"
+                ],
+                "license": "MIT",
+                "optional": true,
+                "os": [
+                  "win32"
+                ]
+              }
+            }
+          }
+          EOF
+          npm ci --ignore-scripts
+
+      - name: Run jscpd on changed files
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+          INPUT_FILE_EXTENSIONS: ${{ inputs.file_extensions }}
+          INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
+          INPUT_JSCPD_THRESHOLD: ${{ inputs.jscpd_threshold }}
+          INPUT_JSCPD_REPORT_ONLY: ${{ inputs.jscpd_report_only }}
+        run: |
+          EXT_PATTERN="\.($(echo "${INPUT_FILE_EXTENSIONS}" | tr ' ' '|'))$"
+          FILES=()
+          while IFS= read -r fp; do
+            [ -z "$fp" ] && continue
+            excl=false
+            if [ -n "${INPUT_EXCLUDE_FILE}" ] && [ -f "${INPUT_EXCLUDE_FILE}" ]; then
+              while IFS= read -r line || [ -n "$line" ]; do
+                line="${line%%#*}"; line="$(echo "$line" | xargs)"
+                [ -n "$line" ] && [[ "$fp" == "$line"* ]] && excl=true && break
+              done < "${INPUT_EXCLUDE_FILE}"
+            fi
+            [ "$excl" = false ] && FILES+=("$fp")
+          done < <(git diff --name-only --diff-filter=ACMR "origin/${INPUT_BASE_REF}" -- | grep -E "$EXT_PATTERN" || true)
+
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "No C++ files changed."
+            exit 0
+          fi
+
+          STATUS=0
+          "$RUNNER_TEMP/jscpd/node_modules/.bin/jscpd" --threshold "${INPUT_JSCPD_THRESHOLD}" --reporters console "${FILES[@]}" || STATUS=$?
+          if [ "$STATUS" -ne 0 ]; then
+            echo "::warning::jscpd: duplication over ${INPUT_JSCPD_THRESHOLD}% in changed files"
+            [ "${INPUT_JSCPD_REPORT_ONLY}" = "true" ] || exit 1
+          fi
 
   summary:
     name: Post Summary

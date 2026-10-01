@@ -211,6 +211,14 @@ Composite actions for single steps live in `actions/`: `diff-files`, `clang-tidy
 | `ban_cout` | `false` | Ban cout/cerr/printf in non-test files (opt-in) |
 | `ban_new` | `false` | Ban raw new/delete in non-test files (opt-in) |
 
+**jscpd:**
+
+| Input | Default | Description |
+|-------|---------|-------------|
+| `enable_jscpd` | `false` | Enable jscpd copy-paste detection on changed files (opt-in) |
+| `jscpd_threshold` | `5` | Maximum duplicated lines in percent before jscpd flags the changed files |
+| `jscpd_report_only` | `true` | Report duplication as a warning without failing the job |
+
 </details>
 
 <details>
@@ -370,6 +378,7 @@ Diff-aware checks run the CI logic on files changed against a base branch:
 | `diff-file-naming.sh` | snake_case naming |
 | `diff-iwyu.sh` | Include-What-You-Use |
 | `diff-gdlint.sh` | GDScript naming (gdlint) |
+| `diff-jscpd.sh` | jscpd copy-paste detection |
 | `diff-ts-naming.sh` | typescript-eslint naming-convention on changed .ts/.tsx (needs `eslint-naming.config.mjs`, eslint, typescript-eslint) |
 | `diff-test-mirror.sh` | added source modules have a mirrored test |
 
