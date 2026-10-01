@@ -90,7 +90,7 @@ on:
       exclude_file:
         type: string
         default: ''
-        description: 'Path to file listing excluded paths (one per line, # comments)'
+        description: 'Path to file listing excluded paths (one per line, `#` comments)'
       enable_flawfinder:
         type: boolean
         default: false
@@ -242,7 +242,7 @@ on:
       enable_binskim:
         type: boolean
         default: false
-        description: 'Enable BinSkim ELF analysis (stack clash, SafeStack, checked functions; opt-in)'
+        description: 'Enable BinSkim ELF analysis (stack clash, SafeStack, checked functions; opt-in); builds like `enable_hardening` (`hardening_script` or `release-hardened` preset)'
       binskim_paths:
         type: string
         default: 'build-hardened/bin'
@@ -250,7 +250,7 @@ on:
       binskim_fail_level:
         type: string
         default: 'error'
-        description: 'Lowest BinSkim result level that fails the job: error, warning or note'
+        description: 'Lowest BinSkim result level that fails the job: error, warning or note. SARIF is uploaded as `binskim-sarif`'
 
 permissions:
   actions: read

@@ -12,6 +12,6 @@
 | `requirements_file` | string | `'requirements.txt'` | Path to requirements file for pip-audit |
 | `enable_codeql` | boolean | `false` | Enable CodeQL deep analysis (free for public repos) |
 | `codeql_queries` | string | `'security-extended'` | CodeQL query suite: security-extended (recommended) or security-and-quality |
-| `enable_code_scanning` | boolean | `true` | Upload SARIF to code scanning. A private repo without Advanced Security rejects the upload — set false there and read the artifact |
+| `enable_code_scanning` | boolean | `true` | Upload SARIF to code scanning. A private repo without Advanced Security rejects the upload — set `false` there and read the artifact |
 | `runner` | string | `'"ubuntu-latest"'` | Runner labels as JSON (e.g., "\"ubuntu-latest\"" or "[\"self-hosted\",\"X64\",\"Linux\"]") |
 
