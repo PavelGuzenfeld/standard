@@ -196,6 +196,13 @@ def _run_gh(args, check_rc=True):
     return result.stdout.strip(), result.returncode
 
 
+def _run_git(args, **kwargs):
+    result = subprocess.run(["git"] + args, capture_output=True, text=True, **kwargs)
+    if result.returncode != 0:
+        raise RuntimeError(f"git {args[0]} failed: {result.stderr.strip()}")
+    return result
+
+
 def install_starters(org, sha, tag, dry_run=False, create_repo=False):
     """Install starter workflows into <org>/.github repo.
 
@@ -239,12 +246,7 @@ def install_starters(org, sha, tag, dry_run=False, create_repo=False):
     with tempfile.TemporaryDirectory() as tmpdir:
         clone_dir = os.path.join(tmpdir, "dot-github")
 
-        subprocess.run(
-            ["git", "clone", f"git@github.com:{repo_name}.git", clone_dir],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
+        _run_git(["clone", f"git@github.com:{repo_name}.git", clone_dir], timeout=30)
 
         templates_dir = os.path.join(clone_dir, "workflow-templates")
         os.makedirs(templates_dir, exist_ok=True)
@@ -255,42 +257,17 @@ def install_starters(org, sha, tag, dry_run=False, create_repo=False):
             with open(filepath, "w") as f:
                 f.write(content)
 
-        result = subprocess.run(
-            ["git", "status", "--porcelain"],
-            capture_output=True,
-            text=True,
-            cwd=clone_dir,
-        )
+        result = _run_git(["status", "--porcelain"], cwd=clone_dir)
         if not result.stdout.strip():
             messages.append("No changes — starter workflows already up to date.")
             return messages
 
-        subprocess.run(
-            ["git", "add", "-A"],
+        _run_git(["add", "-A"], cwd=clone_dir)
+        _run_git(
+            ["commit", "-m", f"feat: update starter workflow templates to {tag}"],
             cwd=clone_dir,
-            capture_output=True,
-            text=True,
         )
-        subprocess.run(
-            [
-                "git",
-                "commit",
-                "-m",
-                f"feat: update starter workflow templates to {tag}",
-            ],
-            cwd=clone_dir,
-            capture_output=True,
-            text=True,
-        )
-        push_result = subprocess.run(
-            ["git", "push"],
-            cwd=clone_dir,
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        if push_result.returncode != 0:
-            raise RuntimeError(f"git push failed: {push_result.stderr.strip()}")
+        _run_git(["push"], cwd=clone_dir, timeout=30)
 
         messages.append(f"Pushed {len(files)} files to {repo_name}")
         for path in sorted(files):
