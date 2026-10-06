@@ -53,6 +53,7 @@ jobs:
         run: |
           pip install pre-commit==4.5.1
           pre-commit run --config "${{ inputs.config_file }}" --show-diff-on-failure --from-ref "origin/${{ github.base_ref }}" --to-ref HEAD 2>&1 | tee /tmp/pre-commit-output.txt || true
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
           git diff > /tmp/pre-commit-fixes.diff
           if [ -s /tmp/pre-commit-fixes.diff ]; then
             echo "has_fixes=true" >> "$GITHUB_OUTPUT"
@@ -70,7 +71,7 @@ jobs:
         continue-on-error: true
 
       - name: Fail if pre-commit found issues
-        if: (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && steps.pre-commit-pr.outputs.has_fixes == 'true'
+        if: (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && (steps.pre-commit-pr.outputs.has_fixes == 'true' || steps.pre-commit-pr.outputs.exit_code != '0')
         run: |
-          echo "::error::Pre-commit found formatting/linting issues. See reviewdog suggestions above."
+          echo "::error::Pre-commit found formatting/linting issues. See the pre-commit output above."
           exit 1
