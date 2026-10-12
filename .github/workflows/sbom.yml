@@ -51,6 +51,8 @@ jobs:
   container-sbom:
     name: Container SBOM
     runs-on: ${{ fromJSON(inputs.runner) }}
+    outputs:
+      sbom_key: ${{ steps.digest.outputs.key }}
     steps:
       - name: Login to GHCR
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
@@ -59,10 +61,34 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Resolve image digest
+        id: digest
+        env:
+          IMAGE: ${{ inputs.docker_image }}
+          WORKFLOW_SHA: ${{ fromJSON(toJSON(job)).workflow_sha }}
+        run: |
+          DIGEST=$(docker buildx imagetools inspect "$IMAGE" --format '{{ .Manifest.Digest }}' || true)
+          echo "digest=$DIGEST workflow=$WORKFLOW_SHA"
+          if [ -n "$DIGEST" ] && [ -n "$WORKFLOW_SHA" ]; then
+            echo "key=sbom-$DIGEST-$WORKFLOW_SHA" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Cache SBOM
+        id: sbom-cache
+        if: steps.digest.outputs.key != ''
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
+        with:
+          path: |
+            container-sbom-spdx.json
+            container-sbom-cdx.json
+          key: ${{ steps.digest.outputs.key }}
+
       - name: Pull Docker image
+        if: steps.sbom-cache.outputs.cache-hit != 'true'
         run: docker pull "${{ inputs.docker_image }}"
 
       - name: Generate SPDX SBOM
+        if: steps.sbom-cache.outputs.cache-hit != 'true'
         uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
         with:
           image: ${{ inputs.docker_image }}
@@ -71,6 +97,7 @@ jobs:
           upload-artifact: false
 
       - name: Generate CycloneDX SBOM
+        if: steps.sbom-cache.outputs.cache-hit != 'true'
         uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
         with:
           image: ${{ inputs.docker_image }}
@@ -197,8 +224,16 @@ jobs:
           name: source-sbom
         continue-on-error: true
 
+      - name: Cache license report
+        id: license-cache
+        if: needs.container-sbom.outputs.sbom_key != ''
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
+        with:
+          path: license-report.json
+          key: license-${{ needs.container-sbom.outputs.sbom_key }}-${{ hashFiles(inputs.license_policy_file || inputs.license_check_script, inputs.license_check_script || inputs.license_policy_file, 'source-sbom.cdx.json') }}
+
       - name: Write built-in license checker
-        if: inputs.license_check_script == ''
+        if: inputs.license_check_script == '' && steps.license-cache.outputs.cache-hit != 'true'
         run: |
           cat > _check_licenses.py << 'PYEOF'
           """Built-in license compliance checker for CycloneDX SBOMs.
@@ -492,6 +527,7 @@ jobs:
 
       - name: Run license check
         id: license-check
+        if: steps.license-cache.outputs.cache-hit != 'true'
         run: |
           SCRIPT="${{ inputs.license_check_script }}"
           [ -z "$SCRIPT" ] && SCRIPT="_check_licenses.py"
