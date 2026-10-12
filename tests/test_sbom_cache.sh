@@ -38,14 +38,14 @@ def gated_on_miss(job, name):
 
 resolve = step("container-sbom", "Resolve image digest")
 resolve_run = resolve.get("run", "")
-resolve_env = " ".join(str(v) for v in resolve.get("env", {}).values())
 check(
     "container key resolves the digest without pulling",
     "docker buildx imagetools inspect" in resolve_run and "docker pull" not in resolve_run,
 )
 check(
     "container key names the digest and the reusable workflow sha",
-    "sbom-$DIGEST-$WORKFLOW_SHA" in resolve_run and ").workflow_sha" in resolve_env,
+    "sbom-$DIGEST-$WORKFLOW_SHA" in resolve_run
+    and resolve.get("env", {}).get("WORKFLOW_SHA") == "${{ fromJSON(toJSON(job)).workflow_sha }}",
 )
 check(
     "empty digest or workflow sha writes no key",
@@ -83,13 +83,14 @@ check(
 )
 
 license_key = cache_step("license-check").get("with", {}).get("key", "")
-for part in (
-    "needs.container-sbom.outputs.sbom_key",
-    "inputs.license_policy_file",
-    "inputs.license_check_script",
-    "'source-sbom.cdx.json'",
-):
-    check(f"license key includes {part}", part in license_key)
+check(
+    "license key is the container key plus the policy, checker and source SBOM hash",
+    license_key
+    == "license-${{ needs.container-sbom.outputs.sbom_key }}-${{ hashFiles("
+    "inputs.license_policy_file || inputs.license_check_script, "
+    "inputs.license_check_script || inputs.license_policy_file, "
+    "'source-sbom.cdx.json') }}",
+)
 check(
     "license cache is skipped without a container key",
     cache_step("license-check").get("if") == "needs.container-sbom.outputs.sbom_key != ''",
