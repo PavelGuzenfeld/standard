@@ -702,6 +702,7 @@ jobs:
           elif [ "$ERRORS" -gt 0 ]; then
             echo "cppcheck: $ERRORS error(s) found."
             exit 1
+          fi
 
       - name: Restore workspace ownership
         if: always() && inputs.docker_image != ''
@@ -710,7 +711,6 @@ jobs:
         run: |
           docker run --rm -v "${{ github.workspace }}:/w" "${INPUT_DOCKER_IMAGE}" \
             chown -R "$(id -u):$(id -g)" /w
-          fi
 
   clang-format:
     name: clang-format
