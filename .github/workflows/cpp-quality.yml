@@ -362,6 +362,14 @@ jobs:
               echo "All required tools verified."
             '
 
+      - name: Restore workspace ownership
+        if: always() && inputs.docker_image != ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/w" "${INPUT_DOCKER_IMAGE}" \
+            chown -R "$(id -u):$(id -g)" /w
+
   clang-tidy:
     name: clang-tidy
     needs: [verify-toolchain]
@@ -534,6 +542,14 @@ jobs:
             exit 1
           fi
 
+      - name: Restore workspace ownership
+        if: always() && inputs.docker_image != ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/w" "${INPUT_DOCKER_IMAGE}" \
+            chown -R "$(id -u):$(id -g)" /w
+
   cppcheck:
     name: cppcheck
     needs: [verify-toolchain]
@@ -688,6 +704,14 @@ jobs:
             exit 1
           fi
 
+      - name: Restore workspace ownership
+        if: always() && inputs.docker_image != ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/w" "${INPUT_DOCKER_IMAGE}" \
+            chown -R "$(id -u):$(id -g)" /w
+
   clang-format:
     name: clang-format
     needs: [verify-toolchain]
@@ -816,6 +840,14 @@ jobs:
       - name: Cleanup clang-format container
         if: always()
         run: docker rm -f cf-container 2>/dev/null || true
+
+      - name: Restore workspace ownership
+        if: always() && inputs.docker_image != ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/w" "${INPUT_DOCKER_IMAGE}" \
+            chown -R "$(id -u):$(id -g)" /w
 
   doctest-enforce:
     name: doctest enforcement
@@ -1480,6 +1512,14 @@ jobs:
               colcon test-result --verbose
             "
 
+      - name: Restore workspace ownership
+        if: always() && inputs.docker_image != ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/w" "${INPUT_DOCKER_IMAGE}" \
+            chown -R "$(id -u):$(id -g)" /w
+
   tsan-tests:
     name: TSAN tests
     needs: [verify-toolchain]
@@ -1608,6 +1648,14 @@ jobs:
                 $PACKAGES_ARG
               colcon test-result --verbose
             "
+
+      - name: Restore workspace ownership
+        if: always() && inputs.docker_image != ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/w" "${INPUT_DOCKER_IMAGE}" \
+            chown -R "$(id -u):$(id -g)" /w
 
   iwyu:
     name: IWYU
@@ -1767,6 +1815,14 @@ jobs:
           echo "Files with missing includes: $ADD_COUNT"
           echo "Files with unnecessary includes: $REM_COUNT"
           echo "NOTE: This job is non-blocking (report-only)."
+
+      - name: Restore workspace ownership
+        if: always() && inputs.docker_image != ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/w" "${INPUT_DOCKER_IMAGE}" \
+            chown -R "$(id -u):$(id -g)" /w
 
   coverage:
     name: Test Coverage
@@ -2092,6 +2148,14 @@ jobs:
             coverage_html/
             diff-cover.md
 
+      - name: Restore workspace ownership
+        if: always() && inputs.docker_image != ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/w" "${INPUT_DOCKER_IMAGE}" \
+            chown -R "$(id -u):$(id -g)" /w
+
   hardening:
     name: Hardening Verification
     needs: [verify-toolchain]
@@ -2339,6 +2403,14 @@ jobs:
               [ $FAILURES -gt 0 ] && exit 1
               exit 0
             '
+
+      - name: Restore workspace ownership
+        if: always() && inputs.docker_image != ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/w" "${INPUT_DOCKER_IMAGE}" \
+            chown -R "$(id -u):$(id -g)" /w
 
   jscpd:
     name: jscpd
@@ -2729,3 +2801,11 @@ jobs:
             binskim.sarif)
           echo "BinSkim findings at level ${INPUT_BINSKIM_FAIL_LEVEL} or above: ${COUNT}"
           [ "${COUNT}" -eq 0 ]
+
+      - name: Restore workspace ownership
+        if: always() && inputs.docker_image != ''
+        env:
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/w" "${INPUT_DOCKER_IMAGE}" \
+            chown -R "$(id -u):$(id -g)" /w
