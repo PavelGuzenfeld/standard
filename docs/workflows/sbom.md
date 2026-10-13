@@ -2,6 +2,8 @@
 
 [`sbom.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/.github/workflows/sbom.yml): Syft container SBOM, source dependency scan, Grype, license check. Pin it to a release SHA, as [Versioning](../VERSIONING.md) says.
 
+The container SBOM and license report are cached by image digest, policy and workflow sha, and that cache is shared across PRs only when sbom.yml also runs on pushes to the default branch, because GitHub scopes a PR's cache to that PR.
+
 | Input | Type | Default | Description |
 |-------|------|---------|-------------|
 | `docker_image` | string | required | Docker image to scan (e.g., ghcr.io/org/image:tag) |

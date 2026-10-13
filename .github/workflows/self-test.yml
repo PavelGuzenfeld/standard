@@ -186,7 +186,7 @@ jobs:
       - run: bash tests/test_sbom_cache.sh
 
   sbom-fixture:
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push'
     uses: ./.github/workflows/sbom.yml
     with:
       docker_image: docker.io/library/alpine:3.20.3
