@@ -159,7 +159,7 @@ jobs:
           sparse-checkout: ${{ inputs.grype_ignore_file }}
 
       - name: Download container SBOM
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: container-sbom
 
@@ -211,7 +211,7 @@ jobs:
             ${{ inputs.license_check_script || inputs.license_policy_file }}
 
       - name: Download container SBOM
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: container-sbom
 
@@ -219,7 +219,7 @@ jobs:
         # continue-on-error still prints the download's error annotation, so the
         # skipped-job case needs a real guard.
         if: needs.source-sbom.result == 'success'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: source-sbom
         continue-on-error: true
