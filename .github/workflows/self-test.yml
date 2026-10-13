@@ -172,3 +172,29 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: bash tests/test_cpp_quality_workspace_owner.sh
+
+  sbom-cache:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - run: pip install -q --require-hashes -r .github/requirements/workflow-docs.txt
+      - run: bash tests/test_sbom_cache.sh
+
+  sbom-fixture:
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/sbom.yml
+    with:
+      docker_image: docker.io/library/alpine:3.20.3
+      enable_code_scanning: false
+      license_policy_file: tests/sbom-fixture/license-policy.yaml
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+      pull-requests: write
+      security-events: write
