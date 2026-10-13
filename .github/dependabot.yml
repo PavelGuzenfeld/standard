@@ -39,6 +39,9 @@ updates:
       ts-tools:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "npm"
     directory: "/tests/jscpd-tools"
