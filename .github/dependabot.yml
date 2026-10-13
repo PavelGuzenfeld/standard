@@ -52,3 +52,16 @@ updates:
       jscpd-tools:
         patterns:
           - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/tests/renovate-tools"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps"
+    labels:
+      - "dependencies"
+    groups:
+      renovate-tools:
+        patterns:
+          - "*"
