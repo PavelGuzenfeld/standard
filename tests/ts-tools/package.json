@@ -3,7 +3,7 @@
   "private": true,
   "devDependencies": {
     "eslint": "^10",
-    "typescript": "^5",
+    "typescript": "^7",
     "typescript-eslint": "^8"
   }
 }
