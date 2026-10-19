@@ -1,0 +1,9 @@
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"
+ignoreUntil = 2027-01-20
+reason = "No fixed braces release; 3.0.3 is the latest. It comes in through renovate's micromatch, and this harness only runs renovate-config-validator in CI over a renovate.json this repo generates, so no untrusted pattern reaches it."
+
+[[IgnoredVulns]]
+id = "GHSA-hp3w-g68c-fv3c"
+ignoreUntil = 2027-01-20
+reason = "No fixed sprintf-js release; 1.1.3 is the latest. It comes in through renovate's roarr logger, and this harness only runs renovate-config-validator in CI over a renovate.json this repo generates, so no untrusted format string reaches it."

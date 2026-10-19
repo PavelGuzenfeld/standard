@@ -1,0 +1,4 @@
+[[IgnoredVulns]]
+id = "PYSEC-2026-1845"
+ignoreUntil = 2027-01-20
+reason = "Fixed in pytest 9.0.3, which needs Python 3.10. requirements.txt already pins pytest>=9.1.1 there; the <3.10 line stays on pytest 8 because the package supports Python 3.8. The tmpdir race needs a hostile local user on the test host, and tests run only on ephemeral CI runners."
