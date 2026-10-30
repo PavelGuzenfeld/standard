@@ -21,7 +21,7 @@ Inputs and defaults are on one page per family:
 | Workflow | Checks |
 |----------|--------|
 | [`cpp-quality.yml`](cpp-quality.md) | clang-tidy, cppcheck, clang-format, flawfinder, ASan/UBSan, TSan, coverage, IWYU, hardening, file naming, banned patterns |
-| [`infra-lint.yml`](infra-lint.md) | ShellCheck, Hadolint, cmake-lint, dangerous-workflow audit, binary-artifact scan, exec-bit check, Gitleaks |
+| [`infra-lint.yml`](infra-lint.md) | ShellCheck, Hadolint, cmake-lint, dangerous-workflow audit, binary-artifact scan, exec-bit check, Docker build, Gitleaks |
 | [`python-quality.yml`](python-quality.md) | ruff/flake8, pytest, diff-cover |
 | [`sast-python.yml`](sast-python.md) | Semgrep, pip-audit, CodeQL |
 | [`fuzz.yml`](fuzz.md) | ClusterFuzzLite; skipped without `.clusterfuzzlite/Dockerfile` |

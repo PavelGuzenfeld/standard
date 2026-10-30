@@ -74,6 +74,7 @@ Changed files are found with `git diff --name-only --diff-filter=ACMR` against t
 | Dangerous-workflow audit | custom script | `infra-lint.yml` (Host) | Opt-in |
 | Binary-artifact scan | custom script | `infra-lint.yml` (Host) | Opt-in |
 | Exec bit on shebang files | custom script | `infra-lint.yml` (Host) | Default-on |
+| Image build for changed contexts | docker build | `infra-lint.yml` (Host) | Opt-in |
 | Secrets detection | Gitleaks | `infra-lint.yml` (Host) | Opt-in |
 | ASan + UBSan | sanitizer build | `cpp-quality.yml` (Docker) | Opt-in |
 | Thread safety | TSan | `cpp-quality.yml` (Docker) | Opt-in |

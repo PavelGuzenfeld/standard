@@ -72,6 +72,16 @@ jobs:
           fetch-depth: 0
       - run: bash tests/test_exec_bit.sh
 
+  docker-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - run: bash tests/test_docker_build.sh
+
   naming-exemptions:
     runs-on: ubuntu-latest
     permissions:

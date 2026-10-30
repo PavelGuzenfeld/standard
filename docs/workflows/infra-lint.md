@@ -1,6 +1,6 @@
 # Infra lint
 
-[`infra-lint.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/.github/workflows/infra-lint.yml): ShellCheck, Hadolint, cmake-lint, dangerous-workflow audit, binary-artifact scan, exec-bit check, Gitleaks. Pin it to a release SHA, as [Versioning](../VERSIONING.md) says.
+[`infra-lint.yml`](https://github.com/PavelGuzenfeld/standard/blob/main/.github/workflows/infra-lint.yml): ShellCheck, Hadolint, cmake-lint, dangerous-workflow audit, binary-artifact scan, exec-bit check, Docker build, Gitleaks. Pin it to a release SHA, as [Versioning](../VERSIONING.md) says.
 
 | Input | Type | Default | Description |
 |-------|------|---------|-------------|
@@ -16,6 +16,8 @@
 | `enable_dangerous_workflows` | boolean | `false` | Enable dangerous-workflow pattern audit (opt-in) |
 | `enable_binary_artifacts` | boolean | `false` | Enable binary artifact detection in PRs (opt-in) |
 | `enable_exec_bit` | boolean | `true` | Fail when a file starting with #! is committed without the exec bit (mode 100755) |
+| `enable_docker_build` | boolean | `false` | Build, without pushing, every Dockerfile whose build context contains a changed file (opt-in) |
+| `docker_contexts` | string | `''` | Newline-separated Dockerfile=context pairs for Dockerfiles whose context is not their own directory |
 | `enable_gitleaks` | boolean | `false` | Enable Gitleaks secrets detection (opt-in) |
 | `gitleaks_config` | string | `''` | Path to .gitleaks.toml config file (empty = defaults) |
-| `select_jobs` | string | `'all'` | Comma-separated jobs to run (all, shellcheck, hadolint, cmake-lint, dangerous-workflows, binary-artifacts, exec-bit, gitleaks) |
+| `select_jobs` | string | `'all'` | Comma-separated jobs to run (all, shellcheck, hadolint, cmake-lint, dangerous-workflows, binary-artifacts, exec-bit, docker-build, gitleaks) |
