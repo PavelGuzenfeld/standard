@@ -51,6 +51,14 @@ on:
         type: boolean
         default: true
         description: 'Fail when a file starting with #! is committed without the exec bit (mode 100755)'
+      enable_docker_build:
+        type: boolean
+        default: false
+        description: 'Build, without pushing, every Dockerfile whose build context contains a changed file (opt-in)'
+      docker_contexts:
+        type: string
+        default: ''
+        description: 'Newline-separated Dockerfile=context pairs for Dockerfiles whose context is not their own directory'
       enable_gitleaks:
         type: boolean
         default: false
@@ -62,7 +70,7 @@ on:
       select_jobs:
         type: string
         default: 'all'
-        description: 'Comma-separated jobs to run (all, shellcheck, hadolint, cmake-lint, dangerous-workflows, binary-artifacts, exec-bit, gitleaks)'
+        description: 'Comma-separated jobs to run (all, shellcheck, hadolint, cmake-lint, dangerous-workflows, binary-artifacts, exec-bit, docker-build, gitleaks)'
 
 permissions:
   actions: read
@@ -530,6 +538,53 @@ jobs:
           fi
           echo "exec-bit: no findings."
 
+  docker-build:
+    name: Docker Build
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    if: inputs.enable_docker_build && (inputs.select_jobs == 'all' || contains(inputs.select_jobs, 'docker-build'))
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Build images whose context changed
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+          INPUT_DOCKER_CONTEXTS: ${{ inputs.docker_contexts }}
+        run: |
+          FAILURES=0
+          CHANGED=$(git diff --name-only --diff-filter=ACMR "origin/${INPUT_BASE_REF}" -- || true)
+
+          while IFS= read -r dockerfile; do
+            [ -z "$dockerfile" ] && continue
+            context=$(printf '%s\n' "$INPUT_DOCKER_CONTEXTS" | awk -F= -v df="$dockerfile" '$1 == df { print $2; exit }')
+            context="${context:-$(dirname "$dockerfile")}"
+            context="${context%/}"
+            affected=false
+            while IFS= read -r file; do
+              [ -z "$file" ] && continue
+              if [ "$file" = "$dockerfile" ] || [ "$context" = "." ]; then
+                affected=true
+              else
+                case "$file" in "$context"/*) affected=true ;; esac
+              fi
+            done <<< "$CHANGED"
+            [ "$affected" = true ] || continue
+            echo "docker-build: building ${dockerfile} with context ${context}"
+            if ! docker build --file "$dockerfile" "$context" < /dev/null; then
+              echo "::error file=${dockerfile}::docker-build: ${dockerfile} failed to build with context ${context}"
+              echo "docker-build: \`${dockerfile}\` failed to build with context \`${context}\`" >> "$GITHUB_STEP_SUMMARY"
+              FAILURES=$((FAILURES + 1))
+            fi
+          done <<< "$(git ls-files | grep -E '(^|/)(Dockerfile(\.[^/]*)?|[^/]*\.Dockerfile)$' || true)"
+
+          if [ "$FAILURES" -gt 0 ]; then
+            echo "docker-build: $FAILURES image(s) failed to build."
+            exit 1
+          fi
+          echo "docker-build: no failures."
+
   gitleaks:
     name: Gitleaks
     runs-on: ${{ fromJSON(inputs.runner) }}
@@ -602,7 +657,7 @@ jobs:
   summary:
     name: Post Summary
     runs-on: ${{ fromJSON(inputs.runner) }}
-    needs: [shellcheck, hadolint, cmake-lint, dangerous-workflows, binary-artifacts, exec-bit, gitleaks]
+    needs: [shellcheck, hadolint, cmake-lint, dangerous-workflows, binary-artifacts, exec-bit, docker-build, gitleaks]
     if: always() && github.event_name == 'pull_request'
     steps:
       - name: Post or update PR comment
@@ -616,6 +671,7 @@ jobs:
             const dw = '${{ needs.dangerous-workflows.result }}';
             const ba = '${{ needs.binary-artifacts.result }}';
             const eb = '${{ needs.exec-bit.result }}';
+            const db = '${{ needs.docker-build.result }}';
             const gl = '${{ needs.gitleaks.result }}';
 
             const icon = (r) => {
@@ -650,6 +706,9 @@ jobs:
             }
             if (eb && eb !== 'skipped') {
               rows.push(`| Exec Bit | ${icon(eb)} ${label(eb)} |`);
+            }
+            if (db && db !== 'skipped') {
+              rows.push(`| Docker Build | ${icon(db)} ${label(db)} |`);
             }
             if (gl && gl !== 'skipped') {
               rows.push(`| Gitleaks | ${icon(gl)} ${label(gl)} |`);
