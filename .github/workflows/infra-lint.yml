@@ -47,6 +47,10 @@ on:
         type: boolean
         default: false
         description: 'Enable binary artifact detection in PRs (opt-in)'
+      enable_exec_bit:
+        type: boolean
+        default: true
+        description: 'Fail when a file starting with #! is committed without the exec bit (mode 100755)'
       enable_gitleaks:
         type: boolean
         default: false
@@ -58,7 +62,7 @@ on:
       select_jobs:
         type: string
         default: 'all'
-        description: 'Comma-separated jobs to run (all, shellcheck, hadolint, cmake-lint, dangerous-workflows, binary-artifacts, gitleaks)'
+        description: 'Comma-separated jobs to run (all, shellcheck, hadolint, cmake-lint, dangerous-workflows, binary-artifacts, exec-bit, gitleaks)'
 
 permissions:
   actions: read
@@ -493,6 +497,39 @@ jobs:
             echo "binary-artifacts: no binaries detected."
           fi
 
+  exec-bit:
+    name: Exec Bit
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    if: inputs.enable_exec_bit && (inputs.select_jobs == 'all' || contains(inputs.select_jobs, 'exec-bit'))
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Scan for shebang files without the exec bit
+        env:
+          INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+        run: |
+          VIOLATIONS=0
+
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            [ -f "$file" ] || continue
+            [ "$(head -c 2 "$file")" = "#!" ] || continue
+            mode=$(git ls-files -s -- "$file" | cut -d' ' -f1)
+            [ "$mode" = "100644" ] || continue
+            echo "::error file=${file}::exec-bit: ${file} starts with #! but is mode 100644, commit it as 100755"
+            echo "exec-bit: \`${file}\` starts with #! but is mode 100644" >> "$GITHUB_STEP_SUMMARY"
+            VIOLATIONS=$((VIOLATIONS + 1))
+          done <<< "$(git diff --name-only --diff-filter=ACMR "origin/${INPUT_BASE_REF}" -- || true)"
+
+          if [ "$VIOLATIONS" -gt 0 ]; then
+            echo "exec-bit: $VIOLATIONS file(s) without the exec bit."
+            exit 1
+          fi
+          echo "exec-bit: no findings."
+
   gitleaks:
     name: Gitleaks
     runs-on: ${{ fromJSON(inputs.runner) }}
@@ -565,7 +602,7 @@ jobs:
   summary:
     name: Post Summary
     runs-on: ${{ fromJSON(inputs.runner) }}
-    needs: [shellcheck, hadolint, cmake-lint, dangerous-workflows, binary-artifacts, gitleaks]
+    needs: [shellcheck, hadolint, cmake-lint, dangerous-workflows, binary-artifacts, exec-bit, gitleaks]
     if: always() && github.event_name == 'pull_request'
     steps:
       - name: Post or update PR comment
@@ -578,6 +615,7 @@ jobs:
             const cmake = '${{ needs.cmake-lint.result }}';
             const dw = '${{ needs.dangerous-workflows.result }}';
             const ba = '${{ needs.binary-artifacts.result }}';
+            const eb = '${{ needs.exec-bit.result }}';
             const gl = '${{ needs.gitleaks.result }}';
 
             const icon = (r) => {
@@ -609,6 +647,9 @@ jobs:
             }
             if (ba && ba !== 'skipped') {
               rows.push(`| Binary Artifacts | ${icon(ba)} ${label(ba)} |`);
+            }
+            if (eb && eb !== 'skipped') {
+              rows.push(`| Exec Bit | ${icon(eb)} ${label(eb)} |`);
             }
             if (gl && gl !== 'skipped') {
               rows.push(`| Gitleaks | ${icon(gl)} ${label(gl)} |`);
