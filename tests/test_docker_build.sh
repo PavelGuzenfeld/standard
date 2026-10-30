@@ -170,4 +170,38 @@ change_here "$dir"
 expect_scan 1 "a failing image does not stop the others from building" "$dir" \
     $'build --file a/Dockerfile a\nbuild --file b/Dockerfile b'
 
+dir=$(new_repo trailing-slash-context)
+mkdir -p "$dir/docker" "$dir/src"
+echo "FROM scratch" > "$dir/docker/Dockerfile"
+touch "$dir/src/BREAK"
+echo "v1" > "$dir/src/main.c"
+base_here "$dir"
+echo "v2" > "$dir/src/main.c"
+change_here "$dir"
+expect_scan 1 "docker_contexts mapping with a trailing slash still builds on a source change" "$dir" \
+    "build --file docker/Dockerfile src" "docker/Dockerfile=src/"
+
+dir=$(new_repo non-dockerfile-paths)
+mkdir -p "$dir/docs" "$dir/Dockerfiles"
+echo "v1" > "$dir/docs/Dockerfile-guide.md"
+echo "v1" > "$dir/Dockerfiles/notes.txt"
+base_here "$dir"
+echo "v2" > "$dir/docs/Dockerfile-guide.md"
+echo "v2" > "$dir/Dockerfiles/notes.txt"
+change_here "$dir"
+expect_scan 0 "paths that merely contain Dockerfile in a name are not built" "$dir" ""
+
+dir=$(new_repo dockerfile-name-forms)
+mkdir -p "$dir/a" "$dir/b"
+echo "FROM scratch" > "$dir/a/Dockerfile.dev"
+echo "FROM scratch" > "$dir/b/app.Dockerfile"
+echo 1 > "$dir/a/f"
+echo 1 > "$dir/b/f"
+base_here "$dir"
+echo 2 > "$dir/a/f"
+echo 2 > "$dir/b/f"
+change_here "$dir"
+expect_scan 0 "Dockerfile.suffix and name.Dockerfile are both built" "$dir" \
+    $'build --file a/Dockerfile.dev a\nbuild --file b/app.Dockerfile b'
+
 exit "$FAILED"

@@ -577,7 +577,7 @@ jobs:
               echo "docker-build: \`${dockerfile}\` failed to build with context \`${context}\`" >> "$GITHUB_STEP_SUMMARY"
               FAILURES=$((FAILURES + 1))
             fi
-          done <<< "$(git ls-files | grep -E '(^|/)Dockerfile' || true)"
+          done <<< "$(git ls-files | grep -E '(^|/)(Dockerfile(\.[^/]*)?|[^/]*\.Dockerfile)$' || true)"
 
           if [ "$FAILURES" -gt 0 ]; then
             echo "docker-build: $FAILURES image(s) failed to build."
