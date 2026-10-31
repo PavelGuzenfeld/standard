@@ -1,1 +1,1 @@
-{"name":"renovate-runner","version":"0.0.0","private":true,"dependencies":{"renovate":"44.181.0"}}
+{"name":"renovate-runner","version":"0.0.0","private":true,"dependencies":{"renovate":"44.181.0"},"overrides":{"glob":"^14.0.2","minimatch":"^11.0.1"}}
