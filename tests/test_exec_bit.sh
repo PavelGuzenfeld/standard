@@ -45,10 +45,10 @@ new_repo() {
 }
 
 expect_scan() {
-    local expected="$1" name="$2" dir="$3" expected_path="${4:-}"
+    local expected="$1" name="$2" dir="$3" expected_path="${4:-}" exclude_file="${5:-}"
     local summary="$dir.summary" out status=0
     rm -f "$summary"
-    out=$(cd "$dir" && INPUT_BASE_REF=main GITHUB_STEP_SUMMARY="$summary" bash -e "$SCAN" 2>&1) || status=$?
+    out=$(cd "$dir" && INPUT_BASE_REF=main INPUT_EXCLUDE_FILE="$exclude_file" GITHUB_STEP_SUMMARY="$summary" bash -e "$SCAN" 2>&1) || status=$?
     if [ "$status" -ne "$expected" ]; then
         echo "FAIL: $name (exit $status, wanted $expected)"
         echo "$out"
@@ -111,5 +111,26 @@ ln -s target.sh "$dir/link.sh"
 git -C "$dir" add target.sh link.sh
 git -C "$dir" commit -q -m link
 expect_scan 0 "symlink to a shebang file passes" "$dir"
+
+dir=$(new_repo excluded-644)
+mkdir "$dir/skip"
+printf '%s\n' "$SHEBANG_BODY" > "$dir/skip/tool.sh"
+printf '%s\n' "$SHEBANG_BODY" > "$dir/kept.sh"
+printf '# vendored\nskip/tool.sh\n' > "$dir/exclude.txt"
+git -C "$dir" add skip/tool.sh kept.sh exclude.txt
+git -C "$dir" commit -q -m add
+expect_scan 1 "unlisted shebang file at 100644 still fails when exclude_file is set" "$dir" "kept.sh" "exclude.txt"
+if grep -q "skip/tool.sh" "$dir.summary" 2>/dev/null; then
+    echo "FAIL: listed shebang file reported despite exclude_file"
+    FAILED=1
+fi
+
+dir=$(new_repo listed-644)
+mkdir "$dir/skip"
+printf '%s\n' "$SHEBANG_BODY" > "$dir/skip/tool.sh"
+printf '# vendored\nskip/tool.sh\n' > "$dir/exclude.txt"
+git -C "$dir" add skip/tool.sh exclude.txt
+git -C "$dir" commit -q -m add
+expect_scan 0 "shebang file at 100644 listed in exclude_file passes" "$dir" "" "exclude.txt"
 
 exit "$FAILED"
