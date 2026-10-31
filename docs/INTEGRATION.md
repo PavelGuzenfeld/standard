@@ -215,7 +215,7 @@ src/my_package/include
 
 ### Exclusion file
 
-`.standards-exclude` lists path prefixes to skip, one per line, for vendored code, submodules and build output. The `cpp-quality` jobs clang-tidy, cppcheck, clang-format, doctest-enforce, file-naming, cout-ban, new-delete-ban, flawfinder, iwyu and jscpd honour it, as do the `infra-lint` jobs shellcheck and cmake-lint and the `version-check` workflow. The other checks ignore it: the `infra-lint` jobs hadolint, dangerous-workflows, binary-artifacts, exec-bit, docker-build and gitleaks; the `cpp-quality` jobs verify-toolchain, sanitizer-tests, tsan-tests, coverage, hardening and binskim; and `python-quality`, which has no `exclude_file` input.
+`.standards-exclude` lists path prefixes to skip, one per line, for vendored code, submodules and build output. The `cpp-quality` jobs clang-tidy, cppcheck, clang-format, doctest-enforce, file-naming, cout-ban, new-delete-ban, flawfinder, iwyu and jscpd honour it, as do the `infra-lint` jobs shellcheck, cmake-lint and exec-bit and the `version-check` workflow. The other checks ignore it: the `infra-lint` jobs hadolint, dangerous-workflows, binary-artifacts, docker-build and gitleaks; the `cpp-quality` jobs verify-toolchain, sanitizer-tests, tsan-tests, coverage, hardening and binskim; and `python-quality`, which has no `exclude_file` input.
 
 ```
 vendor/httplib.h
