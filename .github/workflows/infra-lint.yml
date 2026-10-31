@@ -518,12 +518,25 @@ jobs:
       - name: Scan for shebang files without the exec bit
         env:
           INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
+          INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
         run: |
           VIOLATIONS=0
+
+          PATTERNS=()
+          if [ -f "${INPUT_EXCLUDE_FILE}" ]; then
+            while IFS= read -r line || [ -n "$line" ]; do
+              line="${line%%#*}"; line="$(echo "$line" | xargs)"
+              [ -z "$line" ] && continue
+              PATTERNS+=("$line")
+            done < "${INPUT_EXCLUDE_FILE}"
+          fi
 
           while IFS= read -r file; do
             [ -z "$file" ] && continue
             [ -f "$file" ] || continue
+            for p in "${PATTERNS[@]}"; do
+              [[ "$file" == "$p"* ]] && continue 2
+            done
             [ "$(head -c 2 "$file")" = "#!" ] || continue
             mode=$(git ls-files -s -- "$file" | cut -d' ' -f1)
             [ "$mode" = "100644" ] || continue
