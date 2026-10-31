@@ -14,7 +14,7 @@ repos:
     hooks:
       - id: actionlint
   - repo: https://github.com/PavelGuzenfeld/agent-sdlc
-    rev: v0.5.0
+    rev: v0.5.2
     hooks:
       - id: rules-check
       - id: mutation-gate
