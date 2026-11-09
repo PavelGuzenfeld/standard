@@ -28,6 +28,9 @@ jobs:
   release:
     name: Tag & Release
     runs-on: ubuntu-latest
+    concurrency:
+      group: auto-release-${{ github.repository }}-${{ github.ref }}
+      cancel-in-progress: false
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -37,6 +40,13 @@ jobs:
       - name: Determine version bump
         id: bump
         run: |
+          git fetch --quiet origin "$GITHUB_REF"
+          if [ -n "$(git log --format=%H --invert-grep -F --grep='[skip ci]' HEAD..FETCH_HEAD)" ]; then
+            echo "$GITHUB_REF moved past $GITHUB_SHA; the newer run releases it"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           LAST_TAG=$(git tag -l 'v*' --sort=-v:refname | head -1)
           FIRST_RELEASE=false
           if [ -z "$LAST_TAG" ]; then
