@@ -11,7 +11,7 @@ permissions: read-all
 jobs:
   run-affected-tests:
     name: Run Affected Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.python-version == '3.8' && 'ubuntu-24.04' || 'ubuntu-latest' }}
     strategy:
       matrix:
         python-version: ['3.8', '3.10', '3.11', '3.12']
