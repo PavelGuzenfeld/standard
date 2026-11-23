@@ -1,0 +1,57 @@
+name: Sync jscpd Inline Manifest
+
+on:
+  pull_request_target:
+    branches: [main]
+    paths:
+      - 'tests/jscpd-tools/**'
+
+permissions: {}
+
+concurrency:
+  group: sync-jscpd-inline-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          client-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Sync the inline manifest onto the Dependabot branch
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          WORKFLOW_PATH=.github/workflows/cpp-quality.yml
+          read -r HEAD_OID HEAD_BRANCH < <(gh pr view "$PR_NUMBER" -R "$REPO" --json headRefOid,headRefName --jq '.headRefOid + " " + .headRefName')
+          fetch_head_file() {
+            gh api -H "Accept: application/vnd.github.raw" "repos/$REPO/contents/$1?ref=$HEAD_OID" > "$2"
+          }
+          mkdir -p "$RUNNER_TEMP/tools"
+          fetch_head_file tests/jscpd-tools/package.json "$RUNNER_TEMP/tools/package.json"
+          fetch_head_file tests/jscpd-tools/package-lock.json "$RUNNER_TEMP/tools/package-lock.json"
+          fetch_head_file "$WORKFLOW_PATH" "$RUNNER_TEMP/cpp-quality.yml"
+          cp "$RUNNER_TEMP/cpp-quality.yml" "$RUNNER_TEMP/cpp-quality.before.yml"
+          bash scripts/sync-jscpd-inline.sh "$RUNNER_TEMP/cpp-quality.yml" "$RUNNER_TEMP/tools"
+          if cmp -s "$RUNNER_TEMP/cpp-quality.before.yml" "$RUNNER_TEMP/cpp-quality.yml"; then
+            echo "Inline manifest already in sync"
+            exit 0
+          fi
+          BLOB_SHA=$(gh api "repos/$REPO/contents/$WORKFLOW_PATH?ref=$HEAD_OID" --jq .sha)
+          jq -n --rawfile content "$RUNNER_TEMP/cpp-quality.yml" --arg sha "$BLOB_SHA" --arg branch "$HEAD_BRANCH" \
+            '{message: "ci: sync inline jscpd manifest", content: ($content | @base64), sha: $sha, branch: $branch}' \
+            | gh api -X PUT "repos/$REPO/contents/$WORKFLOW_PATH" --input -

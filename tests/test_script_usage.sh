@@ -32,7 +32,7 @@ expect_usage_on_stderr_for_rejected_args() {
 
 for script in check-dangerous-workflows.sh check-hardening.sh check-layering.sh check-repo-structure.sh \
     diff-clang-format.sh diff-clang-tidy.sh diff-cppcheck.sh diff-file-naming.sh \
-    diff-gdlint.sh diff-jscpd.sh diff-test-mirror.sh diff-ts-naming.sh filter-excludes.sh; do
+    diff-gdlint.sh diff-jscpd.sh diff-test-mirror.sh diff-ts-naming.sh filter-excludes.sh sync-jscpd-inline.sh; do
     expect_usage_on_stdout_for_help "$script"
 done
 

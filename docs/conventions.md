@@ -33,3 +33,5 @@ flawfinder --minlevel=2 --columns --context .
 ## Refreshing pinned requirements
 
 Dependabot opens weekly grouped PRs for `.github/requirements`, `tests/ts-tools` and `tests/jscpd-tools`. It cannot see the hashed heredocs in `cpp-quality.yml` and `infra-lint.yml`: run `scripts/refresh-locks.sh`, then paste each printed block over its `REQUIREMENTS` heredoc by hand.
+
+The jscpd manifest in `cpp-quality.yml` is the exception: `sync-jscpd-inline.yml` pushes a sync commit to Dependabot PRs that touch `tests/jscpd-tools`.

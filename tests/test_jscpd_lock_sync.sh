@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-WORKFLOW="$ROOT/.github/workflows/cpp-quality.yml"
-TOOLS="$ROOT/tests/jscpd-tools"
+WORKFLOW="${WORKFLOW:-$ROOT/.github/workflows/cpp-quality.yml}"
+TOOLS="${TOOLS:-$ROOT/tests/jscpd-tools}"
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
