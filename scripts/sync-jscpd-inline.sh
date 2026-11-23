@@ -21,7 +21,12 @@ HEREDOC_INDENT="          "
 
 for name in package.json package-lock.json; do
     [ -f "$TOOLS/$name" ] || { echo "Missing $TOOLS/$name" >&2; exit 1; }
+    jq empty "$TOOLS/$name" || { echo "$TOOLS/$name is not valid JSON" >&2; exit 1; }
+    ! grep -qF '${{' "$TOOLS/$name" || { echo "$TOOLS/$name contains an Actions expression" >&2; exit 1; }
 done
+
+SYNCED=$(mktemp "$WORKFLOW.synced.XXXXXX")
+trap 'rm -f "$SYNCED"' EXIT
 
 awk -v tools="$TOOLS" -v indent="$HEREDOC_INDENT" '
     /Install jscpd from a locked manifest/ { in_step = 1 }
@@ -38,5 +43,6 @@ awk -v tools="$TOOLS" -v indent="$HEREDOC_INDENT" '
     skipping { next }
     { print }
     END { if (replaced != 2) exit 1 }
-' "$WORKFLOW" > "$WORKFLOW.synced"
-mv "$WORKFLOW.synced" "$WORKFLOW"
+' "$WORKFLOW" > "$SYNCED"
+chmod --reference="$WORKFLOW" "$SYNCED"
+mv "$SYNCED" "$WORKFLOW"

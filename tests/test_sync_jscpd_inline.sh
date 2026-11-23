@@ -46,4 +46,46 @@ else
     FAILED=1
 fi
 
+expect_rejected_and_untouched() {
+    local label="$1" workflow="$2" tools="$3" status=0 before after
+    before=$(sha256sum "$workflow")
+    bash "$SYNC" "$workflow" "$tools" >/dev/null 2>&1 || status=$?
+    after=$(sha256sum "$workflow")
+    if [ "$status" -ne 0 ] && [ "$before" = "$after" ] && ! compgen -G "$(dirname "$workflow")/*.synced*" >/dev/null; then
+        echo "PASS: $label"
+    else
+        echo "FAIL: $label (exit $status)"
+        FAILED=1
+    fi
+}
+
+REJECT="$WORK/reject"
+mkdir -p "$REJECT/tools"
+cp "$ROOT/tests/jscpd-tools/package.json" "$ROOT/tests/jscpd-tools/package-lock.json" "$REJECT/tools/"
+
+cp "$ROOT/.github/workflows/cpp-quality.yml" "$REJECT/cpp-quality.yml"
+sed -i '0,/"private":true/s/"private":true/"private":true,"x":"${{ secrets.TOKEN }}"/' "$REJECT/tools/package.json"
+expect_rejected_and_untouched "an expression in a manifest is rejected" "$REJECT/cpp-quality.yml" "$REJECT/tools"
+
+cp "$ROOT/tests/jscpd-tools/package.json" "$REJECT/tools/package.json"
+sed -i '0,/"name": "jscpd-runner"/s/"name": "jscpd-runner"/"name": "${{ secrets.TOKEN }}"/' "$REJECT/tools/package-lock.json"
+expect_rejected_and_untouched "an expression in the lockfile is rejected" "$REJECT/cpp-quality.yml" "$REJECT/tools"
+
+cp "$ROOT/tests/jscpd-tools/package-lock.json" "$REJECT/tools/package-lock.json"
+echo '{"name":' > "$REJECT/tools/package.json"
+expect_rejected_and_untouched "a manifest that is not JSON is rejected" "$REJECT/cpp-quality.yml" "$REJECT/tools"
+
+cp "$ROOT/tests/jscpd-tools/package.json" "$REJECT/tools/package.json"
+echo 'not json' > "$REJECT/tools/package-lock.json"
+expect_rejected_and_untouched "a lockfile that is not JSON is rejected" "$REJECT/cpp-quality.yml" "$REJECT/tools"
+
+cp "$ROOT/tests/jscpd-tools/package-lock.json" "$REJECT/tools/package-lock.json"
+awk '/cat > package-lock.json <</ { skipping = 1 } skipping && /^ *EOF$/ { skipping = 0; next } !skipping' \
+    "$ROOT/.github/workflows/cpp-quality.yml" > "$REJECT/cpp-quality.yml"
+expect_rejected_and_untouched "a workflow missing the lockfile heredoc is rejected" "$REJECT/cpp-quality.yml" "$REJECT/tools"
+
+awk '/cat > package.json <</ { skipping = 1 } skipping && /^ *EOF$/ { skipping = 0; next } !skipping' \
+    "$ROOT/.github/workflows/cpp-quality.yml" > "$REJECT/cpp-quality.yml"
+expect_rejected_and_untouched "a workflow missing the package heredoc is rejected" "$REJECT/cpp-quality.yml" "$REJECT/tools"
+
 exit "$FAILED"
