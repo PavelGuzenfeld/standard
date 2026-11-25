@@ -251,6 +251,10 @@ on:
         type: string
         default: 'error'
         description: 'Lowest BinSkim result level that fails the job: error, warning or note. SARIF is uploaded as `binskim-sarif`'
+    secrets:
+      checkout_token:
+        required: false
+        description: 'Token for actions/checkout and its submodule fetch, for callers with private submodules (defaults to GITHUB_TOKEN)'
 
 permissions:
   actions: read
@@ -268,6 +272,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: ${{ inputs.checkout_submodules }}
+          token: ${{ secrets.checkout_token || github.token }}
 
       - name: Login to GitHub Container Registry
         run: echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
@@ -381,6 +386,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: ${{ inputs.checkout_submodules }}
+          token: ${{ secrets.checkout_token || github.token }}
 
       - name: Login to GitHub Container Registry
         if: inputs.docker_image != ''
@@ -404,6 +410,7 @@ jobs:
           fi
 
       - name: Filter excluded paths
+        id: exclude
         if: steps.changed.outputs.skip == 'false' && inputs.exclude_file != ''
         env:
           INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
@@ -437,7 +444,7 @@ jobs:
           fi
 
       - name: Prepare cache paths
-        if: steps.changed.outputs.skip == 'false' && inputs.build_cache_key != ''
+        if: steps.changed.outputs.skip == 'false' && steps.exclude.outputs.skip != 'true' && inputs.build_cache_key != ''
         id: cache-paths
         env:
           INPUT_BUILD_CACHE_PATHS: ${{ inputs.build_cache_paths }}
@@ -449,7 +456,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Restore build cache
-        if: steps.changed.outputs.skip == 'false' && inputs.build_cache_key != ''
+        if: steps.changed.outputs.skip == 'false' && steps.exclude.outputs.skip != 'true' && inputs.build_cache_key != ''
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
         with:
           path: ${{ steps.cache-paths.outputs.paths }}
@@ -458,7 +465,7 @@ jobs:
             ${{ inputs.build_cache_key }}-
 
       - name: Run pre-analysis script
-        if: steps.changed.outputs.skip == 'false' && inputs.pre_analysis_script != ''
+        if: steps.changed.outputs.skip == 'false' && steps.exclude.outputs.skip != 'true' && inputs.pre_analysis_script != ''
         env:
           INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
           INPUT_PRE_ANALYSIS_SCRIPT: ${{ inputs.pre_analysis_script }}
@@ -476,7 +483,7 @@ jobs:
             bash -c "${SETUP_CMD}bash ${INPUT_PRE_ANALYSIS_SCRIPT}"
 
       - name: Run clang-tidy in Docker (batch)
-        if: steps.changed.outputs.skip == 'false'
+        if: steps.changed.outputs.skip == 'false' && steps.exclude.outputs.skip != 'true'
         id: clang-tidy
         env:
           INPUT_CLANG_TIDY_CONFIG: ${{ inputs.clang_tidy_config }}
@@ -583,6 +590,7 @@ jobs:
           fi
 
       - name: Filter excluded paths
+        id: exclude
         if: steps.changed.outputs.skip == 'false' && inputs.exclude_file != ''
         env:
           INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
@@ -616,7 +624,7 @@ jobs:
           fi
 
       - name: Run cppcheck in Docker
-        if: steps.changed.outputs.skip == 'false'
+        if: steps.changed.outputs.skip == 'false' && steps.exclude.outputs.skip != 'true'
         id: cppcheck
         env:
           INPUT_CPPCHECK_INCLUDES: ${{ inputs.cppcheck_includes }}
@@ -745,6 +753,7 @@ jobs:
           fi
 
       - name: Filter excluded paths
+        id: exclude
         if: steps.changed.outputs.skip == 'false' && inputs.exclude_file != ''
         env:
           INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
@@ -778,7 +787,7 @@ jobs:
           fi
 
       - name: Prepare clang-format container
-        if: steps.changed.outputs.skip == 'false' && inputs.docker_image != ''
+        if: steps.changed.outputs.skip == 'false' && steps.exclude.outputs.skip != 'true' && inputs.docker_image != ''
         env:
           INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
           INPUT_SOURCE_MOUNT: ${{ inputs.source_mount }}
@@ -802,7 +811,7 @@ jobs:
           "
 
       - name: Run clang-format in Docker
-        if: steps.changed.outputs.skip == 'false'
+        if: steps.changed.outputs.skip == 'false' && steps.exclude.outputs.skip != 'true'
         id: clang-format
         env:
           INPUT_CLANG_FORMAT_CONFIG: ${{ inputs.clang_format_config }}
@@ -1296,6 +1305,7 @@ jobs:
           fi
 
       - name: Filter excluded paths
+        id: exclude
         if: steps.changed.outputs.skip == 'false' && inputs.exclude_file != ''
         env:
           INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
@@ -1329,7 +1339,7 @@ jobs:
           fi
 
       - name: Install flawfinder
-        if: steps.changed.outputs.skip == 'false'
+        if: steps.changed.outputs.skip == 'false' && steps.exclude.outputs.skip != 'true'
         run: |
           cat > "$RUNNER_TEMP/flawfinder-requirements.txt" <<'REQUIREMENTS'
           flawfinder==2.0.20 \
@@ -1341,7 +1351,7 @@ jobs:
           flawfinder --version
 
       - name: Run flawfinder
-        if: steps.changed.outputs.skip == 'false'
+        if: steps.changed.outputs.skip == 'false' && steps.exclude.outputs.skip != 'true'
         id: flawfinder
         env:
           INPUT_FLAWFINDER_MIN_LEVEL: ${{ inputs.flawfinder_min_level }}
@@ -1367,7 +1377,7 @@ jobs:
           fi
 
       - name: Upload results
-        if: always() && steps.changed.outputs.skip == 'false'
+        if: always() && steps.changed.outputs.skip == 'false' && steps.exclude.outputs.skip != 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: flawfinder-results
@@ -1377,7 +1387,7 @@ jobs:
           retention-days: 90
 
       - name: Upload SARIF
-        if: always() && steps.changed.outputs.skip == 'false' && inputs.enable_sarif
+        if: always() && steps.changed.outputs.skip == 'false' && steps.exclude.outputs.skip != 'true' && inputs.enable_sarif
         continue-on-error: true
         uses: github/codeql-action/upload-sarif@bb471cdcf4dda2c934c5b656f554d43c1434ed13 # v4
         with:
@@ -1395,6 +1405,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: ${{ inputs.checkout_submodules }}
+          token: ${{ secrets.checkout_token || github.token }}
 
       - name: Login to GitHub Container Registry
         if: inputs.docker_image != ''
@@ -1531,6 +1542,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: ${{ inputs.checkout_submodules }}
+          token: ${{ secrets.checkout_token || github.token }}
 
       - name: Login to GitHub Container Registry
         if: inputs.docker_image != ''
@@ -1668,6 +1680,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: ${{ inputs.checkout_submodules }}
+          token: ${{ secrets.checkout_token || github.token }}
 
       - name: Login to GitHub Container Registry
         if: inputs.docker_image != ''
@@ -1691,6 +1704,7 @@ jobs:
           fi
 
       - name: Filter excluded paths
+        id: exclude
         if: steps.changed.outputs.skip == 'false' && inputs.exclude_file != ''
         env:
           INPUT_EXCLUDE_FILE: ${{ inputs.exclude_file }}
@@ -1724,7 +1738,7 @@ jobs:
           fi
 
       - name: Prepare cache paths
-        if: steps.changed.outputs.skip == 'false' && inputs.build_cache_key != ''
+        if: steps.changed.outputs.skip == 'false' && steps.exclude.outputs.skip != 'true' && inputs.build_cache_key != ''
         id: cache-paths
         env:
           INPUT_BUILD_CACHE_PATHS: ${{ inputs.build_cache_paths }}
@@ -1736,7 +1750,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Restore build cache
-        if: steps.changed.outputs.skip == 'false' && inputs.build_cache_key != ''
+        if: steps.changed.outputs.skip == 'false' && steps.exclude.outputs.skip != 'true' && inputs.build_cache_key != ''
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
         with:
           path: ${{ steps.cache-paths.outputs.paths }}
@@ -1745,7 +1759,7 @@ jobs:
             ${{ inputs.build_cache_key }}-
 
       - name: Run IWYU script
-        if: steps.changed.outputs.skip == 'false' && inputs.iwyu_script != ''
+        if: steps.changed.outputs.skip == 'false' && steps.exclude.outputs.skip != 'true' && inputs.iwyu_script != ''
         env:
           INPUT_BASE_REF: ${{ inputs.base_ref || github.base_ref || 'main' }}
           INPUT_DOCKER_IMAGE: ${{ inputs.docker_image }}
@@ -1765,7 +1779,7 @@ jobs:
             bash -c "${SETUP_CMD}bash ${INPUT_IWYU_SCRIPT}"
 
       - name: Run IWYU default flow
-        if: steps.changed.outputs.skip == 'false' && inputs.iwyu_script == ''
+        if: steps.changed.outputs.skip == 'false' && steps.exclude.outputs.skip != 'true' && inputs.iwyu_script == ''
         id: iwyu
         env:
           INPUT_COMPILE_COMMANDS_PATH: ${{ inputs.compile_commands_path }}
@@ -1835,6 +1849,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: ${{ inputs.checkout_submodules }}
+          token: ${{ secrets.checkout_token || github.token }}
 
       - name: Login to GitHub Container Registry
         if: inputs.docker_image != ''
@@ -2167,6 +2182,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: ${{ inputs.checkout_submodules }}
+          token: ${{ secrets.checkout_token || github.token }}
 
       - name: Login to GitHub Container Registry
         if: inputs.docker_image != ''
@@ -2744,6 +2760,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: ${{ inputs.checkout_submodules }}
+          token: ${{ secrets.checkout_token || github.token }}
 
       - name: Login to GitHub Container Registry
         if: inputs.docker_image != ''

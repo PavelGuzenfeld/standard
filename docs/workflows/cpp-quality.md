@@ -129,3 +129,7 @@
 | `binskim_paths` | string | `'build-hardened/bin'` | Space-separated files or directories of built ELF binaries for BinSkim |
 | `binskim_fail_level` | string | `'error'` | Lowest BinSkim result level that fails the job: error, warning or note. SARIF is uploaded as `binskim-sarif` |
 
+
+## Secrets
+
+`checkout_token` (optional): token for actions/checkout and its submodule fetch, for callers with private submodules. Defaults to GITHUB_TOKEN.
