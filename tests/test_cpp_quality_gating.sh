@@ -93,7 +93,7 @@ CHECKOUTS_WITHOUT_TOKEN=$(awk '
     /^      - name:/ { flush(); name = $0; sub(/^      - name: */, "", name) }
     /^  [a-z][a-z-]*:$/ { flush() }
     /^          submodules: \$\{\{ inputs\.checkout_submodules \}\}$/ { submodules = 1 }
-    /^          token: \$\{\{ secrets\.checkout_token \|\| github\.token \}\}$/ { token = 1 }
+    /^          token: \$\{\{ (steps\.app-token\.outputs\.token \|\| )?secrets\.checkout_token \|\| github\.token \}\}$/ { token = 1 }
     END { flush() }
 ' "$WORKFLOW")
 SUBMODULE_CHECKOUTS=$(grep -c 'submodules: ${{ inputs.checkout_submodules }}' "$WORKFLOW" || true)
@@ -128,4 +128,20 @@ grep -q ' src/a.cpp src/b.hpp$' "$work/argv" 2>/dev/null || fail "flawfinder is 
 grep -qx 'hits=0' "$work/output" || fail "flawfinder step does not reach its hits output"
 [ "$FAILED" -eq 0 ] && echo "PASS: flawfinder step scans every changed file under bash -e"
 
-exit "$FAILED"
+for name in app_id app_private_key; do
+    echo "${SECRET_BLOCK}" | grep -q "^      ${name}:$" || fail "workflow_call declares no ${name} secret"
+    echo "${SECRET_BLOCK}" | awk -v key="${name}" '$(0) == "      " key ":" { s = 1; next } s && /^      [a-z]/ { s = 0 } s' | grep -q 'required: false' \
+        || fail "${name} secret is not optional"
+done
+
+CHECKOUTS_WITHOUT_TOKEN=$(awk '
+    /^  [a-z][a-z-]*:$/ { job = $(1); app = 0 }
+    /&checkout-app-token|\*checkout-app-token/ { app = 1 }
+    /^          submodules: / && !app { print job }
+' "${WORKFLOW}")
+[ -z "${CHECKOUTS_WITHOUT_TOKEN}" ] || fail "submodule jobs without App authentication: ${CHECKOUTS_WITHOUT_TOKEN}"
+grep -q 'permission-contents: read' "${WORKFLOW}" || fail "checkout App token does not restrict contents to read"
+grep -q 'steps.app-token.outputs.token || secrets.checkout_token || github.token' "${WORKFLOW}" \
+    || fail "checkout does not prefer the App token while preserving PAT and default-token fallbacks"
+
+exit "${FAILED}"
