@@ -103,4 +103,29 @@ if [ -n "$CHECKOUTS_WITHOUT_TOKEN" ]; then
 fi
 [ "$FAILED" -eq 0 ] && echo "PASS: every submodule checkout uses checkout_token when given"
 
+flawfinder_run_block() {
+    awk '
+        /^  [a-z][a-z-]*:$/ { job = $1; sub(/:$/, "", job) }
+        job != "flawfinder" { next }
+        /^      - name:/ { in_step = ($0 ~ /- name: Run flawfinder$/); inrun = 0; next }
+        in_step && /^        run: \|$/ { inrun = 1; next }
+        inrun && /^          / { sub(/^          /, ""); print; next }
+        inrun && /^$/ { print ""; next }
+        { inrun = 0 }
+    ' "$WORKFLOW"
+}
+
+work="$SCRATCH/flawfinder"
+mkdir -p "$work/bin"
+printf 'src/a.cpp\nsrc/b.hpp\n' > "$work/changed.txt"
+printf '#!/bin/sh\necho "$@" >> "%s/argv"\n' "$work" > "$work/bin/flawfinder"
+chmod +x "$work/bin/flawfinder"
+: > "$work/output"
+flawfinder_run_block | sed "s#/tmp/changed_cpp_files.txt#$work/changed.txt#g" > "$work/run.sh"
+(cd "$work" && PATH="$work/bin:$PATH" GITHUB_OUTPUT="$work/output" INPUT_FLAWFINDER_MIN_LEVEL=1 bash -e "$work/run.sh" >/dev/null) \
+    || fail "flawfinder step exits non-zero on a clean scan of two files"
+grep -q ' src/a.cpp src/b.hpp$' "$work/argv" 2>/dev/null || fail "flawfinder is not invoked with every changed file"
+grep -qx 'hits=0' "$work/output" || fail "flawfinder step does not reach its hits output"
+[ "$FAILED" -eq 0 ] && echo "PASS: flawfinder step scans every changed file under bash -e"
+
 exit "$FAILED"
