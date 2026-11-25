@@ -1357,7 +1357,7 @@ jobs:
           INPUT_FLAWFINDER_MIN_LEVEL: ${{ inputs.flawfinder_min_level }}
         run: |
           export PATH="$HOME/.local/bin:$PATH"
-          read -r -a FILES < <(tr '\n' ' ' < /tmp/changed_cpp_files.txt)
+          mapfile -t FILES < /tmp/changed_cpp_files.txt
 
           flawfinder --minlevel="${INPUT_FLAWFINDER_MIN_LEVEL}" --sarif --dataonly "${FILES[@]}" > flawfinder.sarif 2>/dev/null || true
           flawfinder --minlevel="${INPUT_FLAWFINDER_MIN_LEVEL}" --columns --context --dataonly "${FILES[@]}" > flawfinder.txt 2>&1 || true
