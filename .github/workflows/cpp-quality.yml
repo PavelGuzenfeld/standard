@@ -252,9 +252,18 @@ on:
         default: 'error'
         description: 'Lowest BinSkim result level that fails the job: error, warning or note. SARIF is uploaded as `binskim-sarif`'
     secrets:
+      app_id:
+        required: false
+        description: 'GitHub App client ID for private repository checkout'
+      app_private_key:
+        required: false
+        description: 'GitHub App private key for private repository checkout'
       checkout_token:
         required: false
         description: 'Token for actions/checkout and its submodule fetch, for callers with private submodules (defaults to GITHUB_TOKEN)'
+
+env:
+  APP_ID: ${{ secrets.app_id }}
 
 permissions:
   actions: read
@@ -268,11 +277,21 @@ jobs:
     name: Verify Toolchain
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
+      - &checkout-app-token
+        name: Generate checkout App token
+        if: env.APP_ID != ''
+        id: app-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc
+        with:
+          client-id: ${{ secrets.app_id }}
+          private-key: ${{ secrets.app_private_key }}
+          owner: ${{ github.repository_owner }}
+          permission-contents: read
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: ${{ inputs.checkout_submodules }}
-          token: ${{ secrets.checkout_token || github.token }}
+          token: ${{ steps.app-token.outputs.token || secrets.checkout_token || github.token }}
 
       - name: Login to GitHub Container Registry
         run: echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
@@ -381,12 +400,13 @@ jobs:
     if: inputs.enable_clang_tidy && (inputs.select_jobs == 'all' || contains(inputs.select_jobs, 'clang-tidy'))
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
+      - *checkout-app-token
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           submodules: ${{ inputs.checkout_submodules }}
-          token: ${{ secrets.checkout_token || github.token }}
+          token: ${{ steps.app-token.outputs.token || secrets.checkout_token || github.token }}
 
       - name: Login to GitHub Container Registry
         if: inputs.docker_image != ''
@@ -1400,12 +1420,13 @@ jobs:
     if: inputs.enable_sanitizers && (inputs.select_jobs == 'all' || contains(inputs.select_jobs, 'sanitizers'))
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
+      - *checkout-app-token
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           submodules: ${{ inputs.checkout_submodules }}
-          token: ${{ secrets.checkout_token || github.token }}
+          token: ${{ steps.app-token.outputs.token || secrets.checkout_token || github.token }}
 
       - name: Login to GitHub Container Registry
         if: inputs.docker_image != ''
@@ -1537,12 +1558,13 @@ jobs:
     if: inputs.enable_tsan && (inputs.select_jobs == 'all' || contains(inputs.select_jobs, 'tsan'))
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
+      - *checkout-app-token
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           submodules: ${{ inputs.checkout_submodules }}
-          token: ${{ secrets.checkout_token || github.token }}
+          token: ${{ steps.app-token.outputs.token || secrets.checkout_token || github.token }}
 
       - name: Login to GitHub Container Registry
         if: inputs.docker_image != ''
@@ -1675,12 +1697,13 @@ jobs:
     if: inputs.enable_iwyu && (inputs.select_jobs == 'all' || contains(inputs.select_jobs, 'iwyu'))
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
+      - *checkout-app-token
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           submodules: ${{ inputs.checkout_submodules }}
-          token: ${{ secrets.checkout_token || github.token }}
+          token: ${{ steps.app-token.outputs.token || secrets.checkout_token || github.token }}
 
       - name: Login to GitHub Container Registry
         if: inputs.docker_image != ''
@@ -1844,12 +1867,13 @@ jobs:
     if: inputs.enable_coverage && (inputs.select_jobs == 'all' || contains(inputs.select_jobs, 'coverage'))
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
+      - *checkout-app-token
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           submodules: ${{ inputs.checkout_submodules }}
-          token: ${{ secrets.checkout_token || github.token }}
+          token: ${{ steps.app-token.outputs.token || secrets.checkout_token || github.token }}
 
       - name: Login to GitHub Container Registry
         if: inputs.docker_image != ''
@@ -2177,12 +2201,13 @@ jobs:
     if: inputs.enable_hardening && (inputs.select_jobs == 'all' || contains(inputs.select_jobs, 'hardening'))
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
+      - *checkout-app-token
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           submodules: ${{ inputs.checkout_submodules }}
-          token: ${{ secrets.checkout_token || github.token }}
+          token: ${{ steps.app-token.outputs.token || secrets.checkout_token || github.token }}
 
       - name: Login to GitHub Container Registry
         if: inputs.docker_image != ''
@@ -2755,12 +2780,13 @@ jobs:
       BINSKIM_VERSION: 4.4.9.11
       BINSKIM_SHA256: 69678989cbc273b5b50fcf98fb0fd978e1e35a3f844acb24254b31f0ce90c447
     steps:
+      - *checkout-app-token
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           submodules: ${{ inputs.checkout_submodules }}
-          token: ${{ secrets.checkout_token || github.token }}
+          token: ${{ steps.app-token.outputs.token || secrets.checkout_token || github.token }}
 
       - name: Login to GitHub Container Registry
         if: inputs.docker_image != ''

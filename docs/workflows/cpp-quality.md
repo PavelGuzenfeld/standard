@@ -133,3 +133,5 @@
 ## Secrets
 
 `checkout_token` (optional): token for actions/checkout and its submodule fetch, for callers with private submodules. Defaults to GITHUB_TOKEN.
+
+`app_id` and `app_private_key` (optional): GitHub App credentials for checkout in the caller's organization. When provided, each job mints a short-lived token with read-only contents access. This token takes precedence over `checkout_token`; callers without App credentials retain the existing fallback.
